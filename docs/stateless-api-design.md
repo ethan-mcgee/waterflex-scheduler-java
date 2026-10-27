@@ -6,9 +6,9 @@ Status: implemented (2026-10-09). The scheduler serves only the public API (`/ap
 
 The scheduler becomes an add-on to WaterFlex Software. WaterFlex Software owns master data (customers, addresses, jobs, appointments, technicians, qualifications, shifts, time off, depots) and the business record of every appointment. The scheduler owns only what it must to keep customer promises safe under concurrency:
 
-- booking holds and reservation arrangements,
-- offer sets and proposals it issued, keyed by host IDs and an input revision hash,
-- attempt and outcome receipts.
+- booking holds and reservation arrangements
+- offer sets and proposals it issued, keyed by host IDs and an input revision hash
+- attempt and outcome receipts
 
 Calculation (solver) and routing are stateless: complete data in, results out. This is the "thin scheduler store" option chosen by the owner on 2026-10-07.
 
@@ -16,32 +16,34 @@ The product has no end-user screens of its own. WaterFlex Software renders all m
 
 ## What exists
 
-| Piece | State |
-| --- | --- |
-| Strict daily dataset | `DailyDataset` parses a complete day (technicians, visits, windows, rates, policy versions, indexed locations and directed roads) with duplicate-key, unknown-field, index and road-completeness checks. |
-| Strict booking dataset | `BookingDataset` encodes a complete booking snapshot the same way. |
-| Calculation service | `solver-service` accepts a hashed `CalculationProtocol.Request` (`DAILY` or `BOOKING`), runs the shared `calculation-engine`, and returns a proposal. No database. Bearer token auth, admission limits, `DELETE /v1/solves/{id}` cancellation. |
-| Routing service | `routing-service` turns points into directed legs (`/internal/matrix`, `/internal/legs`) with a routing identity hash. No database; in-memory cache only. Computation endpoints require the `ROUTING_AUTH_TOKEN` bearer token; `/health` is open. |
-| Scheduler | `scheduler-service` serves `/api/v1`. Every calculating call carries a snapshot of the facts it needs; the scheduler routes it through the metro's routing service, calls the engine (embedded by default, remote optional), revalidates the result, and keeps only holds, offers, proposals and receipts. Java reads 11 tables: `tenant`, `tenant_api_token`, the eight `api_*` tables and `road_route_cache`. They live in the scheduler's own database, which it creates and migrates itself (Flyway, `--command=migrate`); `SchemaContractIT` checks the columns, policies and grants Java relies on. It reads no master data and holds no policy settings. |
-| Geocoding | Self-hosted Nominatim (`NOMINATIM_URL`) over OpenStreetMap. The portal matches and validates addresses itself; the scheduler can locate address-only locations (`geocoding.mode=NOMINATIM`, see "Locations and geocoding"). No paid geocoding or matrix API. |
-| Portal | `web/` owns the master data (clients, dealerships, depots, technicians, customers, jobs, appointments, time off) and calls only `/api/v1`, as WaterFlex Software will (see "Portal as a client"). |
+Each piece of the design and its state:
+
+- **Strict daily dataset:** `DailyDataset` parses a complete day (technicians, visits, windows, rates, policy versions, indexed locations and directed roads) with duplicate-key, unknown-field, index and road-completeness checks.
+- **Strict booking dataset:** `BookingDataset` encodes a complete booking snapshot the same way.
+- **Calculation service:** `solver-service` accepts a hashed `CalculationProtocol.Request` (`DAILY` or `BOOKING`), runs the shared `calculation-engine`, and returns a proposal. No database. Bearer token auth, admission limits, `DELETE /v1/solves/{id}` cancellation.
+- **Routing service:** `routing-service` turns points into directed legs (`/internal/matrix`, `/internal/legs`) with a routing identity hash. No database; in-memory cache only. Computation endpoints require the `ROUTING_AUTH_TOKEN` bearer token; `/health` is open.
+- **Scheduler:** `scheduler-service` serves `/api/v1`. Every calculating call carries a snapshot of the facts it needs; the scheduler routes it through the metro's routing service, calls the engine (embedded by default, remote optional), revalidates the result, and keeps only holds, offers, proposals and receipts. Java reads 11 tables: `tenant`, `tenant_api_token`, the eight `api_*` tables and `road_route_cache`. They live in the scheduler's own database, which it creates and migrates itself (Flyway, `--command=migrate`); `SchemaContractIT` checks the columns, policies and grants Java relies on. It reads no master data and holds no policy settings.
+- **Geocoding:** Self-hosted Nominatim (`NOMINATIM_URL`) over OpenStreetMap. The portal matches and validates addresses itself; the scheduler can locate address-only locations (`geocoding.mode=NOMINATIM`, see "Locations and geocoding"). No paid geocoding or matrix API.
+- **Portal:** `web/` owns the master data (clients, dealerships, depots, technicians, customers, jobs, appointments, time off) and calls only `/api/v1`, as WaterFlex Software will (see "Portal as a client").
 
 What remains is outside this repository: WaterFlex Software itself calling the API (see "Migration").
 
 ## Target architecture
 
-```
-WaterFlex Software  --(snapshot + request)-->  scheduler API  --(dataset)-->  calculation engine (embedded)
-        ^                                           |  ^
-        |                                           |  +--(points)--> routing service for the job's metro
-        +------(proposal / offers / receipts)-------+
-                                                    |
-                                              thin store (holds, offers, proposals, receipts, route cache)
+WaterFlex Software sends a snapshot with each request; the scheduler API calculates on it, asks the metro's routing service for road points and keeps only a thin store.
+
+```text
+WaterFlex Software --(snapshot + request)--> scheduler API --(dataset)--> calculation engine
+        ^                                         |  ^                    (embedded)
+        |                                         |  +--(points)--> metro's routing service
+        +------(proposal / offers / receipts)-----+
+                                                  |
+                                       thin store (holds, offers, proposals, receipts, route cache)
 ```
 
 The scheduler API is the only public surface. Calculation and routing stay private.
 
-## Deployment (Decided)
+## Deployment (decided)
 
 - The scheduler and routing services run on their own VMs on the same private network as the rest of WaterFlex Software. Nothing is exposed to the public internet.
 - The solver stays embedded in `scheduler-service` (`SCHEDULER_CALCULATION_MODE=EMBEDDED`, the default today). Moving it out is a configuration change, not a redesign; see "Scaling".
@@ -66,74 +68,140 @@ Public routes live under `/api/v1/`; the scheduler serves no other routes except
 
 Every calculating call carries a snapshot of the facts it needs:
 
-- technicians: host ID, departure and return location, shift, paid and overtime limits, qualifications, absences, and the host's `lastModified` timestamp per technician-day,
-- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence, current planned start,
-- rates, and the client's policy choices (fairness budget, daily search method and times, booking deadline and window threshold),
-- locations as coordinates (see "Locations and geocoding").
+- technicians: host ID, departure and return location, shift, paid and overtime limits, qualifications, absences, and the host's `lastModified` timestamp per technician-day
+- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence, current planned start
+- rates, and the client's policy choices (fairness budget, daily search method and times, booking deadline and window threshold)
+- locations as coordinates (see "Locations and geocoding")
 
 The scheduler computes a canonical content hash of the snapshot (the input revision). Every proposal and offer records it.
 
 ### Endpoints
 
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/v1/daily/proposals` | Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store. |
-| `POST /api/v1/daily/proposals/{id}/commit` | Host sends its current timestamp for every technician-day the proposal covers. Equal timestamps mean the facts the proposal was computed and validated from are unchanged, so the scheduler checks the 6 a.m. cutoff again and returns a commit receipt with every assignment on the proposal's routes. 409 if anything changed; nothing is changed then. |
-| `POST /api/v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns at most the request's `offerLimit` offers (1 to 4, the client's own cap), each an arrival window `windowHours` long (1 to 8, the client's own length), and holds each for 10 minutes in the thin store. |
-| `POST /api/v1/booking/offers/{id}/select` and `/release` | Keep the chosen hold and release its siblings, or release the whole set. |
-| `POST /api/v1/booking/holds/{id}/confirm` | Host sends its current snapshot of the hold's date; scheduler reconciles it with its holds, turns the selected hold into the job's appointment, and returns the appointments to write. |
-| `POST /api/v1/repairs/proposals` | Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. Served (`DailyProposals.repair`). |
-| `POST /api/v1/routes/evaluate` | Times one metro day's routes in their given order and reports whether the day holds; nothing is optimized or stored. |
-| `POST /api/v1/routes/geometry` | Draws one metro day's routes on roads in their given order; nothing is stored. |
-| `GET /api/v1/whoami` | The tenant the token belongs to. |
-| `DELETE /api/v1/requests/{requestId}` | Best-effort cancellation of a daily or repair proposal, booking search or confirm still running on this replica (`RunningRequests`): 202 without a body, or 404. The cancelled call answers 409 `CANCELLED`, stores nothing and releases its `requestId`. |
+The public endpoints and what each does:
+
+- **`POST /api/v1/daily/proposals`:** Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store.
+- **`POST /api/v1/daily/proposals/{id}/commit`:** Host sends its current timestamp for every technician-day the proposal covers. Equal timestamps mean the facts the proposal was computed and validated from are unchanged, so the scheduler checks the 6 a.m. cutoff again and returns a commit receipt with every assignment on the proposal's routes. 409 if anything changed; nothing is changed then.
+- **`POST /api/v1/booking/offers`:** Snapshot of the booking horizon plus the job to book. Returns at most the request's `offerLimit` offers (1 to 4, the client's own cap), each an arrival window `windowHours` long (1 to 8, the client's own length), and holds each for 10 minutes in the thin store.
+- **`POST /api/v1/booking/offers/{id}/select` and `/release`:** Keep the chosen hold and release its siblings, or release the whole set.
+- **`POST /api/v1/booking/holds/{id}/confirm`:** Host sends its current snapshot of the hold's date; scheduler reconciles it with its holds, turns the selected hold into the job's appointment, and returns the appointments to write.
+- **`POST /api/v1/repairs/proposals`:** Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. Served (`DailyProposals.repair`).
+- **`POST /api/v1/routes/evaluate`:** Times one metro day's routes in their given order and reports whether the day holds; nothing is optimized or stored.
+- **`POST /api/v1/routes/geometry`:** Draws one metro day's routes on roads in their given order; nothing is stored.
+- **`GET /api/v1/whoami`:** The tenant the token belongs to.
+- **`DELETE /api/v1/requests/{requestId}`:** Best-effort cancellation of a daily or repair proposal, booking search or confirm still running on this replica (`RunningRequests`): 202 without a body, or 404. The cancelled call answers 409 `CANCELLED`, stores nothing and releases its `requestId`.
 
 ### Contract changes
 
 Version 1.0.0 (2026-10-13) is the first stable contract: everything in this table up to it. From 1.0.0 on, changes within v1 are additive only (a new operation, optional request field, response field, error code or enum value), raise the minor version, and are listed here and in the spec's version history before they are deployed; a breaking change is published as `/api/v2` beside v1.
 
-| Change | Since | What WaterFlex Software does |
-| --- | --- | --- |
-| The error code `SERVICE_UNAVAILABLE`: any operation answers 503 with `Retry-After` and a `Problem` when the scheduler cannot check the token, where it answered a bare 500; every operation now lists 503 (spec 1.8.0) | every operation | A reader that rejects unknown `error` values takes the new code first; treat it like the other 503s and send the same call again after `Retry-After`. |
-| The cost rates narrow to what the scheduler prices exactly in integer arithmetic: `regularHourly` and `overtimeHourly` at most 500, `mileagePerMile` at most 25, each with at most four decimal places (`HourlyRate`, `MileageRate`); anything else is refused with 400 `INVALID_REQUEST`. Cents for every rate still accepted are unchanged (spec 1.7.0, the one narrowing allowed within v1) | every calculating call | Before the scheduler is upgraded, confirm no stored or sent rate is outside the range (the portal's columns already keep four places and now carry the caps as CHECK constraints) and validate rate entry to the same bounds. |
-| Optional `Policy.unimprovedSearchSeconds` ends a daily cost or fairness search once its best plan has not improved for that long (1 to `costSearchSeconds`; a repair always spends its time); `dailySearch` gains `TABU_KOPT_SIZE_3` (spec 1.6.0) | daily search termination | Nothing required. A client that wants daily proposals to answer early when the day settles sends the field; a strict reader of `dailySearch` takes the new value before a client chooses it. |
-| Request bodies over 8 MiB answer 413 with `INVALID_REQUEST` before anything is claimed (spec 1.5.1). Service shell: a stopping replica drains its calls and hands queued jobs still running back to the queue; the solver pool's `/health` reports its load and answers 503 for a stuck solve; a metro may list several routing replicas; per-phase timers in Prometheus | service shell reliability | Treats a 413 as final for that body: send less in one call. Nothing else changes for a host. |
-| Routing performance: each map version carries a contraction hierarchy graph that the routing service serves by default (`ROUTING_CH_ENABLED`), a request's pairs are routed in parallel (`ROUTING_PARALLELISM`), and the scheduler remembers a routing identity for 2 s (`ROUTING_IDENTITY_TTL_MS`) and fetches legs on 8 workers | J | Nothing required; no contract or schema change. The routing identity differs between the CH and flexible graphs, so the first start on CH begins with cold route caches. A map version prepared before this change needs its CH graph prepared before activation. |
-| Confirm priority in admission: a confirm starts before any waiting search, is never evicted from a full queue, and may take a confirm-only slot beyond the search capacity (`SCHEDULER_SEARCH_CONFIRM_SLOTS`, default 1); each VM pool's JVM flags are a setting (`SCHEDULER_BOOKING_JAVA_OPTIONS`, `SCHEDULER_DAILY_JAVA_OPTIONS`) | J2 | Nothing required; no contract or schema change. Confirm caller p50 fell from 116 ms to 20 ms under 5 desks (docs/api-load.md, "Confirm priority and JVM settings"). |
-| Scoring speed: the daily search's route scoring looks legs up by endpoint number with buffered minutes precomputed per fact revision and builds no arrival maps on the score-only path (`RoadMatrix`, `RouteTimeline`, `RouteTimingSearch`); the benchmark harness records one JFR file per solve (`benchmark.jfr`) | L | Nothing required; no contract, schema or policy change. The same moves score the same (`ScoringExactnessTest`); a 5 s search evaluates 1.5 to 2 times the moves it did (docs/solver-benchmarks.md, "Solve-scoped profiling and the CR07 treatment"). |
-| `Policy.bookingRefinementMs` may be up to 3000; `OfferSet.refinementStop` says what ended a SHORTENED refinement (CAP or DEADLINE) and `OfferSet.regularWindowsFound` how many distinct regular windows the first pass found (spec 1.5.0); the publish reserve is a setting (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`, 800 to 1000) and the request log attributes the commit phase (`commitMs`); the database pool is a setting (`SCHEDULER_DB_POOL_SIZE`) checked against the search capacity at startup | booking configuration study | Nothing required. A strict reader takes 1.5.0 before the upgrade. Both OfferSet fields are optional and absent on a replay from before 1.5.0. |
-| `cancelRequest` stops a synchronous call from any replica: a replica that does not run it records the cancel on the request's claim, and the replica running it stops the call within about a second (spec 1.4.1). Replica roles (`SCHEDULER_ROLE`), several background calculations per daily replica (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`), and the VM compose's booking and daily pools behind one nginx address | #158 | Nothing required; no schema changes. The DELETE no longer needs routing to the replica that runs the call. Migration V3 adds `api_request."cancelRequestedAt"` and `scheduler_cancel_requested`; a rollback leaves them unread. |
-| Daily and repair proposals accept `Prefer: respond-async` (202 with a `RequestStatus`, polled at `GET /api/v1/requests/{requestId}`); queued requests are taken round-robin across tenants by any replica; `cancelRequest` reaches queued requests from any replica; booking slots are shared fairly between clients (spec 1.4.0) | #157 | Nothing required. A strict reader takes 1.4.0 before the upgrade. A host may queue overnight and background proposals instead of holding calls open. Migration V2 adds `api_daily_job` and `api_tenant_turn`; a rollback leaves them unread. |
-| `OfferSet.incompleteDates` lists the dates a needed pass did not finish; `refinement` gains `SHED`; optional `Policy.bookingRefinementMs` (spec 1.3.0) | #155 | Nothing required. A strict reader takes 1.3.0 before the upgrade. A host may narrow a repeated search to the dates after the last complete one, and may send its own optional refinement budget. Each window's coverage in the calculation protocol now says whether that window's own work finished, so an older remote `solver-service` only under-reports finished dates. |
-| `OfferSet.refinement` reports how the booking refinement ended; `searchComplete` is false only when the deadline or a failure stopped a pass the offers need (spec 1.2.0) | #154 | Nothing required. A strict reader takes 1.2.0 before the upgrade. A host that read `searchComplete: false` as "search other dates" now sees it only when the offers really may be missing windows; `refinement` is for monitoring. |
-| Booking offers and confirm answer 409 `STALE` for a snapshot older than one already used (spec 1.1.0) | #152 | Treats it like a commit's `STALE`: rebuilds the snapshot from current records and sends it with a new `requestId`. Nothing changed and no hold was lost; `changed` lists the newest timestamp the scheduler has seen for each technician-day concerned. |
-| Spec version 1.0.0; every operation served; integration guide | #150 | Builds against [docs/integration-guide.md](integration-guide.md) and proves the integration with the host conformance kit (`infra/host-conformance`). No field changed. |
-| `TechnicianDay.absences` is required | #88 | An empty list when the technician has no absence that day. A missing list is rejected, never read as "no absences". |
-| `Appointment.plannedStart` is required | #89 | The appointment's currently planned arrival, as an instant. The solver records it as the appointment's original start, and proposals report moves against it. A missing value is rejected, never guessed. |
-| `DailyProposal.reason` and `DailyProposal.skippedTechnicianDays` added | #96 | Reads `reason` to see why the scheduler decided as it did. Leaves every technician-day in `skippedTechnicianDays` exactly as it is (it is not in `routes`), and sends coordinates for the location its `message` names to include it next time. |
-| `Snapshot.policy.fairnessBudget` is required | #97 | Sends each client's own fairness budget: "0" for none, or a share such as "0.02" (2 percent) by which the daily plan's cost may rise to spread work more evenly. A missing value is rejected, never assumed. |
-| `DailyProposal.reason` begins with the policy code | #138 | Nothing required. A host that wants the code takes the text before the first colon (for example `NO_POLICY_IMPROVEMENT`); the text after it is for people. Decisions without a policy judgement stay a sentence. |
-| `Snapshot.policy.dailySearch`, `costSearchSeconds` and `fairnessSearchSeconds` are required | #133 | Sends each client's daily search method (`TABU_KOPT` or `TABU`) and how many seconds the cost search (5 to 240) and the fairness search (0 to 240, 0 skips it) may run, at most 240 together. A proposal request then takes about that long plus up to 5 seconds. Missing values are rejected, never assumed. |
-| Thin store rows purged after the deployment's retention period | #142 | Keeps its own copy of any receipt it needs beyond `SCHEDULER_RETENTION_DAYS`. A `requestId` older than the period is no longer remembered: repeating it runs a new request, so retries belong within the period (they normally come within seconds). |
-| `LocatedStop.source` added to route geometry | #141 | Reads `source` on each drawn stop: `HOST` when the snapshot sent the coordinates, `NOMINATIM` when the scheduler located an address. A strict reader must accept the new required field. |
-| `DELETE /api/v1/requests/{requestId}` served; new error `CANCELLED` | #140 | Cancels a call it no longer needs by its `requestId` (202, or 404 when nothing is running under it on that replica). The cancelled call answers 409 `CANCELLED`; nothing was stored, and retrying with the same `requestId` runs it again. |
-| `Snapshot.policy.bookingDeadlineMs` and `regularWindowThreshold` are required | #139 | Sends each client's booking search deadline (1000 to 5000 ms; a booking search or confirm answers within it, with `searchComplete` false when it was cut short) and window threshold (0 to 1000: when the first booking pass finds more distinct regular windows than this, the refinement pass is kept short). The scheduler's shared settings are gone, and missing values are rejected, never assumed. The calculation protocol moves to version 3 with this change, so the scheduler and a remote `solver-service` are deployed together. |
-| Repeated and reused `requestId` | #96 | Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400. |
-| Daily commit served; 409 split into `STALE` and `NOT_COMMITTABLE`; 422 after the cutoff | #98 | Sends the current `lastModified` of every technician-day the proposal covers, skipped ones included (a missing or extra one is a 400). On 200, writes every assignment in the receipt with a compare-and-set on the receipt's timestamps. On `STALE`, requests a new proposal. On `NOT_COMMITTABLE`, does nothing: the proposal was already committed (the message names the receipt) or its decision is not `IMPROVED`. On 422, the day's routes are frozen. |
-| Booking horizon at most 21 dates; `job.id` must differ from every appointment and technician ID | #99 | Sends a horizon of 1 to 21 dates. Uses a job ID that is not already an appointment or technician ID in the snapshot; a clash is a 400. |
-| Repair proposals served | #104 | Sends the absence and the snapshot of its date. Commits an `IMPROVED` repair with the daily commit endpoint, then records the absence itself. Any other decision means the absence cannot be covered without overtime or leaving an appointment unplaced, so a dispatcher resolves it. |
-| Address-only locations can be located (deployment option `geocoding.mode=NOMINATIM`) | #103 | Nothing required. Sending coordinates is still best. With the option on, an address-only location is located only as an exact house; a lookup outage is a 503 `ROUTING_UNAVAILABLE` to retry. |
-| Confirm sends `{requestId, snapshot}`; a confirmed job's appointment ID is its job ID | #102 | Selects an offer, then confirms its hold with the current snapshot of the hold's metro and date (no other dates). Writes every appointment in the receipt with a compare-and-set on the listed technician-day timestamps, creating the job's appointment under the job's ID. A 409 `HOLD_UNAVAILABLE` (expired, lost, not selected, or the day would need overtime or repair) or a failed write means search again. Confirming again returns the same receipt. |
-| `BookingOffersRequest.offerLimit` is required | #101 | Sends each client's own cap on offers per search, 1 to 4. A missing or out-of-range value is a 400, never assumed. |
-| `BookingOffersRequest.windowHours` is required | | Sends each client's own arrival window length in whole hours, 1 to 8. Windows start on the hour. A missing or out-of-range value is a 400, never assumed. |
-| Select and release served; new error `HOLD_UNAVAILABLE` | #101 | Treats a 409 `HOLD_UNAVAILABLE` from select as "search again": the hold expired or ended, or another offer in the set was selected. Releases a set it no longer needs; a release is a 200 even when nothing was still held. |
-| Booking offers served; `OfferSet.skippedTechnicianDays` added | #100 | Reads `skippedTechnicianDays`: nothing is offered on those technician-days until their locations have coordinates. Starts the horizon after any date already past 6 a.m. local (a frozen date is a 422). Treats a new search for a job as replacing that job's earlier offers, which are no longer held. Retries a 429 or 503 with the same `requestId`. |
+- **The error code `SERVICE_UNAVAILABLE`: any operation answers 503 with `Retry-After` and a `Problem` when the scheduler cannot check the token, where it answered a bare 500; every operation now lists 503 (spec 1.8.0)**
+  - **Since:** every operation.
+  - **What WaterFlex Software does:** A reader that rejects unknown `error` values takes the new code first; treat it like the other 503s and send the same call again after `Retry-After`.
+- **The cost rates narrow to what the scheduler prices exactly in integer arithmetic: `regularHourly` and `overtimeHourly` at most 500, `mileagePerMile` at most 25, each with at most four decimal places (`HourlyRate`, `MileageRate`); anything else is refused with 400 `INVALID_REQUEST`. Cents for every rate still accepted are unchanged (spec 1.7.0, the one narrowing allowed within v1)**
+  - **Since:** every calculating call.
+  - **What WaterFlex Software does:** Before the scheduler is upgraded, confirm no stored or sent rate is outside the range (the portal's columns already keep four places and now carry the caps as CHECK constraints) and validate rate entry to the same bounds.
+- **Optional `Policy.unimprovedSearchSeconds` ends a daily cost or fairness search once its best plan has not improved for that long (1 to `costSearchSeconds`; a repair always spends its time); `dailySearch` gains `TABU_KOPT_SIZE_3` (spec 1.6.0)**
+  - **Since:** daily search termination.
+  - **What WaterFlex Software does:** Nothing required. A client that wants daily proposals to answer early when the day settles sends the field; a strict reader of `dailySearch` takes the new value before a client chooses it.
+- **Request bodies over 8 MiB answer 413 with `INVALID_REQUEST` before anything is claimed (spec 1.5.1). Service shell: a stopping replica drains its calls and hands queued jobs still running back to the queue; the solver pool's `/health` reports its load and answers 503 for a stuck solve; a metro may list several routing replicas; per-phase timers in Prometheus**
+  - **Since:** service shell reliability.
+  - **What WaterFlex Software does:** Treats a 413 as final for that body: send less in one call. Nothing else changes for a host.
+- **Routing performance: each map version carries a contraction hierarchy graph that the routing service serves by default (`ROUTING_CH_ENABLED`), a request's pairs are routed in parallel (`ROUTING_PARALLELISM`), and the scheduler remembers a routing identity for 2 s (`ROUTING_IDENTITY_TTL_MS`) and fetches legs on 8 workers**
+  - **Since:** J.
+  - **What WaterFlex Software does:** Nothing required; no contract or schema change. The routing identity differs between the CH and flexible graphs, so the first start on CH begins with cold route caches. A map version prepared before this change needs its CH graph prepared before activation.
+- **Confirm priority in admission: a confirm starts before any waiting search, is never evicted from a full queue, and may take a confirm-only slot beyond the search capacity (`SCHEDULER_SEARCH_CONFIRM_SLOTS`, default 1); each VM pool's JVM flags are a setting (`SCHEDULER_BOOKING_JAVA_OPTIONS`, `SCHEDULER_DAILY_JAVA_OPTIONS`)**
+  - **Since:** J2.
+  - **What WaterFlex Software does:** Nothing required; no contract or schema change. Confirm caller p50 fell from 116 ms to 20 ms under 5 desks (docs/api-load.md, "Confirm priority and JVM settings").
+- **Scoring speed: the daily search's route scoring looks legs up by endpoint number with buffered minutes precomputed per fact revision and builds no arrival maps on the score-only path (`RoadMatrix`, `RouteTimeline`, `RouteTimingSearch`); the benchmark harness records one JFR file per solve (`benchmark.jfr`)**
+  - **Since:** L.
+  - **What WaterFlex Software does:** Nothing required; no contract, schema or policy change. The same moves score the same (`ScoringExactnessTest`); a 5 s search evaluates 1.5 to 2 times the moves it did (docs/solver-benchmarks.md, "Solve-scoped profiling and the CR07 treatment").
+- **`Policy.bookingRefinementMs` may be up to 3000; `OfferSet.refinementStop` says what ended a SHORTENED refinement (CAP or DEADLINE) and `OfferSet.regularWindowsFound` how many distinct regular windows the first pass found (spec 1.5.0); the publish reserve is a setting (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`, 800 to 1000) and the request log attributes the commit phase (`commitMs`); the database pool is a setting (`SCHEDULER_DB_POOL_SIZE`) checked against the search capacity at startup**
+  - **Since:** booking configuration study.
+  - **What WaterFlex Software does:** Nothing required. A strict reader takes 1.5.0 before the upgrade. Both OfferSet fields are optional and absent on a replay from before 1.5.0.
+- **`cancelRequest` stops a synchronous call from any replica: a replica that does not run it records the cancel on the request's claim, and the replica running it stops the call within about a second (spec 1.4.1). Replica roles (`SCHEDULER_ROLE`), several background calculations per daily replica (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`), and the VM compose's booking and daily pools behind one nginx address**
+  - **Since:** #158.
+  - **What WaterFlex Software does:** Nothing required; no schema changes. The DELETE no longer needs routing to the replica that runs the call. Migration V3 adds `api_request."cancelRequestedAt"` and `scheduler_cancel_requested`; a rollback leaves them unread.
+- **Daily and repair proposals accept `Prefer: respond-async` (202 with a `RequestStatus`, polled at `GET /api/v1/requests/{requestId}`); queued requests are taken round-robin across tenants by any replica; `cancelRequest` reaches queued requests from any replica; booking slots are shared fairly between clients (spec 1.4.0)**
+  - **Since:** #157.
+  - **What WaterFlex Software does:** Nothing required. A strict reader takes 1.4.0 before the upgrade. A host may queue overnight and background proposals instead of holding calls open. Migration V2 adds `api_daily_job` and `api_tenant_turn`; a rollback leaves them unread.
+- **`OfferSet.incompleteDates` lists the dates a needed pass did not finish; `refinement` gains `SHED`; optional `Policy.bookingRefinementMs` (spec 1.3.0)**
+  - **Since:** #155.
+  - **What WaterFlex Software does:** Nothing required. A strict reader takes 1.3.0 before the upgrade. A host may narrow a repeated search to the dates after the last complete one, and may send its own optional refinement budget. Each window's coverage in the calculation protocol now says whether that window's own work finished, so an older remote `solver-service` only under-reports finished dates.
+- **`OfferSet.refinement` reports how the booking refinement ended; `searchComplete` is false only when the deadline or a failure stopped a pass the offers need (spec 1.2.0)**
+  - **Since:** #154.
+  - **What WaterFlex Software does:** Nothing required. A strict reader takes 1.2.0 before the upgrade. A host that read `searchComplete: false` as "search other dates" now sees it only when the offers really may be missing windows; `refinement` is for monitoring.
+- **Booking offers and confirm answer 409 `STALE` for a snapshot older than one already used (spec 1.1.0)**
+  - **Since:** #152.
+  - **What WaterFlex Software does:** Treats it like a commit's `STALE`: rebuilds the snapshot from current records and sends it with a new `requestId`. Nothing changed and no hold was lost; `changed` lists the newest timestamp the scheduler has seen for each technician-day concerned.
+- **Spec version 1.0.0; every operation served; integration guide**
+  - **Since:** #150.
+  - **What WaterFlex Software does:** Builds against [docs/integration-guide.md](integration-guide.md) and proves the integration with the host conformance kit (`infra/host-conformance`). No field changed.
+- **`TechnicianDay.absences` is required**
+  - **Since:** #88.
+  - **What WaterFlex Software does:** An empty list when the technician has no absence that day. A missing list is rejected, never read as "no absences".
+- **`Appointment.plannedStart` is required**
+  - **Since:** #89.
+  - **What WaterFlex Software does:** The appointment's currently planned arrival, as an instant. The solver records it as the appointment's original start, and proposals report moves against it. A missing value is rejected, never guessed.
+- **`DailyProposal.reason` and `DailyProposal.skippedTechnicianDays` added**
+  - **Since:** #96.
+  - **What WaterFlex Software does:** Reads `reason` to see why the scheduler decided as it did. Leaves every technician-day in `skippedTechnicianDays` exactly as it is (it is not in `routes`), and sends coordinates for the location its `message` names to include it next time.
+- **`Snapshot.policy.fairnessBudget` is required**
+  - **Since:** #97.
+  - **What WaterFlex Software does:** Sends each client's own fairness budget: "0" for none, or a share such as "0.02" (2 percent) by which the daily plan's cost may rise to spread work more evenly. A missing value is rejected, never assumed.
+- **`DailyProposal.reason` begins with the policy code**
+  - **Since:** #138.
+  - **What WaterFlex Software does:** Nothing required. A host that wants the code takes the text before the first colon (for example `NO_POLICY_IMPROVEMENT`); the text after it is for people. Decisions without a policy judgement stay a sentence.
+- **`Snapshot.policy.dailySearch`, `costSearchSeconds` and `fairnessSearchSeconds` are required**
+  - **Since:** #133.
+  - **What WaterFlex Software does:** Sends each client's daily search method (`TABU_KOPT` or `TABU`) and how many seconds the cost search (5 to 240) and the fairness search (0 to 240, 0 skips it) may run, at most 240 together. A proposal request then takes about that long plus up to 5 seconds. Missing values are rejected, never assumed.
+- **Thin store rows purged after the deployment's retention period**
+  - **Since:** #142.
+  - **What WaterFlex Software does:** Keeps its own copy of any receipt it needs beyond `SCHEDULER_RETENTION_DAYS`. A `requestId` older than the period is no longer remembered: repeating it runs a new request, so retries belong within the period (they normally come within seconds).
+- **`LocatedStop.source` added to route geometry**
+  - **Since:** #141.
+  - **What WaterFlex Software does:** Reads `source` on each drawn stop: `HOST` when the snapshot sent the coordinates, `NOMINATIM` when the scheduler located an address. A strict reader must accept the new required field.
+- **`DELETE /api/v1/requests/{requestId}` served; new error `CANCELLED`**
+  - **Since:** #140.
+  - **What WaterFlex Software does:** Cancels a call it no longer needs by its `requestId` (202, or 404 when nothing is running under it on that replica). The cancelled call answers 409 `CANCELLED`; nothing was stored, and retrying with the same `requestId` runs it again.
+- **`Snapshot.policy.bookingDeadlineMs` and `regularWindowThreshold` are required**
+  - **Since:** #139.
+  - **What WaterFlex Software does:** Sends each client's booking search deadline (1000 to 5000 ms; a booking search or confirm answers within it, with `searchComplete` false when it was cut short) and window threshold (0 to 1000: when the first booking pass finds more distinct regular windows than this, the refinement pass is kept short). The scheduler's shared settings are gone, and missing values are rejected, never assumed. The calculation protocol moves to version 3 with this change, so the scheduler and a remote `solver-service` are deployed together.
+- **Repeated and reused `requestId`**
+  - **Since:** #96.
+  - **What WaterFlex Software does:** Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400.
+- **Daily commit served; 409 split into `STALE` and `NOT_COMMITTABLE`; 422 after the cutoff**
+  - **Since:** #98.
+  - **What WaterFlex Software does:** Sends the current `lastModified` of every technician-day the proposal covers, skipped ones included (a missing or extra one is a 400). On 200, writes every assignment in the receipt with a compare-and-set on the receipt's timestamps. On `STALE`, requests a new proposal. On `NOT_COMMITTABLE`, does nothing: the proposal was already committed (the message names the receipt) or its decision is not `IMPROVED`. On 422, the day's routes are frozen.
+- **Booking horizon at most 21 dates; `job.id` must differ from every appointment and technician ID**
+  - **Since:** #99.
+  - **What WaterFlex Software does:** Sends a horizon of 1 to 21 dates. Uses a job ID that is not already an appointment or technician ID in the snapshot; a clash is a 400.
+- **Repair proposals served**
+  - **Since:** #104.
+  - **What WaterFlex Software does:** Sends the absence and the snapshot of its date. Commits an `IMPROVED` repair with the daily commit endpoint, then records the absence itself. Any other decision means the absence cannot be covered without overtime or leaving an appointment unplaced, so a dispatcher resolves it.
+- **Address-only locations can be located (deployment option `geocoding.mode=NOMINATIM`)**
+  - **Since:** #103.
+  - **What WaterFlex Software does:** Nothing required. Sending coordinates is still best. With the option on, an address-only location is located only as an exact house; a lookup outage is a 503 `ROUTING_UNAVAILABLE` to retry.
+- **Confirm sends `{requestId, snapshot}`; a confirmed job's appointment ID is its job ID**
+  - **Since:** #102.
+  - **What WaterFlex Software does:** Selects an offer, then confirms its hold with the current snapshot of the hold's metro and date (no other dates). Writes every appointment in the receipt with a compare-and-set on the listed technician-day timestamps, creating the job's appointment under the job's ID. A 409 `HOLD_UNAVAILABLE` (expired, lost, not selected, or the day would need overtime or repair) or a failed write means search again. Confirming again returns the same receipt.
+- **`BookingOffersRequest.offerLimit` is required**
+  - **Since:** #101.
+  - **What WaterFlex Software does:** Sends each client's own cap on offers per search, 1 to 4. A missing or out-of-range value is a 400, never assumed.
+- **`BookingOffersRequest.windowHours` is required**
+  - **Since:** #132.
+  - **What WaterFlex Software does:** Sends each client's own arrival window length in whole hours, 1 to 8. Windows start on the hour. A missing or out-of-range value is a 400, never assumed.
+- **Select and release served; new error `HOLD_UNAVAILABLE`**
+  - **Since:** #101.
+  - **What WaterFlex Software does:** Treats a 409 `HOLD_UNAVAILABLE` from select as "search again": the hold expired or ended, or another offer in the set was selected. Releases a set it no longer needs; a release is a 200 even when nothing was still held.
+- **Booking offers served; `OfferSet.skippedTechnicianDays` added**
+  - **Since:** #100.
+  - **What WaterFlex Software does:** Reads `skippedTechnicianDays`: nothing is offered on those technician-days until their locations have coordinates. Starts the horizon after any date already past 6 a.m. local (a frozen date is a 422). Treats a new search for a job as replacing that job's earlier offers, which are no longer held. Retries a 429 or 503 with the same `requestId`.
 
-### Latency target (Decided)
+### Latency target (decided)
 
 `POST /api/v1/booking/offers` must return offers within the client's `bookingDeadlineMs` (at most 5 seconds) end to end, measured at the WaterFlex caller; the host sets its own timeout a little above it (the portal adds 3 seconds). Measured on one machine on 2026-10-13 ([docs/api-load.md](api-load.md)): one booking desk meets it (p95 987 ms); five or more desks booking the same dates miss it at the caller because of the contention in "Remaining gaps", although each attempt answers within the deadline. Measuring it across the network, on the VM, is still to do.
 
-### Commit ownership and concurrency (Decided: host last-modified timestamps)
+### Commit ownership and concurrency (decided: host last-modified timestamps)
 
 The scheduler cannot lock rows it does not own, so commits use optimistic concurrency on both sides. WaterFlex Software already keeps a last-modified timestamp per technician and day; that timestamp is the concurrency token.
 
@@ -152,7 +220,7 @@ Rules WaterFlex Software must guarantee for the timestamp:
 
 This keeps the audit's rule (caller-side locked revalidation before apply) without the scheduler owning appointments. Step 4 makes the host responsible for the final atomic write, which is unavoidable once it owns the data.
 
-### Booking (Decided 2026-10-08)
+### Booking (decided 2026-10-08)
 
 The owner chose three things for the booking endpoints: confirm sends the day's snapshot, a search covers exactly the dates WaterFlex Software asks for, and an offer may move other customers' appointments to make room.
 
@@ -184,7 +252,7 @@ As built: only a selected hold can be confirmed, and the snapshot may hold techn
 
 **Holds.** Every offer holds its slot for 10 minutes. Selecting an offer keeps its hold and releases the others in its set. Releasing an offer releases its whole set. A new search for the same job supersedes the job's earlier offer set. Expired holds are dropped from the arrangement on its next use.
 
-## Locations and geocoding (Decided)
+## Locations and geocoding (decided)
 
 The scheduler keeps its local Nominatim geocoding and the current address flow. WaterFlex Software may geocode with Google Maps; the integration handles that as follows:
 
@@ -195,23 +263,23 @@ The scheduler keeps its local Nominatim geocoding and the current address flow. 
 - Small travel-time differences between a host coordinate and a Nominatim coordinate for the same address are expected. GraphHopper snaps every point to the nearest routable road either way; a point whose nearest road is not its access road (highway, back alley) can add travel time whichever geocoder produced it.
 - Because the product has no maps of its own, Google map display terms do not apply to the scheduler. WaterFlex Software should still confirm that its Google Maps Platform agreement allows Google-geocoded coordinates to be passed to a non-Google routing engine and held in the scheduler's caches. If it does not, the host sends addresses only and the scheduler geocodes with Nominatim.
 
-### Address quality (Decided)
+### Address quality (decided)
 
 An address reaches the solver only after it has been located with certainty. The scheduler never guesses a location.
 
-- **Formatting is standardized before matching.** Street types and their abbreviations (Street and St), directions (North and N), periods, capitals and spacing, state names and codes, numbered streets (First and 1st), unit designators on the street line (Apt 4, #4, Suite 200), highway and county road names (US-6, US Hwy 6, Co Rd 12), Saint and St at the start of a name, and half or ranged house numbers (123 1/2, 123-125) must all compare as equal when they mean the same place. Any of these the scheduler's address handling does not cover is a defect to fix.
-- **ZIP, house number and street decide a match.** All three must agree. The city may differ when the ZIP agrees, because many addresses carry a mailing city that is not the municipality the map uses.
-- **An uncertain match is rejected, never used.** The rejection names the location and the reason (house number not in the map, street differs, ZIP differs). WaterFlex Software can then send coordinates for that one location.
-- **One bad address affects only itself.** A booking request fails only for its own job. For a daily proposal, the technician-day that holds an appointment that cannot be located is left exactly as it is and reported as skipped, and every other technician-day is still optimized.
+- **Formatting is standardized before matching:** Street types and their abbreviations (Street and St), directions (North and N), periods, capitals and spacing, state names and codes, numbered streets (First and 1st), unit designators on the street line (Apt 4, #4, Suite 200), highway and county road names (US-6, US Hwy 6, Co Rd 12), Saint and St at the start of a name, and half or ranged house numbers (123 1/2, 123-125) must all compare as equal when they mean the same place. Any of these the scheduler's address handling does not cover is a defect to fix.
+- **ZIP, house number and street decide a match:** All three must agree. The city may differ when the ZIP agrees, because many addresses carry a mailing city that is not the municipality the map uses.
+- **An uncertain match is rejected, never used:** The rejection names the location and the reason (house number not in the map, street differs, ZIP differs). WaterFlex Software can then send coordinates for that one location.
+- **One bad address affects only itself:** A booking request fails only for its own job. For a daily proposal, the technician-day that holds an appointment that cannot be located is left exactly as it is and reported as skipped, and every other technician-day is still optimized.
 - Coordinates sent by WaterFlex Software skip all of this and are used as given.
 
-## Scaling (Decided: embedded first, configuration to scale out)
+## Scaling (decided: embedded first, configuration to scale out)
 
 Apply these levers in order, each only when measurements call for it. Signals: booking response time approaching 5 seconds, `SearchAdmission` rejections, sustained CPU saturation, overnight runs not finishing in their window.
 
-1. **More scheduler replicas behind a load balancer.** Works once no correctness state lives in replica memory (see "Multiple clients").
-2. **Separate roles from one artifact (in place, #158).** Run booking replicas (latency sensitive, short solves) apart from daily replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR; `SCHEDULER_ROLE` is `booking`, `daily` or `all` (the default). Every replica answers every route, so the role decides only which background work runs there: a booking replica takes no jobs from the daily queue, so a queued day never takes a slot its bookings need. A daily replica may run more than one daily calculation at once (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`, at most its search capacity; one by default), with as many queue workers. The load balancer sends `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals` and `GET`/`DELETE /api/v1/requests/{id}` to the daily pool and everything else to the booking pool; `deploy/vm/` does this with nginx. The pools scale apart (`SCHEDULER_BOOKING_REPLICAS`, `SCHEDULER_DAILY_REPLICAS`), each with its own CPU and memory, and `/health` names each replica's role. This removes the most likely CPU contention without a remote hop. Measured in [docs/api-load.md](api-load.md).
-3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Already in place: https with a service token for non-loopback solver URLs, and cancellation routed to the solving replica (below). The scheduler and solver must load the same Timefold core artifact; upgrade Timefold by bringing up the new solver pool beside the old one and switching the scheduler over (see "Remaining gaps"). The remote round trips (up to three per booking search today) must fit the 5 second budget. Measured 2026-10-14 (docs/api-load.md, "Embedded against remote calculation (K)"): a remote booking search costs 1.5 times the embedded one at the caller (the round trips), so this lever is for a daily pool, whose proposals take the same time with the solve CPU moved to the pool; a pool's capacity must be the replicas' search capacities summed and its background limit must cover the daily replicas (`SOLVER_CAPACITY`, `SOLVER_BACKGROUND_LIMIT`).
+1. **More scheduler replicas behind a load balancer:** Works once no correctness state lives in replica memory (see "Multiple clients").
+2. **Separate roles from one artifact (in place, #158):** Run booking replicas (latency sensitive, short solves) apart from daily replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR; `SCHEDULER_ROLE` is `booking`, `daily` or `all` (the default). Every replica answers every route, so the role decides only which background work runs there: a booking replica takes no jobs from the daily queue, so a queued day never takes a slot its bookings need. A daily replica may run more than one daily calculation at once (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`, at most its search capacity; one by default), with as many queue workers. The load balancer sends `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals` and `GET`/`DELETE /api/v1/requests/{id}` to the daily pool and everything else to the booking pool; `deploy/vm/` does this with nginx. The pools scale apart (`SCHEDULER_BOOKING_REPLICAS`, `SCHEDULER_DAILY_REPLICAS`), each with its own CPU and memory, and `/health` names each replica's role. This removes the most likely CPU contention without a remote hop. Measured in [docs/api-load.md](api-load.md).
+3. **Remote solver pool:** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Already in place: https with a service token for non-loopback solver URLs, and cancellation routed to the solving replica (below). The scheduler and solver must load the same Timefold core artifact; upgrade Timefold by bringing up the new solver pool beside the old one and switching the scheduler over (see "Remaining gaps"). The remote round trips (up to three per booking search today) must fit the 5 second budget. Measured 2026-10-14 (docs/api-load.md, "Embedded against remote calculation (K)"): a remote booking search costs 1.5 times the embedded one at the caller (the round trips), so this lever is for a daily pool, whose proposals take the same time with the solve CPU moved to the pool; a pool's capacity must be the replicas' search capacities summed and its background limit must cover the daily replicas (`SOLVER_CAPACITY`, `SOLVER_BACKGROUND_LIMIT`).
 
    Cancellation across solver replicas (exists today): every solve `POST` and its cancellation `DELETE` carry the solve's request ID in the `Solve-Request-Id` header, and `solver-service` rejects either call when the header is missing or does not match the request. The load balancer in front of the solver pool hashes on that header so both calls reach the same replica. For nginx:
 
@@ -227,21 +295,21 @@ Apply these levers in order, each only when measurements call for it. Signals: b
 
 Routing scales per metro by adding replicas of that metro's routing service behind its own internal address.
 
-## Multiple clients (Decided: one shared database, tenant on every row)
+## Multiple clients (decided: one shared database, tenant on every row)
 
 ### What is stored
 
 Client schedules are not stored in the scheduler. They stay in WaterFlex Software. The thin store holds only:
 
-| Data | Typical lifetime |
-| --- | --- |
-| Booking holds and reservation arrangements | Minutes, until confirmed, released or expired |
-| Offer sets and offers | Usable for hours, until selected or expired; the rows stay for the retention period |
-| Daily and repair proposals | Committable until committed or stale; the rows stay for the retention period |
-| Requests, commit and booking receipts | The retention period, then purged |
+| Data                                       | Typical lifetime                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Booking holds and reservation arrangements | Minutes, until confirmed, released or expired                                       |
+| Offer sets and offers                      | Usable for hours, until selected or expired; the rows stay for the retention period |
+| Daily and repair proposals                 | Committable until committed or stale; the rows stay for the retention period        |
+| Requests, commit and booking receipts      | The retention period, then purged                                                   |
+| Road route cache                           | Up to 30 days (see "Route cache")                                                   |
 
 The retention period is the deployment's `SCHEDULER_RETENTION_DAYS` (1 to 3650 days), required with no default: the scheduler does not start without it. A daily purge (03:45 America/Chicago, `scheduler.retention.cron`) deletes rows older than the period in batches of 5,000 through the database function `scheduler_purge`, children before parents. A row that a newer row still references (an old offer set whose offer was confirmed recently) stays until both have aged. The function refuses a cutoff less than a day old.
-| Road route cache | Up to 30 days (see "Route cache") |
 
 ### Tenant isolation
 
@@ -265,12 +333,26 @@ The retention period is the deployment's `SCHEDULER_RETENTION_DAYS` (1 to 3650 d
 
 Routing results are cached in four tiers today. None of them is a source of truth: every entry is recomputable from the road graph, and every entry is bound to a routing identity so a changed graph can never be mixed with old legs.
 
-| Tier | Where | Key | Lifetime and size | Shared by |
-| --- | --- | --- | --- | --- |
-| 1. In-flight dedup | `DirectedLegFlights` in `scheduler-service` | routing identity + directed pair | Until the routing call finishes; `routing.flights.threads` workers (8) and a queue of `routing.flights.queue` (64) | Concurrent requests in one replica |
-| 2. Scheduler memory | `RoadClient` LRU map | directed coordinate pair + routing identity | `routing.cache.ttl-minutes` (60) and `routing.cache.max-entries` (100,000); cleared when the routing identity changes | One replica |
-| 3. Scheduler database | `road_route_cache` table | `(originKey, destinationKey, profile, mapVersion)` | Read only if fetched in the last 30 days; weekly cleanup (`routing.cache.cleanup-cron`) deletes older rows and trims beyond 500,000 rows | All replicas |
-| 4. Routing memory | `MatrixController` LRU map in `routing-service` | directed coordinate pair | 60 minutes, 100,000 entries | All callers of that routing replica |
+- **1. In-flight dedup**
+  - **Where:** `DirectedLegFlights` in `scheduler-service`.
+  - **Key:** routing identity + directed pair.
+  - **Lifetime and size:** Until the routing call finishes; `routing.flights.threads` workers (8) and a queue of `routing.flights.queue` (64).
+  - **Shared by:** Concurrent requests in one replica.
+- **2. Scheduler memory**
+  - **Where:** `RoadClient` LRU map.
+  - **Key:** directed coordinate pair + routing identity.
+  - **Lifetime and size:** `routing.cache.ttl-minutes` (60) and `routing.cache.max-entries` (100,000); cleared when the routing identity changes.
+  - **Shared by:** One replica.
+- **3. Scheduler database**
+  - **Where:** `road_route_cache` table.
+  - **Key:** `(originKey, destinationKey, profile, mapVersion)`.
+  - **Lifetime and size:** Read only if fetched in the last 30 days; weekly cleanup (`routing.cache.cleanup-cron`) deletes older rows and trims beyond 500,000 rows.
+  - **Shared by:** All replicas.
+- **4. Routing memory**
+  - **Where:** `MatrixController` LRU map in `routing-service`.
+  - **Key:** directed coordinate pair.
+  - **Lifetime and size:** 60 minutes, 100,000 entries.
+  - **Shared by:** All callers of that routing replica.
 
 How a lookup works:
 
@@ -282,12 +364,12 @@ How a lookup works:
 
 Implications for the target design:
 
-- **Per metro (exists).** `MetroRouting` builds one `RoadClient` per metro from `ROUTING_METRO_URLS`, each with its own memory tier and routing identity, so a graph update in one metro clears only that metro's tier 2. Every public API request carries its metro, and an unconfigured metro fails. Each metro's routing identity differs, so tier 3 entries for different metros never collide. The single `ROUTING_URL` client remains only to run the weekly cleanup.
-- **Across clients.** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
-- **Across replicas.** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
-- **Health call per lookup (done, J).** The identity is remembered for 2 s per metro; the routing service's own check of the expected identity on every call keeps a changed graph detectable. Each map version carries a flexible graph and a contraction hierarchy graph (`graph-ch-car-v1`); the routing service serves the CH graph by default and routes a request's pairs in parallel. Measured in [docs/api-load.md](api-load.md), "Routing".
-- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes the oldest rows in batches of 50,000 until the table is within the 500,000 row cap (exists today).
-- **Moving tier 3 into routing.** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
+- **Per metro (exists):** `MetroRouting` builds one `RoadClient` per metro from `ROUTING_METRO_URLS`, each with its own memory tier and routing identity, so a graph update in one metro clears only that metro's tier 2. Every public API request carries its metro, and an unconfigured metro fails. Each metro's routing identity differs, so tier 3 entries for different metros never collide. The single `ROUTING_URL` client remains only to run the weekly cleanup.
+- **Across clients:** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
+- **Across replicas:** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
+- **Health call per lookup (done, J):** The identity is remembered for 2 s per metro; the routing service's own check of the expected identity on every call keeps a changed graph detectable. Each map version carries a flexible graph and a contraction hierarchy graph (`graph-ch-car-v1`); the routing service serves the CH graph by default and routes a request's pairs in parallel. Measured in [docs/api-load.md](api-load.md), "Routing".
+- **Cleanup on every replica:** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes the oldest rows in batches of 50,000 until the table is within the 500,000 row cap (exists today).
+- **Moving tier 3 into routing:** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
 
 ## Thin store
 
@@ -295,15 +377,13 @@ The public API got its own tables instead of a tenant column on the portal's boo
 
 Exists today, created by the scheduler's own migration `V1__thin_store.sql` (until 2026-10-29 these tables were created by the portal's Prisma migrations `20261009120000_public_api_store` to `20261014120000_public_api_repair`, in the portal's database):
 
-| Table | Holds |
-| --- | --- |
-| `api_request` | One row per host `requestId` per tenant: the operation, a SHA-256 of the canonical request, a 60 second claim lease, and the stored response once finished. A repeat with the same body replays the response; a different body is a conflict; an abandoned claim is taken over after its lease. Requests that failed for a passing reason (for example routing unavailable) release their claim so a retry runs again. |
-| `api_daily_proposal` | A served daily proposal: host metro, time zone and date, input revision, routing identity, status (`PROPOSED`, `COMMITTED`, `STALE`) and the proposal body. |
-| `api_proposal_technician_day` | The host `lastModified` of every technician-day a proposal covers, stored as exact ISO-8601 text so nanoseconds survive. A commit compares the host's current values with these. |
-| `api_commit_receipt` | The one commit of a proposal: receipt ID, the commit's `requestId`, and the receipt body (assignments and timestamps). Unique per proposal. |
-| `api_booking_day` | Each metro-day's booking state (`BookingDayState`): the common arrangement with every active hold, and per technician the host timestamp and the appointments WaterFlex Software is expected to have. Versioned; every write locks the row and checks the version the search read. |
-| `api_booking_offer_set`, `api_booking_offer` | What each search offered, and what became of each hold (`HELD`, `SELECTED`, `RELEASED`, `SUPERSEDED`, `LOST`, `CONFIRMED`). Expiry is a time, not a status. |
-| `api_booking_receipt` | The one confirm of a hold: receipt ID, the confirm's `requestId`, and the receipt body. Unique per offer. |
+- **`api_request`:** One row per host `requestId` per tenant: the operation, a SHA-256 of the canonical request, a 60 second claim lease, and the stored response once finished. A repeat with the same body replays the response; a different body is a conflict; an abandoned claim is taken over after its lease. Requests that failed for a passing reason (for example routing unavailable) release their claim so a retry runs again.
+- **`api_daily_proposal`:** A served daily proposal: host metro, time zone and date, input revision, routing identity, status (`PROPOSED`, `COMMITTED`, `STALE`) and the proposal body.
+- **`api_proposal_technician_day`:** The host `lastModified` of every technician-day a proposal covers, stored as exact ISO-8601 text so nanoseconds survive. A commit compares the host's current values with these.
+- **`api_commit_receipt`:** The one commit of a proposal: receipt ID, the commit's `requestId`, and the receipt body (assignments and timestamps). Unique per proposal.
+- **`api_booking_day`:** Each metro-day's booking state (`BookingDayState`): the common arrangement with every active hold, and per technician the host timestamp and the appointments WaterFlex Software is expected to have. Versioned; every write locks the row and checks the version the search read.
+- **`api_booking_offer_set`, `api_booking_offer`:** What each search offered, and what became of each hold (`HELD`, `SELECTED`, `RELEASED`, `SUPERSEDED`, `LOST`, `CONFIRMED`). Expiry is a time, not a status.
+- **`api_booking_receipt`:** The one confirm of a hold: receipt ID, the confirm's `requestId`, and the receipt body. Unique per offer.
 
 Every key starts with `tenantId`. Row-level security is on for all of them: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal and booking state JSON is validated again on every read, and a stored answer is validated again before it is replayed.
 
@@ -316,7 +396,7 @@ The tables of the retired paths are dropped (migration `20261024120000_drop_lega
 - Cancellation, depot and technician changes: the host makes them and checks affected days with `POST /api/v1/routes/evaluate`.
 - The `web/` portal is an admin and demo client of the public API (see below).
 
-## Portal as a client (Decided 2026-10-08)
+## Portal as a client (decided 2026-10-08)
 
 The portal stays, keeps its pages, and is a client of the public API, standing in for WaterFlex Software. It schedules for several clients and switches between them, including two clients in the same metro. The phases below record how it was built. Settings they mention as current at the time (`SCHEDULER_PUBLIC_API`, `SCHEDULER_OPTIMIZER_CRON`, the engine's own routes and tables) were removed in later phases.
 

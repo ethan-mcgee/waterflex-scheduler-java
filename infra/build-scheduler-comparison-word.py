@@ -77,11 +77,11 @@ def read_blocks():
         if line.startswith("## "):
             blocks.append(("heading", line[3:]))
         elif line.startswith("| "):
-            rows = [line.strip("| ").split(" | ")]
+            rows = [[cell.strip() for cell in line.strip("| ").split(" | ")]]
             while index < len(lines) and lines[index].startswith("| "):
-                rows.append(lines[index].strip("| ").split(" | "))
+                rows.append([cell.strip() for cell in lines[index].strip("| ").split(" | ")])
                 index += 1
-            assert all(cell == "---" for cell in rows[1])
+            assert all(re.fullmatch(r"-{3,}:?", cell) for cell in rows[1])
             assert all(len(row) == len(rows[0]) for row in rows)
             blocks.append(("table", rows[0], rows[2:]))
         elif line.startswith("!["):

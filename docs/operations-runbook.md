@@ -15,35 +15,89 @@ Until then, keep every port on the private network, as Compose does by binding t
 
 ## Settings
 
-| Setting | Required | Meaning |
-| --- | --- | --- |
-| `SCHEDULER_RETENTION_DAYS` | Yes, no default | Days the thin store keeps requests, proposals, offers and receipts (1 to 3650). The scheduler refuses to start without it. |
-| `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD` | Yes | The scheduler's database login. It must be a member of `scheduler_app`, never the schema owner. The operator commands use the same variables with the owner's login. |
-| `ROUTING_METRO_URLS` | Yes | One `metro=url` entry per served metro. A busy metro may list several replicas of its routing service separated by `\|` (`omaha=http://routing-omaha-1:8001\|http://routing-omaha-2:8001`); see "Scaling, in order". |
-| `ROUTING_AUTH_TOKEN` | Yes | Shared bearer token of the routing services, at least 32 characters. |
-| `GEOCODING_MODE`, `NOMINATIM_URL` | No | `COORDINATES_REQUIRED` (default) or `NOMINATIM`. |
-| `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (docs/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503. |
-| `SCHEDULER_ROLE` | No | `booking`, `daily` or `all` (default). Every replica answers every route; a `booking` replica takes no queued daily work. Any other value stops the replica at startup. See "Replica roles". |
-| `SCHEDULER_SEARCH_CAPACITY` | No | Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine. |
-| `SCHEDULER_DB_POOL_SIZE` | No | Database connections per replica, default 10. It must exceed the search capacity plus the confirm slots, with headroom for refinements and route fetches (a search holds a connection while its routes and refinement take more); the replica refuses to start otherwise. Capacity plus 6 is a safe size. |
-| `SCHEDULER_BOOKING_PUBLISH_RESERVE_MS` | No | The part of a client's `bookingDeadlineMs` a booking search keeps back from exploration to validate, prepare and publish its offers, 800 to 1000, default 1000. The request log's `commitMs` says how much of it each search used. |
-| `SCHEDULER_BOOKING_REFINEMENT_MS` | No | The operator's cap on an optional booking refinement, 0 to 3000, default 2000 (250 before 2026-10-20); a client's `policy.bookingRefinementMs` replaces it. |
-| `SCHEDULER_SEARCH_CONFIRM_SLOTS` | No | Slots beyond the search capacity that only confirms may take, 0 to the capacity, default 1: a confirm (a few milliseconds of work) then never waits for a running search to finish. Confirms also start before any waiting search. |
-| `SCHEDULER_SEARCH_BACKGROUND_LIMIT` | No | Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas. |
-| `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`. |
-| `SCHEDULER_SHUTDOWN_GRACE` | No | How long each shutdown phase may take, default `30s`: the daily queue's drain, then the web server's drain of calls in progress. A container's stop grace must exceed twice it (the compose files set 75 s). The solver pool reads `SOLVER_SHUTDOWN_GRACE` the same way. |
-| `SCHEDULER_DAILY_QUEUE_DRAIN_MS` | No | How long a stopping replica lets its running queued jobs finish, default 25000 (0 to 600000), within the grace above. A job still running then is stopped and queued again at once for another replica, with its attempt not counted. |
-| `SCHEDULER_CANCEL_POLL_MS` | No | How often a replica reads the cancellations other replicas recorded for the calls it runs, default 500. |
-| `ROUTING_IDENTITY_TTL_MS` | No | How long a routing identity fetched from a routing service's `/health` is trusted, default 2000; the service still refuses a call with a changed identity (409), which drops the remembered one. |
-| `ROUTING_FLIGHTS_THREADS`, `ROUTING_FLIGHTS_QUEUE` | No | Leg batches a replica fetches from a routing service at once (8) and lets wait (64). |
-| `ROUTING_CH_ENABLED`, `ROUTING_PARALLELISM` (routing service) | No | Serve the map version's contraction hierarchy graph (default true; false serves the flexible graph, with another routing identity) and route a request's pairs on this many threads (0, the default, means the processors available). |
-| `SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT` | No | How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50). |
-| `MANAGEMENT_PORT` | No | Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private. |
-| `LOGGING_STRUCTURED_FORMAT_CONSOLE` | No | `ecs` for JSON log lines. |
-| `TIMEFOLD_LOG_LEVEL` | No | Log level of the Timefold solver's own lines, default `WARN`, on the scheduler and the solver pool. Its per-solve INFO lines repeat the daily receipt line, which carries the tenant and `requestId`; set `INFO` or `DEBUG` to diagnose one solve. |
-| `SCHEDULER_STUDY_RECEIPTS` | No | Studies only, default `false`; leave it off in production. On a daily replica, every daily or repair calculation also logs one `Study receipt {json}` line: variant and seed, each phase's budget, time and termination, the decision and reason, and the reference and proposed plans' cost, overtime and five fairness measures as the workstation harness reads them (variance, highest utilization, utilization spread and absolute deviation in DECIMAL128, and Timefold's load balance, all as plain strings), with the cost ceiling. A plan the policy cannot measure is named (`INVALID_PLAN`, `UNASSIGNED_VISITS`), never zero-filled. It costs a validation of each plan after the search. Moves per second come from Timefold's own phase lines at `TIMEFOLD_LOG_LEVEL=INFO`. |
-| `SCHEDULER_STUDY_PROFILES` | No | Studies only, default empty; leave it empty in production. A directory inside a daily replica (mount it from the host) where every phase of every daily or repair calculation is recorded with Java Flight Recorder on the JDK's `profile` configuration, as `<proposalId>-<phase>.jfr`, the same recording the workstation harness makes around each solve. The study receipt names each phase's file and the thread the phases ran on. Embedded calculation only: with `SCHEDULER_CALCULATION_MODE=REMOTE` the replica refuses to start. The JDK's sampling costs about one percent of the search. |
-| `SCHEDULER_IMAGE`, `SCHEDULER_PULL_POLICY` | No | The scheduler image every pool and the admin task run, default `waterflex-scheduler-engine:vm` built from this checkout (`build`). A study pins a tag built from one commit with `never`, so the stack cannot rebuild the working tree under it. |
+Each setting, whether it is required, and what it controls:
+
+- **`SCHEDULER_RETENTION_DAYS`**
+  - **Required:** Yes, no default.
+  - **Meaning:** Days the thin store keeps requests, proposals, offers and receipts (1 to 3650). The scheduler refuses to start without it.
+- **`JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`**
+  - **Required:** Yes.
+  - **Meaning:** The scheduler's database login. It must be a member of `scheduler_app`, never the schema owner. The operator commands use the same variables with the owner's login.
+- **`ROUTING_METRO_URLS`**
+  - **Required:** Yes.
+  - **Meaning:** One `metro=url` entry per served metro. A busy metro may list several replicas of its routing service separated by `|` (`omaha=http://routing-omaha-1:8001|http://routing-omaha-2:8001`); see "Scaling, in order".
+- **`ROUTING_AUTH_TOKEN`**
+  - **Required:** Yes.
+  - **Meaning:** Shared bearer token of the routing services, at least 32 characters.
+- **`GEOCODING_MODE`, `NOMINATIM_URL`**
+  - **Required:** No.
+  - **Meaning:** `COORDINATES_REQUIRED` (default) or `NOMINATIM`.
+- **`SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN`**
+  - **Required:** No.
+  - **Meaning:** `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (docs/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503.
+- **`SCHEDULER_ROLE`**
+  - **Required:** No.
+  - **Meaning:** `booking`, `daily` or `all` (default). Every replica answers every route; a `booking` replica takes no queued daily work. Any other value stops the replica at startup. See "Replica roles".
+- **`SCHEDULER_SEARCH_CAPACITY`**
+  - **Required:** No.
+  - **Meaning:** Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine.
+- **`SCHEDULER_DB_POOL_SIZE`**
+  - **Required:** No.
+  - **Meaning:** Database connections per replica, default 10. It must exceed the search capacity plus the confirm slots, with headroom for refinements and route fetches (a search holds a connection while its routes and refinement take more); the replica refuses to start otherwise. Capacity plus 6 is a safe size.
+- **`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`**
+  - **Required:** No.
+  - **Meaning:** The part of a client's `bookingDeadlineMs` a booking search keeps back from exploration to validate, prepare and publish its offers, 800 to 1000, default 1000. The request log's `commitMs` says how much of it each search used.
+- **`SCHEDULER_BOOKING_REFINEMENT_MS`**
+  - **Required:** No.
+  - **Meaning:** The operator's cap on an optional booking refinement, 0 to 3000, default 2000 (250 before 2026-10-20); a client's `policy.bookingRefinementMs` replaces it.
+- **`SCHEDULER_SEARCH_CONFIRM_SLOTS`**
+  - **Required:** No.
+  - **Meaning:** Slots beyond the search capacity that only confirms may take, 0 to the capacity, default 1: a confirm (a few milliseconds of work) then never waits for a running search to finish. Confirms also start before any waiting search.
+- **`SCHEDULER_SEARCH_BACKGROUND_LIMIT`**
+  - **Required:** No.
+  - **Meaning:** Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas.
+- **`SCHEDULER_DAILY_QUEUE_WORKERS`**
+  - **Required:** No.
+  - **Meaning:** Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`.
+- **`SCHEDULER_SHUTDOWN_GRACE`**
+  - **Required:** No.
+  - **Meaning:** How long each shutdown phase may take, default `30s`: the daily queue's drain, then the web server's drain of calls in progress. A container's stop grace must exceed twice it (the compose files set 75 s). The solver pool reads `SOLVER_SHUTDOWN_GRACE` the same way.
+- **`SCHEDULER_DAILY_QUEUE_DRAIN_MS`**
+  - **Required:** No.
+  - **Meaning:** How long a stopping replica lets its running queued jobs finish, default 25000 (0 to 600000), within the grace above. A job still running then is stopped and queued again at once for another replica, with its attempt not counted.
+- **`SCHEDULER_CANCEL_POLL_MS`**
+  - **Required:** No.
+  - **Meaning:** How often a replica reads the cancellations other replicas recorded for the calls it runs, default 500.
+- **`ROUTING_IDENTITY_TTL_MS`**
+  - **Required:** No.
+  - **Meaning:** How long a routing identity fetched from a routing service's `/health` is trusted, default 2000; the service still refuses a call with a changed identity (409), which drops the remembered one.
+- **`ROUTING_FLIGHTS_THREADS`, `ROUTING_FLIGHTS_QUEUE`**
+  - **Required:** No.
+  - **Meaning:** Leg batches a replica fetches from a routing service at once (8) and lets wait (64).
+- **`ROUTING_CH_ENABLED`, `ROUTING_PARALLELISM` (routing service)**
+  - **Required:** No.
+  - **Meaning:** Serve the map version's contraction hierarchy graph (default true; false serves the flexible graph, with another routing identity) and route a request's pairs on this many threads (0, the default, means the processors available).
+- **`SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT`**
+  - **Required:** No.
+  - **Meaning:** How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50).
+- **`MANAGEMENT_PORT`**
+  - **Required:** No.
+  - **Meaning:** Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private.
+- **`LOGGING_STRUCTURED_FORMAT_CONSOLE`**
+  - **Required:** No.
+  - **Meaning:** `ecs` for JSON log lines.
+- **`TIMEFOLD_LOG_LEVEL`**
+  - **Required:** No.
+  - **Meaning:** Log level of the Timefold solver's own lines, default `WARN`, on the scheduler and the solver pool. Its per-solve INFO lines repeat the daily receipt line, which carries the tenant and `requestId`; set `INFO` or `DEBUG` to diagnose one solve.
+- **`SCHEDULER_STUDY_RECEIPTS`**
+  - **Required:** No.
+  - **Meaning:** Studies only, default `false`; leave it off in production. On a daily replica, every daily or repair calculation also logs one `Study receipt {json}` line: variant and seed, each phase's budget, time and termination, the decision and reason, and the reference and proposed plans' cost, overtime and five fairness measures as the workstation harness reads them (variance, highest utilization, utilization spread and absolute deviation in DECIMAL128, and Timefold's load balance, all as plain strings), with the cost ceiling. A plan the policy cannot measure is named (`INVALID_PLAN`, `UNASSIGNED_VISITS`), never zero-filled. It costs a validation of each plan after the search. Moves per second come from Timefold's own phase lines at `TIMEFOLD_LOG_LEVEL=INFO`.
+- **`SCHEDULER_STUDY_PROFILES`**
+  - **Required:** No.
+  - **Meaning:** Studies only, default empty; leave it empty in production. A directory inside a daily replica (mount it from the host) where every phase of every daily or repair calculation is recorded with Java Flight Recorder on the JDK's `profile` configuration, as `<proposalId>-<phase>.jfr`, the same recording the workstation harness makes around each solve. The study receipt names each phase's file and the thread the phases ran on. Embedded calculation only: with `SCHEDULER_CALCULATION_MODE=REMOTE` the replica refuses to start. The JDK's sampling costs about one percent of the search.
+- **`SCHEDULER_IMAGE`, `SCHEDULER_PULL_POLICY`**
+  - **Required:** No.
+  - **Meaning:** The scheduler image every pool and the admin task run, default `waterflex-scheduler-engine:vm` built from this checkout (`build`). A study pins a tag built from one commit with `never`, so the stack cannot rebuild the working tree under it.
 
 ## Install
 
@@ -63,10 +117,10 @@ On the VM, the `scheduler-admin` service runs this on every start. The serving s
 
 The running scheduler logs in as a member of `scheduler_app`, which holds exactly what it needs:
 
-- it can read `tenant` and `tenant_api_token`,
-- it can read and write `road_route_cache`,
-- it can act as `scheduler_tenant`, whose row-level policies confine each transaction to one tenant's thin store rows,
-- it can run the purge function `scheduler_purge`.
+- it can read `tenant` and `tenant_api_token`
+- it can read and write `road_route_cache`
+- it can act as `scheduler_tenant`, whose row-level policies confine each transaction to one tenant's thin store rows
+- it can run the purge function `scheduler_purge`
 
 `scheduler_app` does not inherit `scheduler_tenant`'s table grants, so the login reads thin store rows only inside a transaction that has switched to that role and set the tenant. It cannot change the schema, write tenants or change tokens.
 
@@ -93,13 +147,21 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 `GET /health` on the API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
 
-| Component | Checked | Down means |
-| --- | --- | --- |
-| `database` | `SELECT 1` | No calculation can claim its request; calls answer 503. |
-| `schema` | The database's migration history matches this build | The database was not migrated to this version; run `--command=migrate`. |
-| `routing:<metro>` | The routing service's `/health`; the detail is its routing identity, and with several replicas how many are in rotation (`<identity> (2 of 3 replicas)`) | Calls for that metro fail. Other metros are unaffected. With several replicas it is down only when none answers. |
-| `calculation` | The solver pool's `/health`, only in `REMOTE` mode. Its body reports `capacity`, `active`, `queued`, `transient` (solves registered) and `stuck`; it answers 503 when a solve is still registered longer than the longest allowance plus a minute | Calculations answer 503. A `stuck` solve means a pool worker never finished: restart that pool replica. |
-| `geocoding` | Nominatim's `/status`, only in `NOMINATIM` mode | Address-only locations are reported as skipped. |
+- **`database`**
+  - **Checked:** `SELECT 1`.
+  - **Down means:** No calculation can claim its request; calls answer 503.
+- **`schema`**
+  - **Checked:** The database's migration history matches this build.
+  - **Down means:** The database was not migrated to this version; run `--command=migrate`.
+- **`routing:<metro>`**
+  - **Checked:** The routing service's `/health`; the detail is its routing identity, and with several replicas how many are in rotation (`<identity> (2 of 3 replicas)`).
+  - **Down means:** Calls for that metro fail. Other metros are unaffected. With several replicas it is down only when none answers.
+- **`calculation`**
+  - **Checked:** The solver pool's `/health`, only in `REMOTE` mode. Its body reports `capacity`, `active`, `queued`, `transient` (solves registered) and `stuck`; it answers 503 when a solve is still registered longer than the longest allowance plus a minute.
+  - **Down means:** Calculations answer 503. A `stuck` solve means a pool worker never finished: restart that pool replica.
+- **`geocoding`**
+  - **Checked:** Nominatim's `/status`, only in `NOMINATIM` mode.
+  - **Down means:** Address-only locations are reported as skipped.
 
 `GET /health/live` reads nothing and always answers 200. Use it for restarts, and `/health` for taking a replica out of a load balancer. Restarting on `/health` would restart the scheduler when routing is down, which fixes nothing.
 
@@ -107,7 +169,7 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 Each `/api/v1` call writes one line to the logger `dev.waterflex.scheduler.api.requests`:
 
-```
+```text
 INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374 queueMs=12 routingMs=212 calculationMs=97 dbMs=18 dbCalls=9 routingPairs=310 cacheHits=280 fetched=30 cpuMs=141
 ```
 
@@ -125,20 +187,18 @@ Lines to act on:
 
 `http://<replica>:9000/actuator/prometheus` on each replica. On the VM the replicas publish no ports: Prometheus (`--profile monitoring`) finds every replica of both pools by name, and `scheduler_replica_info{role}` (always 1) labels each one's role, so every meter below can be split by pool.
 
-| Metric | Watch for |
-| --- | --- |
-| `http_server_requests_seconds` by `uri` and `status` | Latency per operation; booking offers should stay within the client's `bookingDeadlineMs` plus network time. |
-| `scheduler_admission_rejections_total` | Rising: replicas are saturated and hosts see 429 (including daily proposals refused because the calculations ahead would not finish in time, and requests whose deadline passed in the queue). Add capacity. |
-| `scheduler_admission_active`, `scheduler_admission_queued` | Sustained queue: searches wait for a slot. |
-| `scheduler_routing_leg_requests_total`, `scheduler_routing_leg_pairs_total` by `metro` | Routing load per metro; a jump after a map change is the cold cache filling. |
-| `scheduler_booking_refinement_invalid_total` | Should stay 0. |
-| `scheduler_booking_refinement_shed_total` | Optional refinements skipped because booking requests were queued. A steady rise means booking desks often wait for a slot: add booking capacity. |
-| `scheduler_requests_cancelled_total` | Host cancellations. |
-| `scheduler_admission_evictions_total` | Queued searches that gave their place in a full queue to a search of a client with fewer waiting, or to an arriving confirm (confirms start before waiting searches and are never evicted). Rising: one client's desks fill the booking queue; add booking capacity. |
-| `scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total` | Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role. |
-| `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
-| `scheduler_request_phase_seconds` by `operation` and `phase` (`queue`, `routing`, `calculation`, `db`, `commit`) | The request log's phase times as histograms: graph p95 per phase to see whether a slow booking search waited for a slot, for routing, for the engine or for the database. |
-| `scheduler_replica_info{role}`, `scheduler_admission_background_limit` | The replica's role and how many daily calculations it runs at once. |
+- **`http_server_requests_seconds` by `uri` and `status`:** Latency per operation; booking offers should stay within the client's `bookingDeadlineMs` plus network time.
+- **`scheduler_admission_rejections_total`:** Rising: replicas are saturated and hosts see 429 (including daily proposals refused because the calculations ahead would not finish in time, and requests whose deadline passed in the queue). Add capacity.
+- **`scheduler_admission_active`, `scheduler_admission_queued`:** Sustained queue: searches wait for a slot.
+- **`scheduler_routing_leg_requests_total`, `scheduler_routing_leg_pairs_total` by `metro`:** Routing load per metro; a jump after a map change is the cold cache filling.
+- **`scheduler_booking_refinement_invalid_total`:** Should stay 0.
+- **`scheduler_booking_refinement_shed_total`:** Optional refinements skipped because booking requests were queued. A steady rise means booking desks often wait for a slot: add booking capacity.
+- **`scheduler_requests_cancelled_total`:** Host cancellations.
+- **`scheduler_admission_evictions_total`:** Queued searches that gave their place in a full queue to a search of a client with fewer waiting, or to an arriving confirm (confirms start before waiting searches and are never evicted). Rising: one client's desks fill the booking queue; add booking capacity.
+- **`scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total`:** Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role.
+- **`scheduler_retention_deleted_total`:** Grows once a day after the first period has passed.
+- **`scheduler_request_phase_seconds` by `operation` and `phase` (`queue`, `routing`, `calculation`, `db`, `commit`):** The request log's phase times as histograms: graph p95 per phase to see whether a slow booking search waited for a slot, for routing, for the engine or for the database.
+- **`scheduler_replica_info{role}`, `scheduler_admission_background_limit`:** The replica's role and how many daily calculations it runs at once.
 
 ## Retention
 
@@ -194,39 +254,55 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 
 ## Availability
 
-The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs more than one of a thing. The rest is
-single, and the scheduler answers the host in a way that lets it retry safely while that part is restored.
+The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs more than one of a thing. The rest is single, and the scheduler answers the host in a way that lets it retry safely while that part is restored.
 
-| Part | How many | When it stops | What the host sees | Recovery |
-| --- | --- | --- | --- | --- |
-| `scheduler-proxy` (nginx) | One | Every call fails at the connection. | Connection refused or reset. | Restart it; nothing is lost, since calls never reached a replica. |
-| A scheduler replica | One or more per pool | The proxy stops sending it calls within 10 seconds. A synchronous call it was serving is lost; a queued day it was running is taken by another replica's worker once its lease passes (at most three attempts). | The call in progress fails or times out; later calls go to the other replicas. | None needed with two or more replicas per pool. With one, start it again. |
-| Postgres (`scheduler-db`) | One | Nothing can be claimed, published or committed. Work in a transaction is rolled back, never half written. | 503 with `database` down in `/health`. The token check before a call answers 503 `SERVICE_UNAVAILABLE` with `Retry-After` (logged as `Token store unavailable`); hosts retry it. | Restore the database. Claims resume when their leases expire. |
-| Routing service | One per metro, or several listed with `\|` | Calculating calls for that metro cannot route. Other metros are unaffected. With several replicas, the others carry the metro. | 503 with `routing:<metro>` down. | Start it; loading a graph takes minutes. The in-memory route cache refills from the database cache, which is keyed by routing identity and survives. |
-| Nominatim (`GEOCODING_MODE=NOMINATIM` only) | One | Address-only locations cannot be located. Calls that send coordinates are unaffected. | 503 for a call with an address-only location, and the address lookup component down in `/health`. | Start it. |
-| Solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE` only) | One service, any number of replicas | Calculations on the replicas that use it cannot run. | 503 with `calculation` down. | Start it, or switch that pool back to `EMBEDDED`. |
+- **`scheduler-proxy` (nginx)**
+  - **How many:** One.
+  - **When it stops:** Every call fails at the connection.
+  - **What the host sees:** Connection refused or reset.
+  - **Recovery:** Restart it; nothing is lost, since calls never reached a replica.
+- **A scheduler replica**
+  - **How many:** One or more per pool.
+  - **When it stops:** The proxy stops sending it calls within 10 seconds. A synchronous call it was serving is lost; a queued day it was running is taken by another replica's worker once its lease passes (at most three attempts).
+  - **What the host sees:** The call in progress fails or times out; later calls go to the other replicas.
+  - **Recovery:** None needed with two or more replicas per pool. With one, start it again.
+- **Postgres (`scheduler-db`)**
+  - **How many:** One.
+  - **When it stops:** Nothing can be claimed, published or committed. Work in a transaction is rolled back, never half written.
+  - **What the host sees:** 503 with `database` down in `/health`. The token check before a call answers 503 `SERVICE_UNAVAILABLE` with `Retry-After` (logged as `Token store unavailable`); hosts retry it.
+  - **Recovery:** Restore the database. Claims resume when their leases expire.
+- **Routing service**
+  - **How many:** One per metro, or several listed with `|`.
+  - **When it stops:** Calculating calls for that metro cannot route. Other metros are unaffected. With several replicas, the others carry the metro.
+  - **What the host sees:** 503 with `routing:<metro>` down.
+  - **Recovery:** Start it; loading a graph takes minutes. The in-memory route cache refills from the database cache, which is keyed by routing identity and survives.
+- **Nominatim (`GEOCODING_MODE=NOMINATIM` only)**
+  - **How many:** One.
+  - **When it stops:** Address-only locations cannot be located. Calls that send coordinates are unaffected.
+  - **What the host sees:** 503 for a call with an address-only location, and the address lookup component down in `/health`.
+  - **Recovery:** Start it.
+- **Solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE` only)**
+  - **How many:** One service, any number of replicas.
+  - **When it stops:** Calculations on the replicas that use it cannot run.
+  - **What the host sees:** 503 with `calculation` down.
+  - **Recovery:** Start it, or switch that pool back to `EMBEDDED`.
 
-**The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the
-same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a
-claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease
-expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
+**The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
 
-**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has.
-The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5
-(9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots
-as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking,
-daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding
-a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the
-proxy), or measure the combined load on the VM rehearsal stack.
+**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has. The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5 (9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking, daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the proxy), or measure the combined load on the VM rehearsal stack.
 
 ## Replica roles
 
 `deploy/vm/docker-compose.yml` runs two pools of the same image behind `scheduler-proxy` (nginx, [deploy/vm/nginx.conf](../deploy/vm/nginx.conf)):
 
-| Pool | `SCHEDULER_ROLE` | Receives | Tuned for |
-| --- | --- | --- | --- |
-| `scheduler-booking` | `booking` | Everything except the routes below: booking searches, holds and confirms, commits, route evaluation and geometry, whoami, `/health` | Latency. No queued daily work runs here, so bookings never wait behind a 20 second solve. |
-| `scheduler-daily` | `daily` | `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals`, `GET` and `DELETE /api/v1/requests/{id}` | Throughput. Up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` daily solves at once per replica, with as many queue workers. |
+- **`scheduler-booking`**
+  - **`SCHEDULER_ROLE`:** `booking`.
+  - **Receives:** Everything except the routes below: booking searches, holds and confirms, commits, route evaluation and geometry, whoami, `/health`.
+  - **Tuned for:** Latency. No queued daily work runs here, so bookings never wait behind a 20 second solve.
+- **`scheduler-daily`**
+  - **`SCHEDULER_ROLE`:** `daily`.
+  - **Receives:** `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals`, `GET` and `DELETE /api/v1/requests/{id}`.
+  - **Tuned for:** Throughput. Up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` daily solves at once per replica, with as many queue workers.
 
 Every replica answers every route and shares the one database, so the split is about load, not correctness: if the proxy sends a call to the other pool, it still gets the right answer. Bookings keep their priority inside each replica as before. One replica with `SCHEDULER_ROLE=all` (the default) does both and is the right shape for a single small machine.
 
@@ -234,11 +310,23 @@ Scale the booking pool when booking p95 nears the client's deadline or booking r
 
 ## Failure modes
 
-| Symptom | Cause | Action |
-| --- | --- | --- |
-| 503 from calculating calls, `routing:<metro>` down | Routing service stopped or loading its graph | Start it; loading a graph takes minutes. |
-| 503, `calculation` down | Solver pool unreachable or a protocol mismatch | Check the pool; match versions (see Upgrade). |
-| 503, `database` down | Database unreachable | Restore the database; claims resume when their leases expire. |
-| 429 with `Retry-After` | Admission full | The host retries with the same `requestId`; add capacity if it persists. |
-| 401 | Token revoked, tenant disabled or wrong token | Issue a token. |
-| Startup fails naming `SCHEDULER_RETENTION_DAYS` | The period is unset or malformed | Set it. |
+Symptoms you may see, their usual cause and what to do:
+
+- **503 from calculating calls, `routing:<metro>` down**
+  - **Cause:** Routing service stopped or loading its graph.
+  - **Action:** Start it; loading a graph takes minutes.
+- **503, `calculation` down**
+  - **Cause:** Solver pool unreachable or a protocol mismatch.
+  - **Action:** Check the pool; match versions (see Upgrade).
+- **503, `database` down**
+  - **Cause:** Database unreachable.
+  - **Action:** Restore the database; claims resume when their leases expire.
+- **429 with `Retry-After`**
+  - **Cause:** Admission full.
+  - **Action:** The host retries with the same `requestId`; add capacity if it persists.
+- **Symptom 401**
+  - **Cause:** Token revoked, tenant disabled or wrong token.
+  - **Action:** Issue a token.
+- **Startup fails naming `SCHEDULER_RETENTION_DAYS`**
+  - **Cause:** The period is unset or malformed.
+  - **Action:** Set it.
