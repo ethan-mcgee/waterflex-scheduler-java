@@ -1,0 +1,36 @@
+name: Docs lint
+
+# CI skips Markdown-only changes, so Markdown is linted here instead.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - '.markdownlint-cli2.jsonc'
+      - '.github/workflows/docs-lint.yml'
+  push:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - '.markdownlint-cli2.jsonc'
+      - '.github/workflows/docs-lint.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  markdownlint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Lint Markdown with the checked-in configuration
+        run: npx --yes markdownlint-cli2@0.23.3

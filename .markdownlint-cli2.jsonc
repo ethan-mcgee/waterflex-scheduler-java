@@ -1,0 +1,31 @@
+// markdownlint configuration, read by the markdownlint VS Code extension and by
+// markdownlint-cli2 in .github/workflows/docs-lint.yml.
+// Run locally: npx markdownlint-cli2@0.23.3
+{
+  "config": {
+    "default": true,
+    // Docs keep one paragraph per line for clean diffs, so the limit only
+    // catches runaway lines. Tables and code blocks are exempt.
+    "MD013": {
+      "line_length": 400,
+      "code_blocks": false,
+      "tables": false,
+      "headings": false
+    }
+  },
+  "globs": ["**/*.md"],
+  // Skip everything .gitignore skips (node_modules, target, .scratch, run output, HANDOFF.md).
+  "gitignore": true,
+  "ignores": [
+    // Vendored machine conversion of the Timefold PDF; its anchors are generated.
+    "docs/timefold-documentation/**",
+    // Frozen audit evidence: byte-checked by docs/timefold-audit/remediation/verify_baseline.py
+    // and the review manifests, so these must not be edited.
+    "docs/timefold-audit/README.md",
+    "docs/timefold-audit/Timefold_Audit.md",
+    "docs/timefold-audit/Timefold_Second_Review.md",
+    // Generated with its PDF by infra/build-scheduler-algorithm-comparison.py, and read line by
+    // line by infra/build-scheduler-comparison-word.py; regenerate rather than edit.
+    "docs/scheduler-algorithm-comparison-2026-09-29.md"
+  ]
+}
