@@ -58,7 +58,7 @@ JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requ
 | `control` | One selected solver |
 | `seeds` | Distinct integers 0..2147483647 |
 | `fleets` | Any of 5, 10, 20, 30, 50 |
-| `workloads` | SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY |
+| `workloads` | SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY, MIXED_SHIFT (4, 6 and 9 hour days by technician rank, so capacity-weighted and unweighted fairness differ; every other workload gives every technician a 9 hour day) |
 | `budgets_seconds` | 0.1..900, whole millisecond resolution |
 | `fixture_seeds` | Optional. Distinct integers 0..2147483647. 0 is the canonical fixture of each fleet and workload (the only one earlier studies used); any other seed draws a new fixture of the same shape |
 | `phases` | Optional. COST_AND_FAIRNESS (two thirds of the budget for the cost search, the rest for fairness within the 2% ceiling, as before) or COST_ONLY (the whole budget for the cost search, no fairness phase) |
