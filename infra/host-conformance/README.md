@@ -1,27 +1,19 @@
 # Scheduler host conformance kit
 
-Proves, against a running scheduler and over its public API only, that the scheduler answers every call the way
-[`docs/api/openapi-v1.yaml`](../../docs/api/openapi-v1.yaml) says, and shows a host's engineers working examples of
-each call sequence: snapshots, booking (offers, select, release, confirm), daily and repair proposals, commits,
-idempotent replays, cancellation, and the refusals a host must handle. Run it before go-live and after every scheduler
-upgrade; [the integration guide](../../docs/integration-guide.md) explains each sequence it exercises. It needs nothing but the scheduler's URL and a token: no database access, no repository code, no portal.
+Proves, against a running scheduler and over its public API only, that the scheduler answers every call the way [`docs/api/openapi-v1.yaml`](../../docs/api/openapi-v1.yaml) says, and shows a host's engineers working examples of each call sequence: snapshots, booking (offers, select, release, confirm), daily and repair proposals, commits, idempotent replays, cancellation, and the refusals a host must handle. Run it before go-live and after every scheduler upgrade; [the integration guide](../../docs/integration-guide.md) explains each sequence it exercises. It needs nothing but the scheduler's URL and a token: no database access, no repository code, no portal.
 
 ## Requirements
 
 - Node 22 or newer.
 - A scheduler reachable at its API address, with a routing service for the metro you name.
-- A token for a **dedicated tenant**, for example `conformance`. The kit creates and confirms bookings and commits
-  proposals under its own technician IDs on dates two to five days ahead; each booking search replaces the tenant's
-  booking state for its metro and date, so never run it with a tenant that serves real customers. Issue the token on the
-  scheduler host and store it in a file readable only by you:
+- A token for a **dedicated tenant**, for example `conformance`. The kit creates and confirms bookings and commits proposals under its own technician IDs on dates two to five days ahead; each booking search replaces the tenant's booking state for its metro and date, so never run it with a tenant that serves real customers. Issue the token on the scheduler host and store it in a file readable only by you:
 
   ```sh
   java -jar scheduler-service.jar --command=issue-token conformance "Conformance kit" "go-live check" \
     | sed -n 's/^token: //p' > conformance.token
   ```
 
-  On the scheduler VM, run the same command through the `scheduler-admin` service (see `deploy/vm/README.md`).
-  Revoke it with `--command=revoke-token <id>` when you are done.
+  On the scheduler VM, run the same command through the `scheduler-admin` service (see `deploy/vm/README.md`). Revoke it with `--command=revoke-token <id>` when you are done.
 
 ## Running
 
@@ -31,6 +23,8 @@ npm ci
 npx tsx conformance.ts --url https://scheduler.internal.example --token-file ./conformance.token \
   --metro metro-omaha --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95
 ```
+
+The command's options:
 
 | Option | Meaning |
 | --- | --- |
@@ -43,12 +37,11 @@ npx tsx conformance.ts --url https://scheduler.internal.example --token-file ./c
 | `--out` | Report directory, default `./conformance-report`. |
 | `--only` | Comma-separated groups to run, for example `Booking,Daily`. |
 
-A run takes under a minute: six daily or repair proposals use the shortest daily search the contract allows
-(5 seconds). The exit status is 0 when every case passed, 1 when any failed and 2 for a usage error.
-`conformance-report.json` and `conformance-report.md` in the report directory list each case, what it proves, its time
-and, for a failure, the request that answered unexpectedly with the scheduler's reply.
+A run takes under a minute: six daily or repair proposals use the shortest daily search the contract allows (5 seconds). The exit status is 0 when every case passed, 1 when any failed and 2 for a usage error. `conformance-report.json` and `conformance-report.md` in the report directory list each case, what it proves, its time and, for a failure, the request that answered unexpectedly with the scheduler's reply.
 
 ## What it checks
+
+The groups of cases the kit runs:
 
 | Group | Cases |
 | --- | --- |
@@ -60,92 +53,35 @@ and, for a failure, the request that answered unexpectedly with the scheduler's 
 | Repair | a day-long absence moves the absent technician's visit to another technician |
 | Cancellation | an unknown `requestId` (404) or a malformed one (400); a running daily proposal is cancelled (202), answers 409 `CANCELLED`, and its `requestId` runs again on retry; a queued proposal is cancelled (202), its status reports 409 `CANCELLED`, and queued again it runs |
 
-Every response body is checked against the spec's schema exactly: an unknown or missing field fails the case.
-Problem `message` text is for people and never compared; cases check the `error` code. `test/spec.test.ts` keeps the
-kit's schemas equal to the spec, so the kit cannot drift from the contract it proves.
+Every response body is checked against the spec's schema exactly: an unknown or missing field fails the case. Problem `message` text is for people and never compared; cases check the `error` code. `test/spec.test.ts` keeps the kit's schemas equal to the spec, so the kit cannot drift from the contract it proves.
 
 ## Reading the snapshots as examples
 
-`src/snapshot.ts` builds snapshots as a host should: every required field present, `absences: []` sent explicitly,
-money as decimal strings, `sequence` and `plannedStart` in the same order, one `lastModified` per technician-day, and
-the client's policy and rates on every call (the kit sends its own test values). `src/cases.ts` shows each call
-sequence with the checks a host's integration should make on the answers.
+`src/snapshot.ts` builds snapshots as a host should: every required field present, `absences: []` sent explicitly, money as decimal strings, `sequence` and `plannedStart` in the same order, one `lastModified` per technician-day, and the client's policy and rates on every call (the kit sends its own test values). `src/cases.ts` shows each call sequence with the checks a host's integration should make on the answers.
 
 ## Load tool
 
-`load.ts` drives a scheduler with concurrent work over the same public API, for capacity planning and before and after
-performance changes. It uses the same kind of dedicated tenant and token, never a client's.
+`load.ts` drives a scheduler with concurrent work over the same public API, for capacity planning and before and after performance changes. It uses the same kind of dedicated tenant and token, never a client's.
 
 ```sh
 npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --metro metro-omaha   --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60   --metrics-url http://127.0.0.1:9000/actuator/prometheus --docker <routing container>
 ```
 
-- **booking**: each of `--concurrency` desks books like a host: a search over `--horizon-days` dates (from two days
-  ahead) for a new 60-minute job, then either releases the offers or (`--confirm-rate`, default 0.3) selects the first,
-  confirms it against fresh records and writes the receipt with a compare-and-set. The records live in an in-memory host
-  (`src/load/host.ts`): `--technicians` per date with `--appointments` visits each, every write stamping a new
-  `lastModified`, so concurrent desks see each other's bookings as a real host would.
-- **daily**: `--concurrency` planners ask for proposals of one day of `--daily-technicians` technicians, again and
-  again, with `--cost-seconds` and `--fairness-seconds` of search.
-- **mixed**: booking desks and `--daily-concurrency` planners at once.
-- `--daily-mode async` queues each daily proposal with `Prefer: respond-async` and polls its status as `Retry-After`
-  asks; "daily queue" is the call that queues it and "daily proposal" the time to its completed answer, and the report
-  adds how long queued proposals waited before their calculation started. `sync` (default) calculates within the
-  call. To see fairness between clients, run two load tools at once with tokens of two tenants.
-- `--jobs cold` (default) places every job at a new point, so its routes are fetched; `--jobs warm` cycles eight
-  points, so they come from the route cache. The difference between the two is the cold-routing cost.
-- A 429 is repeated with the same `requestId` after `Retry-After`, and the wait counts in the call's time, as a host
-  would see it. A search or confirm answered 409 `STALE` is sent again from current records with a new `requestId`,
-  and counted. `--seed` fixes the run's points and choices; runs with different seeds share no point.
-- `--date-spread` gives each booking desk its own run of `--horizon-days` dates after the previous desk's, so desks
-  book different technician-days. Without it every desk searches the same dates, and the
-  409 `STALE` resends that follow measure the desks' conflicts as much as the scheduler.
-- `--horizon dynamic` chooses each search's dates from the booking metro's current records, as the portal's dynamic
-  booking horizon does (`web/lib/bookingHorizonCore.ts`; the kit's copy is `src/load/horizon.ts`): through
-  `--lead-weekdays` (default 2) weekdays past the furthest weekday whose route spans fill `--full-percent` (default 85)
-  of the technicians' open minutes, at most `--horizon-weekdays` (default 15). Confirmed bookings lengthen the spans, so
-  the horizon can grow during a run. `--horizon-weekdays` alone with the default `--horizon fixed` searches that many
-  weekdays every time. `--booked-weekdays N` gives the first N weekdays `--booked-appointments` (default 4) visits per
-  technician-day, each held to the hour it starts, which with the kit's 08:00 to 17:00 shift spans 86 percent, so those
-  days start booked out and stay so as bookings land. They may run past a fixed horizon, as a booked-out dealership's do. The
-  report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`,
-  `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
+- **booking:** each of `--concurrency` desks books like a host: a search over `--horizon-days` dates (from two days ahead) for a new 60-minute job, then either releases the offers or (`--confirm-rate`, default 0.3) selects the first, confirms it against fresh records and writes the receipt with a compare-and-set. The records live in an in-memory host (`src/load/host.ts`): `--technicians` per date with `--appointments` visits each, every write stamping a new `lastModified`, so concurrent desks see each other's bookings as a real host would.
+- **daily:** `--concurrency` planners ask for proposals of one day of `--daily-technicians` technicians, again and again, with `--cost-seconds` and `--fairness-seconds` of search.
+- **mixed:** booking desks and `--daily-concurrency` planners at once.
+- `--daily-mode async` queues each daily proposal with `Prefer: respond-async` and polls its status as `Retry-After` asks; "daily queue" is the call that queues it and "daily proposal" the time to its completed answer, and the report adds how long queued proposals waited before their calculation started. `sync` (default) calculates within the call. To see fairness between clients, run two load tools at once with tokens of two tenants.
+- `--jobs cold` (default) places every job at a new point, so its routes are fetched; `--jobs warm` cycles eight points, so they come from the route cache. The difference between the two is the cold-routing cost.
+- A 429 is repeated with the same `requestId` after `Retry-After`, and the wait counts in the call's time, as a host would see it. A search or confirm answered 409 `STALE` is sent again from current records with a new `requestId`, and counted. `--seed` fixes the run's points and choices; runs with different seeds share no point.
+- `--date-spread` gives each booking desk its own run of `--horizon-days` dates after the previous desk's, so desks book different technician-days. Without it every desk searches the same dates, and the 409 `STALE` resends that follow measure the desks' conflicts as much as the scheduler.
+- `--horizon dynamic` chooses each search's dates from the booking metro's current records, as the portal's dynamic booking horizon does (`web/lib/bookingHorizonCore.ts`; the kit's copy is `src/load/horizon.ts`): through `--lead-weekdays` (default 2) weekdays past the furthest weekday whose route spans fill `--full-percent` (default 85) of the technicians' open minutes, at most `--horizon-weekdays` (default 15). Confirmed bookings lengthen the spans, so the horizon can grow during a run. `--horizon-weekdays` alone with the default `--horizon fixed` searches that many weekdays every time. `--booked-weekdays N` gives the first N weekdays `--booked-appointments` (default 4) visits per technician-day, each held to the hour it starts, which with the kit's 08:00 to 17:00 shift spans 86 percent, so those days start booked out and stay so as bookings land. They may run past a fixed horizon, as a booked-out dealership's do. The report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`, `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
 
-- `--window-threshold` sets the policy's `regularWindowThreshold` (default 2). A search whose first pass finds no more
-  distinct regular windows than the threshold must run the refinement, which is then never shed and never capped;
-  1000 makes every refinement required. `--refinement-ms` sets the policy's `bookingRefinementMs`, the cap on an
-  optional refinement (0 to 3000); without it the scheduler's configured cap applies (2000 unless changed). The report
-  counts SHORTENED refinements by what stopped them (`CAP` or `DEADLINE`) and the first pass's distinct regular window
-  counts (`regularWindowsFound`), the number the threshold is compared with.
-- `--scheduler-log <container,...>` (both tools) reads the named scheduler containers' request log for the run with
-  `docker logs` and reports the scheduler's own attribution of this tenant's calls per operation and status: slot wait,
-  routing, engine, database, the commit phase, routing pairs and fetched legs, and CPU (`serverBreakdown` in the JSON, the
-  shape of the October 14 performance evidence). `quality.ts` attributes per variant by the searches' request IDs. The
-  plain console format and the VM's ECS JSON are both read. The tenant comes from `/api/v1/whoami`. With several
-  containers named (a replica pool behind the proxy), `serverLog` lists each container's share of this tenant's request
-  lines, which shows which replicas served the run.
+- `--window-threshold` sets the policy's `regularWindowThreshold` (default 2). A search whose first pass finds no more distinct regular windows than the threshold must run the refinement, which is then never shed and never capped; 1000 makes every refinement required. `--refinement-ms` sets the policy's `bookingRefinementMs`, the cap on an optional refinement (0 to 3000); without it the scheduler's configured cap applies (2000 unless changed). The report counts SHORTENED refinements by what stopped them (`CAP` or `DEADLINE`) and the first pass's distinct regular window counts (`regularWindowsFound`), the number the threshold is compared with.
+- `--scheduler-log <container,...>` (both tools) reads the named scheduler containers' request log for the run with `docker logs` and reports the scheduler's own attribution of this tenant's calls per operation and status: slot wait, routing, engine, database, the commit phase, routing pairs and fetched legs, and CPU (`serverBreakdown` in the JSON, the shape of the October 14 performance evidence). `quality.ts` attributes per variant by the searches' request IDs. The plain console format and the VM's ECS JSON are both read. The tenant comes from `/api/v1/whoami`. With several containers named (a replica pool behind the proxy), `serverLog` lists each container's share of this tenant's request lines, which shows which replicas served the run.
 
-`quality.ts` compares the offers themselves across window thresholds and refinement caps, on the same records. It
-builds one booking metro (the same options as above), optimizes every date with daily proposals as the overnight run
-would, then for each of `--cases` job addresses searches once per `--variants` value in a rotated order. A variant is a
-threshold, optionally with a refinement cap: `2:500` is threshold 2 with `bookingRefinementMs` 500, `1000` is threshold
-1000 with the scheduler's cap (default `2,1000`, the first the baseline; `--thresholds` lists variants without caps).
-The best offer of each search is confirmed and priced: its receipt is applied to a copy of the day and both are timed
-with `/api/v1/routes/evaluate`, so the report gives what the booking adds to the modeled fleet cost and how many
-existing visits it moved. Nothing is written to the host; the confirmed days are stamped as written and cancelled, so
-the next search is not refused as STALE. The report (`quality-report/`) lists, per variant, offers, days to the first
-offer, days offered, the best offer's added cost, visits moved and search latency, then each variant against the
-baseline case by case. `infra/run-threshold-study.ps1` runs both tools over the window threshold matrix, and
-`infra/run-refinement-study.ps1` over the refinement cap and search capacity matrix (its capacity part runs one
-tenant per simulated client, each with one desk, against a scheduler it restarts with 2 and then 5 search slots).
+`quality.ts` compares the offers themselves across window thresholds and refinement caps, on the same records. It builds one booking metro (the same options as above), optimizes every date with daily proposals as the overnight run would, then for each of `--cases` job addresses searches once per `--variants` value in a rotated order. A variant is a threshold, optionally with a refinement cap: `2:500` is threshold 2 with `bookingRefinementMs` 500, `1000` is threshold 1000 with the scheduler's cap (default `2,1000`, the first the baseline; `--thresholds` lists variants without caps). The best offer of each search is confirmed and priced: its receipt is applied to a copy of the day and both are timed with `/api/v1/routes/evaluate`, so the report gives what the booking adds to the modeled fleet cost and how many existing visits it moved. Nothing is written to the host; the confirmed days are stamped as written and cancelled, so the next search is not refused as STALE. The report (`quality-report/`) lists, per variant, offers, days to the first offer, days offered, the best offer's added cost, visits moved and search latency, then each variant against the baseline case by case. `infra/run-threshold-study.ps1` runs both tools over the window threshold matrix, and `infra/run-refinement-study.ps1` over the refinement cap and search capacity matrix (its capacity part runs one tenant per simulated client, each with one desk, against a scheduler it restarts with 2 and then 5 search slots).
 
-The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
-its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,
-holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port)
-it adds the scheduler's own view: server time per route and status, admission rejections, routing pairs fetched,
-and the scheduler process's CPU and heap through the run. `--docker` adds CPU and memory of the named containers. The
-tool exits 1 when a response breaks the contract or a receipt drops an appointment, so a load run also checks
-correctness. [docs/api-load.md](../../docs/api-load.md) is the measurement protocol and its results.
+The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum, its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search, holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port) it adds the scheduler's own view: server time per route and status, admission rejections, routing pairs fetched, and the scheduler process's CPU and heap through the run. `--docker` adds CPU and memory of the named containers. The tool exits 1 when a response breaks the contract or a receipt drops an appointment, so a load run also checks correctness. [docs/api-load.md](../../docs/api-load.md) is the measurement protocol and its results.
 
 ## Development
 
@@ -154,5 +90,4 @@ npm run typecheck
 npm test
 ```
 
-CI runs both in "Portal checks", and runs the kit and a 15 second mixed load against the CI scheduler and fixture
-router in "Database and core workflows".
+CI runs both in "Portal checks", and runs the kit and a 15 second mixed load against the CI scheduler and fixture router in "Database and core workflows".

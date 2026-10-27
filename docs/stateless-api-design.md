@@ -6,15 +6,17 @@ Status: implemented (2026-10-09). The scheduler serves only the public API (`/ap
 
 The scheduler becomes an add-on to WaterFlex Software. WaterFlex Software owns master data (customers, addresses, jobs, appointments, technicians, qualifications, shifts, time off, depots) and the business record of every appointment. The scheduler owns only what it must to keep customer promises safe under concurrency:
 
-- booking holds and reservation arrangements,
-- offer sets and proposals it issued, keyed by host IDs and an input revision hash,
-- attempt and outcome receipts.
+- booking holds and reservation arrangements
+- offer sets and proposals it issued, keyed by host IDs and an input revision hash
+- attempt and outcome receipts
 
 Calculation (solver) and routing are stateless: complete data in, results out. This is the "thin scheduler store" option chosen by the owner on 2026-10-07.
 
 The product has no end-user screens of its own. WaterFlex Software renders all maps and schedules; the scheduler returns data only.
 
 ## What exists
+
+Each piece of the design and its state:
 
 | Piece | State |
 | --- | --- |
@@ -30,18 +32,20 @@ What remains is outside this repository: WaterFlex Software itself calling the A
 
 ## Target architecture
 
-```
-WaterFlex Software  --(snapshot + request)-->  scheduler API  --(dataset)-->  calculation engine (embedded)
-        ^                                           |  ^
-        |                                           |  +--(points)--> routing service for the job's metro
-        +------(proposal / offers / receipts)-------+
-                                                    |
-                                              thin store (holds, offers, proposals, receipts, route cache)
+WaterFlex Software sends a snapshot with each request; the scheduler API calculates on it, asks the metro's routing service for road points and keeps only a thin store.
+
+```text
+WaterFlex Software --(snapshot + request)--> scheduler API --(dataset)--> calculation engine
+        ^                                         |  ^                    (embedded)
+        |                                         |  +--(points)--> metro's routing service
+        +------(proposal / offers / receipts)-----+
+                                                  |
+                                       thin store (holds, offers, proposals, receipts, route cache)
 ```
 
 The scheduler API is the only public surface. Calculation and routing stay private.
 
-## Deployment (Decided)
+## Deployment (decided)
 
 - The scheduler and routing services run on their own VMs on the same private network as the rest of WaterFlex Software. Nothing is exposed to the public internet.
 - The solver stays embedded in `scheduler-service` (`SCHEDULER_CALCULATION_MODE=EMBEDDED`, the default today). Moving it out is a configuration change, not a redesign; see "Scaling".
@@ -66,14 +70,16 @@ Public routes live under `/api/v1/`; the scheduler serves no other routes except
 
 Every calculating call carries a snapshot of the facts it needs:
 
-- technicians: host ID, departure and return location, shift, paid and overtime limits, qualifications, absences, and the host's `lastModified` timestamp per technician-day,
-- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence, current planned start,
-- rates, and the client's policy choices (fairness budget, daily search method and times, booking deadline and window threshold),
-- locations as coordinates (see "Locations and geocoding").
+- technicians: host ID, departure and return location, shift, paid and overtime limits, qualifications, absences, and the host's `lastModified` timestamp per technician-day
+- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence, current planned start
+- rates, and the client's policy choices (fairness budget, daily search method and times, booking deadline and window threshold)
+- locations as coordinates (see "Locations and geocoding")
 
 The scheduler computes a canonical content hash of the snapshot (the input revision). Every proposal and offer records it.
 
 ### Endpoints
+
+The public endpoints and what each does:
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -125,15 +131,15 @@ Version 1.0.0 (2026-10-13) is the first stable contract: everything in this tabl
 | Address-only locations can be located (deployment option `geocoding.mode=NOMINATIM`) | #103 | Nothing required. Sending coordinates is still best. With the option on, an address-only location is located only as an exact house; a lookup outage is a 503 `ROUTING_UNAVAILABLE` to retry. |
 | Confirm sends `{requestId, snapshot}`; a confirmed job's appointment ID is its job ID | #102 | Selects an offer, then confirms its hold with the current snapshot of the hold's metro and date (no other dates). Writes every appointment in the receipt with a compare-and-set on the listed technician-day timestamps, creating the job's appointment under the job's ID. A 409 `HOLD_UNAVAILABLE` (expired, lost, not selected, or the day would need overtime or repair) or a failed write means search again. Confirming again returns the same receipt. |
 | `BookingOffersRequest.offerLimit` is required | #101 | Sends each client's own cap on offers per search, 1 to 4. A missing or out-of-range value is a 400, never assumed. |
-| `BookingOffersRequest.windowHours` is required | | Sends each client's own arrival window length in whole hours, 1 to 8. Windows start on the hour. A missing or out-of-range value is a 400, never assumed. |
+| `BookingOffersRequest.windowHours` is required | #132 | Sends each client's own arrival window length in whole hours, 1 to 8. Windows start on the hour. A missing or out-of-range value is a 400, never assumed. |
 | Select and release served; new error `HOLD_UNAVAILABLE` | #101 | Treats a 409 `HOLD_UNAVAILABLE` from select as "search again": the hold expired or ended, or another offer in the set was selected. Releases a set it no longer needs; a release is a 200 even when nothing was still held. |
 | Booking offers served; `OfferSet.skippedTechnicianDays` added | #100 | Reads `skippedTechnicianDays`: nothing is offered on those technician-days until their locations have coordinates. Starts the horizon after any date already past 6 a.m. local (a frozen date is a 422). Treats a new search for a job as replacing that job's earlier offers, which are no longer held. Retries a 429 or 503 with the same `requestId`. |
 
-### Latency target (Decided)
+### Latency target (decided)
 
 `POST /api/v1/booking/offers` must return offers within the client's `bookingDeadlineMs` (at most 5 seconds) end to end, measured at the WaterFlex caller; the host sets its own timeout a little above it (the portal adds 3 seconds). Measured on one machine on 2026-10-13 ([docs/api-load.md](api-load.md)): one booking desk meets it (p95 987 ms); five or more desks booking the same dates miss it at the caller because of the contention in "Remaining gaps", although each attempt answers within the deadline. Measuring it across the network, on the VM, is still to do.
 
-### Commit ownership and concurrency (Decided: host last-modified timestamps)
+### Commit ownership and concurrency (decided: host last-modified timestamps)
 
 The scheduler cannot lock rows it does not own, so commits use optimistic concurrency on both sides. WaterFlex Software already keeps a last-modified timestamp per technician and day; that timestamp is the concurrency token.
 
@@ -152,7 +158,7 @@ Rules WaterFlex Software must guarantee for the timestamp:
 
 This keeps the audit's rule (caller-side locked revalidation before apply) without the scheduler owning appointments. Step 4 makes the host responsible for the final atomic write, which is unavoidable once it owns the data.
 
-### Booking (Decided 2026-10-08)
+### Booking (decided 2026-10-08)
 
 The owner chose three things for the booking endpoints: confirm sends the day's snapshot, a search covers exactly the dates WaterFlex Software asks for, and an offer may move other customers' appointments to make room.
 
@@ -184,7 +190,7 @@ As built: only a selected hold can be confirmed, and the snapshot may hold techn
 
 **Holds.** Every offer holds its slot for 10 minutes. Selecting an offer keeps its hold and releases the others in its set. Releasing an offer releases its whole set. A new search for the same job supersedes the job's earlier offer set. Expired holds are dropped from the arrangement on its next use.
 
-## Locations and geocoding (Decided)
+## Locations and geocoding (decided)
 
 The scheduler keeps its local Nominatim geocoding and the current address flow. WaterFlex Software may geocode with Google Maps; the integration handles that as follows:
 
@@ -195,23 +201,23 @@ The scheduler keeps its local Nominatim geocoding and the current address flow. 
 - Small travel-time differences between a host coordinate and a Nominatim coordinate for the same address are expected. GraphHopper snaps every point to the nearest routable road either way; a point whose nearest road is not its access road (highway, back alley) can add travel time whichever geocoder produced it.
 - Because the product has no maps of its own, Google map display terms do not apply to the scheduler. WaterFlex Software should still confirm that its Google Maps Platform agreement allows Google-geocoded coordinates to be passed to a non-Google routing engine and held in the scheduler's caches. If it does not, the host sends addresses only and the scheduler geocodes with Nominatim.
 
-### Address quality (Decided)
+### Address quality (decided)
 
 An address reaches the solver only after it has been located with certainty. The scheduler never guesses a location.
 
-- **Formatting is standardized before matching.** Street types and their abbreviations (Street and St), directions (North and N), periods, capitals and spacing, state names and codes, numbered streets (First and 1st), unit designators on the street line (Apt 4, #4, Suite 200), highway and county road names (US-6, US Hwy 6, Co Rd 12), Saint and St at the start of a name, and half or ranged house numbers (123 1/2, 123-125) must all compare as equal when they mean the same place. Any of these the scheduler's address handling does not cover is a defect to fix.
-- **ZIP, house number and street decide a match.** All three must agree. The city may differ when the ZIP agrees, because many addresses carry a mailing city that is not the municipality the map uses.
-- **An uncertain match is rejected, never used.** The rejection names the location and the reason (house number not in the map, street differs, ZIP differs). WaterFlex Software can then send coordinates for that one location.
-- **One bad address affects only itself.** A booking request fails only for its own job. For a daily proposal, the technician-day that holds an appointment that cannot be located is left exactly as it is and reported as skipped, and every other technician-day is still optimized.
+- **Formatting is standardized before matching:** Street types and their abbreviations (Street and St), directions (North and N), periods, capitals and spacing, state names and codes, numbered streets (First and 1st), unit designators on the street line (Apt 4, #4, Suite 200), highway and county road names (US-6, US Hwy 6, Co Rd 12), Saint and St at the start of a name, and half or ranged house numbers (123 1/2, 123-125) must all compare as equal when they mean the same place. Any of these the scheduler's address handling does not cover is a defect to fix.
+- **ZIP, house number and street decide a match:** All three must agree. The city may differ when the ZIP agrees, because many addresses carry a mailing city that is not the municipality the map uses.
+- **An uncertain match is rejected, never used:** The rejection names the location and the reason (house number not in the map, street differs, ZIP differs). WaterFlex Software can then send coordinates for that one location.
+- **One bad address affects only itself:** A booking request fails only for its own job. For a daily proposal, the technician-day that holds an appointment that cannot be located is left exactly as it is and reported as skipped, and every other technician-day is still optimized.
 - Coordinates sent by WaterFlex Software skip all of this and are used as given.
 
-## Scaling (Decided: embedded first, configuration to scale out)
+## Scaling (decided: embedded first, configuration to scale out)
 
 Apply these levers in order, each only when measurements call for it. Signals: booking response time approaching 5 seconds, `SearchAdmission` rejections, sustained CPU saturation, overnight runs not finishing in their window.
 
-1. **More scheduler replicas behind a load balancer.** Works once no correctness state lives in replica memory (see "Multiple clients").
-2. **Separate roles from one artifact (in place, #158).** Run booking replicas (latency sensitive, short solves) apart from daily replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR; `SCHEDULER_ROLE` is `booking`, `daily` or `all` (the default). Every replica answers every route, so the role decides only which background work runs there: a booking replica takes no jobs from the daily queue, so a queued day never takes a slot its bookings need. A daily replica may run more than one daily calculation at once (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`, at most its search capacity; one by default), with as many queue workers. The load balancer sends `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals` and `GET`/`DELETE /api/v1/requests/{id}` to the daily pool and everything else to the booking pool; `deploy/vm/` does this with nginx. The pools scale apart (`SCHEDULER_BOOKING_REPLICAS`, `SCHEDULER_DAILY_REPLICAS`), each with its own CPU and memory, and `/health` names each replica's role. This removes the most likely CPU contention without a remote hop. Measured in [docs/api-load.md](api-load.md).
-3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Already in place: https with a service token for non-loopback solver URLs, and cancellation routed to the solving replica (below). The scheduler and solver must load the same Timefold core artifact; upgrade Timefold by bringing up the new solver pool beside the old one and switching the scheduler over (see "Remaining gaps"). The remote round trips (up to three per booking search today) must fit the 5 second budget. Measured 2026-10-14 (docs/api-load.md, "Embedded against remote calculation (K)"): a remote booking search costs 1.5 times the embedded one at the caller (the round trips), so this lever is for a daily pool, whose proposals take the same time with the solve CPU moved to the pool; a pool's capacity must be the replicas' search capacities summed and its background limit must cover the daily replicas (`SOLVER_CAPACITY`, `SOLVER_BACKGROUND_LIMIT`).
+1. **More scheduler replicas behind a load balancer:** Works once no correctness state lives in replica memory (see "Multiple clients").
+2. **Separate roles from one artifact (in place, #158):** Run booking replicas (latency sensitive, short solves) apart from daily replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR; `SCHEDULER_ROLE` is `booking`, `daily` or `all` (the default). Every replica answers every route, so the role decides only which background work runs there: a booking replica takes no jobs from the daily queue, so a queued day never takes a slot its bookings need. A daily replica may run more than one daily calculation at once (`SCHEDULER_SEARCH_BACKGROUND_LIMIT`, at most its search capacity; one by default), with as many queue workers. The load balancer sends `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals` and `GET`/`DELETE /api/v1/requests/{id}` to the daily pool and everything else to the booking pool; `deploy/vm/` does this with nginx. The pools scale apart (`SCHEDULER_BOOKING_REPLICAS`, `SCHEDULER_DAILY_REPLICAS`), each with its own CPU and memory, and `/health` names each replica's role. This removes the most likely CPU contention without a remote hop. Measured in [docs/api-load.md](api-load.md).
+3. **Remote solver pool:** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Already in place: https with a service token for non-loopback solver URLs, and cancellation routed to the solving replica (below). The scheduler and solver must load the same Timefold core artifact; upgrade Timefold by bringing up the new solver pool beside the old one and switching the scheduler over (see "Remaining gaps"). The remote round trips (up to three per booking search today) must fit the 5 second budget. Measured 2026-10-14 (docs/api-load.md, "Embedded against remote calculation (K)"): a remote booking search costs 1.5 times the embedded one at the caller (the round trips), so this lever is for a daily pool, whose proposals take the same time with the solve CPU moved to the pool; a pool's capacity must be the replicas' search capacities summed and its background limit must cover the daily replicas (`SOLVER_CAPACITY`, `SOLVER_BACKGROUND_LIMIT`).
 
    Cancellation across solver replicas (exists today): every solve `POST` and its cancellation `DELETE` carry the solve's request ID in the `Solve-Request-Id` header, and `solver-service` rejects either call when the header is missing or does not match the request. The load balancer in front of the solver pool hashes on that header so both calls reach the same replica. For nginx:
 
@@ -227,7 +233,7 @@ Apply these levers in order, each only when measurements call for it. Signals: b
 
 Routing scales per metro by adding replicas of that metro's routing service behind its own internal address.
 
-## Multiple clients (Decided: one shared database, tenant on every row)
+## Multiple clients (decided: one shared database, tenant on every row)
 
 ### What is stored
 
@@ -239,9 +245,9 @@ Client schedules are not stored in the scheduler. They stay in WaterFlex Softwar
 | Offer sets and offers | Usable for hours, until selected or expired; the rows stay for the retention period |
 | Daily and repair proposals | Committable until committed or stale; the rows stay for the retention period |
 | Requests, commit and booking receipts | The retention period, then purged |
+| Road route cache | Up to 30 days (see "Route cache") |
 
 The retention period is the deployment's `SCHEDULER_RETENTION_DAYS` (1 to 3650 days), required with no default: the scheduler does not start without it. A daily purge (03:45 America/Chicago, `scheduler.retention.cron`) deletes rows older than the period in batches of 5,000 through the database function `scheduler_purge`, children before parents. A row that a newer row still references (an old offer set whose offer was confirmed recently) stays until both have aged. The function refuses a cutoff less than a day old.
-| Road route cache | Up to 30 days (see "Route cache") |
 
 ### Tenant isolation
 
@@ -282,12 +288,12 @@ How a lookup works:
 
 Implications for the target design:
 
-- **Per metro (exists).** `MetroRouting` builds one `RoadClient` per metro from `ROUTING_METRO_URLS`, each with its own memory tier and routing identity, so a graph update in one metro clears only that metro's tier 2. Every public API request carries its metro, and an unconfigured metro fails. Each metro's routing identity differs, so tier 3 entries for different metros never collide. The single `ROUTING_URL` client remains only to run the weekly cleanup.
-- **Across clients.** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
-- **Across replicas.** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
-- **Health call per lookup (done, J).** The identity is remembered for 2 s per metro; the routing service's own check of the expected identity on every call keeps a changed graph detectable. Each map version carries a flexible graph and a contraction hierarchy graph (`graph-ch-car-v1`); the routing service serves the CH graph by default and routes a request's pairs in parallel. Measured in [docs/api-load.md](api-load.md), "Routing".
-- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes the oldest rows in batches of 50,000 until the table is within the 500,000 row cap (exists today).
-- **Moving tier 3 into routing.** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
+- **Per metro (exists):** `MetroRouting` builds one `RoadClient` per metro from `ROUTING_METRO_URLS`, each with its own memory tier and routing identity, so a graph update in one metro clears only that metro's tier 2. Every public API request carries its metro, and an unconfigured metro fails. Each metro's routing identity differs, so tier 3 entries for different metros never collide. The single `ROUTING_URL` client remains only to run the weekly cleanup.
+- **Across clients:** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
+- **Across replicas:** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
+- **Health call per lookup (done, J):** The identity is remembered for 2 s per metro; the routing service's own check of the expected identity on every call keeps a changed graph detectable. Each map version carries a flexible graph and a contraction hierarchy graph (`graph-ch-car-v1`); the routing service serves the CH graph by default and routes a request's pairs in parallel. Measured in [docs/api-load.md](api-load.md), "Routing".
+- **Cleanup on every replica:** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes the oldest rows in batches of 50,000 until the table is within the 500,000 row cap (exists today).
+- **Moving tier 3 into routing:** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
 
 ## Thin store
 
@@ -316,7 +322,7 @@ The tables of the retired paths are dropped (migration `20261024120000_drop_lega
 - Cancellation, depot and technician changes: the host makes them and checks affected days with `POST /api/v1/routes/evaluate`.
 - The `web/` portal is an admin and demo client of the public API (see below).
 
-## Portal as a client (Decided 2026-10-08)
+## Portal as a client (decided 2026-10-08)
 
 The portal stays, keeps its pages, and is a client of the public API, standing in for WaterFlex Software. It schedules for several clients and switches between them, including two clients in the same metro. The phases below record how it was built. Settings they mention as current at the time (`SCHEDULER_PUBLIC_API`, `SCHEDULER_OPTIMIZER_CRON`, the engine's own routes and tables) were removed in later phases.
 

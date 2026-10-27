@@ -4,12 +4,14 @@ A booking and dispatch scheduler for field technicians, with self-hosted maps fo
 
 ## Architecture
 
+The portal and other hosts call the scheduler over `/api/v1`; the scheduler owns its database and calls its own routing and address services.
+
 ```text
  portal (web/, Next.js)                    other hosts (WaterFlex Software)
-   | Prisma -> db (portal Postgres)            |
+   | Prisma --> db (portal Postgres)           |
    +------------------ /api/v1 ---------------+
                          |
-                 scheduler-service (Spring Boot, Flyway -> scheduler-db)
+                 scheduler-service (Spring Boot, Flyway --> scheduler-db)
                    |  calculation-engine (Timefold), embedded,
                    |  or solver-service when SCHEDULER_CALCULATION_MODE=REMOTE
                    |
@@ -21,6 +23,8 @@ A booking and dispatch scheduler for field technicians, with self-hosted maps fo
 The scheduler owns its database and nothing else connects to it. On the VM it runs as two pools, `scheduler-booking` and `scheduler-daily`, behind the nginx `scheduler-proxy` ([deploy/vm/README.md](deploy/vm/README.md)). The design and its decisions are in [docs/stateless-api-design.md](docs/stateless-api-design.md).
 
 ## Repository layout
+
+The top-level paths and what each holds:
 
 | Path | What it is |
 | --- | --- |
@@ -41,6 +45,8 @@ The scheduler owns its database and nothing else connects to it. On the VM it ru
 - Java 25 to run Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.10.0.
 - Node to run portal checks outside Docker. CI uses Node 22, while `web/Dockerfile` builds on `node:26-slim`; `web/package.json` declares no engine yet.
 
+The main components run at these versions:
+
 | Component | Version |
 | --- | --- |
 | Spring Boot | 4.1.2 |
@@ -57,7 +63,7 @@ The scheduler owns its database and nothing else connects to it. On the VM it ru
 Every published Compose port binds to `127.0.0.1`.
 
 | Port | Service |
-| --- | --- |
+| ---: | --- |
 | 3001 | Portal (`web`) |
 | 8000 / 9000 | Scheduler API / management (`/actuator/health`, `/actuator/prometheus`) |
 | 8001 | Routing service |

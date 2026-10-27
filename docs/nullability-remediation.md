@@ -19,27 +19,27 @@ The final clean ECJ run has zero unsuppressed source nullability, raw-type, or u
 
 ## Confirmed failures and behavior changes
 
-* JSON `null`, arrays, scalar values, malformed JSON, missing fields, invalid dates, and incorrectly typed required values are rejected before writes or downstream calls. Java also rejects scalar coercion and missing routing coordinates. Empty-body action endpoints accept their existing `{}` object wire format.
-* The scheduler client decodes successful responses before returning typed values. Upstream errors retain their HTTP status with a safe message; malformed successful responses return 502 and transport failures return 503.
-* Geocoder coordinates must be nonblank decimal numeric strings, finite, and within latitude/longitude bounds. Null coordinates no longer become a rooftop result at `(0, 0)`. Actual zero coordinates remain valid. The manual-follow-up flow remains available.
-* JDBC readers distinguish SQL null from valid zero and false. A booking without a usable location returns 422; incomplete existing scheduling state returns 409. Required counts, timestamps, schedule versions, assignments, and arrival entries are checked before use. Transactional failures retain reservations and appointments.
-* A routable cache row with missing or invalid metrics is fetched again and replaced. Explicit unreachable rows keep null metrics. A routing outage does not create an unreachable cache entry.
-* Saved previews validate assignments, versions, routing/configuration provenance, and summaries. Ready time-off reports validate required daily and total metrics, intervals, and changes before approval. Invalid saved state returns 409 and existing repair retry/reconciliation behavior is retained.
-* The booking-test runner decodes persisted input, configuration, offers, selection, attempts, and preview results. A malformed journal pauses the run without discarding its raw journal or selected offer.
-* Browser response decoders prevent malformed responses from replacing valid state. Dependent actions are disabled after invalid responses. Appointments with missing coordinates remain visible with a location error and are excluded from map plotting. Empty service/technician lists have controlled disabled states.
-* Offline simulations reject incomplete metrics before recommendations, and scripts use checked lookups instead of unsupported assertions.
+- JSON `null`, arrays, scalar values, malformed JSON, missing fields, invalid dates, and incorrectly typed required values are rejected before writes or downstream calls. Java also rejects scalar coercion and missing routing coordinates. Empty-body action endpoints accept their existing `{}` object wire format.
+- The scheduler client decodes successful responses before returning typed values. Upstream errors retain their HTTP status with a safe message; malformed successful responses return 502 and transport failures return 503.
+- Geocoder coordinates must be nonblank decimal numeric strings, finite, and within latitude/longitude bounds. Null coordinates no longer become a rooftop result at `(0, 0)`. Actual zero coordinates remain valid. The manual-follow-up flow remains available.
+- JDBC readers distinguish SQL null from valid zero and false. A booking without a usable location returns 422; incomplete existing scheduling state returns 409. Required counts, timestamps, schedule versions, assignments, and arrival entries are checked before use. Transactional failures retain reservations and appointments.
+- A routable cache row with missing or invalid metrics is fetched again and replaced. Explicit unreachable rows keep null metrics. A routing outage does not create an unreachable cache entry.
+- Saved previews validate assignments, versions, routing/configuration provenance, and summaries. Ready time-off reports validate required daily and total metrics, intervals, and changes before approval. Invalid saved state returns 409 and existing repair retry/reconciliation behavior is retained.
+- The booking-test runner decodes persisted input, configuration, offers, selection, attempts, and preview results. A malformed journal pauses the run without discarding its raw journal or selected offer.
+- Browser response decoders prevent malformed responses from replacing valid state. Dependent actions are disabled after invalid responses. Appointments with missing coordinates remain visible with a location error and are excluded from map plotting. Empty service/technician lists have controlled disabled states.
+- Offline simulations reject incomplete metrics before recommendations, and scripts use checked lookups instead of unsupported assertions.
 
 The schema-contract script now compares scalar column types and nullability with Prisma, as well as the Java table/column inventory. Four existing PostgreSQL `timestamptz` mappings are now explicitly marked `@db.Timestamptz(6)` in Prisma: `BookingOptimization.createdAt` and `OptimizationRun.serviceDate`, `createdAt`, and `appliedAt`. This aligns metadata with existing migrations and requires no data migration.
 
 ## Intentional absence
 
-* Cancellation/release/applied timestamps, unselected offers, candidate misses, and optional preview keys remain nullable.
-* Unavailable technician overrides may have null shift hours. Their absence is retained in configuration fingerprints; available shifts require valid hours.
-* Address coordinates remain nullable in persistence. They are displayed as incomplete and rejected only when a routing operation requires them.
-* Cache misses and explicitly unreachable road legs remain absent. Only unreachable routes may have intentionally absent metrics.
-* The routing graph may be unavailable until a valid graph can be loaded.
-* Timefold score, shadow assignments, and uninitialized facts remain nullable during framework construction. Required facts are checked when accessed, preserving no-argument constructors.
-* Missing settings retain established documented configuration defaults; missing scheduling facts never receive fabricated zero, false, or empty replacements.
+- Cancellation/release/applied timestamps, unselected offers, candidate misses, and optional preview keys remain nullable.
+- Unavailable technician overrides may have null shift hours. Their absence is retained in configuration fingerprints; available shifts require valid hours.
+- Address coordinates remain nullable in persistence. They are displayed as incomplete and rejected only when a routing operation requires them.
+- Cache misses and explicitly unreachable road legs remain absent. Only unreachable routes may have intentionally absent metrics.
+- The routing graph may be unavailable until a valid graph can be loaded.
+- Timefold score, shadow assignments, and uninitialized facts remain nullable during framework construction. Required facts are checked when accessed, preserving no-argument constructors.
+- Missing settings retain established documented configuration defaults; missing scheduling facts never receive fabricated zero, false, or empty replacements.
 
 ### Generic element nullness under ECJ
 
@@ -106,4 +106,3 @@ npm run test:ui
 ```
 
 CI executes the same gates (see [CI runtime and coverage](ci-runtime.md)). Its browser job provisions the isolated schema and Chromium with Linux dependencies, and its integration jobs run the public API smokes against a fixture routing service.
-
