@@ -138,7 +138,8 @@ def build():
             if block.startswith("|"):
                 insert_table(anchor, block.splitlines())
             else:
-                level = 2 if block.startswith("# ") else 2 if block.startswith("## ") else None
+                # Section (##) and subsection (###) headings both become Word Heading 2.
+                level = 2 if block.startswith(("## ", "### ")) else None
                 paragraph = doc.add_heading(block.lstrip("# "), level) if level else doc.add_paragraph(block.replace("\n", " "))
                 anchor.addprevious(paragraph._p)
 

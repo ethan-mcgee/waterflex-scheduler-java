@@ -29,6 +29,22 @@ def table(headers, rows):
                      ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows])
 
 
+def wrap(text, width=400):
+    """Break prose lines at sentence ends, outside code spans and links, to meet markdownlint MD013."""
+    lines, fence = [], False
+    for line in text.split("\n"):
+        fence ^= line.startswith("```")
+        while not fence and len(line) > width and not line.startswith(("|", "#", "![")):
+            cuts = [m.start() for m in re.finditer(r"(?<=[.?!]) (?=[A-Z`\[(])", line[:width + 1])
+                    if line[:m.start()].count("`") % 2 == 0 and line[:m.start()].count("[") == line[:m.start()].count("]")]
+            if not cuts:
+                break
+            lines.append(line[:cuts[-1]])
+            line = line[cuts[-1] + 1:]
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def inline(value):
     value = re.sub(r"`([^`]+)`", r"<code>\1</code>", escape(value))
     return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', value)
@@ -332,7 +348,7 @@ def main():
             [[r["promiseMinutes"], r["request"], v["id"], v["windowStart"] + " to " + v["windowEnd"], v["planned"]]
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] == "BOUNDED" for v in r["visits"]]),
       table(["Companion", "Selected routes", "Cost", "Drive / wait min", "Crossings", "Source"],
-            [[r["scenario"], "; ".join(k + ": " + ",".join(v) for k, v in r["after"].items()), money(r["costCents"]), f'{r["drivingMinutes"]}/{r["waitingMinutes"]}', r["crossings"], r["source"]] for r in companions]),
+            [[r["scenario"], "; ".join(k + ": " + ",".join(v) for k, v in r["after"].items()).rstrip(), money(r["costCents"]), f'{r["drivingMinutes"]}/{r["waitingMinutes"]}', r["crossings"], r["source"]] for r in companions]),
       "The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel. The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.",
       "Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.",
       "## Reproducibility and limitations",
@@ -346,8 +362,9 @@ def main():
       "See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded. Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion."]
     text = "\n\n".join(sections) + "\n"
     assert "\u2014" not in text
-    OUT.write_text(text, encoding="utf-8", newline="\n")
+    OUT.write_text(wrap(text), encoding="utf-8", newline="\n")
     # A deliberately small Markdown renderer for this generator's fixed headings/tables/code/paragraphs.
+    # It reads the unwrapped text, where each paragraph is one line.
     html, code = [], False
     lines = text.splitlines()
     i = 0

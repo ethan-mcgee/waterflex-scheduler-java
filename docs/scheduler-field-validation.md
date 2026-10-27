@@ -4,19 +4,23 @@ Execution status: complete. Retained 218/218 validated booking cases and 240/240
 
 ## Decision and scope
 
-Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints. These are modeled fixture results, not operational savings or a reproduction from customer production records.
+Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints.
+These are modeled fixture results, not operational savings or a reproduction from customer production records.
 
 Baseline checkout: `c28a24c4c0c1b4614b442c7a362d205cfa7e0db3`. Original behavior is rebuilt in an isolated checkout and recorded separately as `original`; `screen` and `held` use the new policy. Historical reports and artifacts remain unchanged. Algorithm rollback continues through the common policy and reservation validation layer.
 
-[Machine-readable totals and raw-file checksums](evidence/scheduler-field-2026-09-29/summary.json), [experiment manifest](evidence/scheduler-field-2026-09-29/experiment-manifest.json), and [validation checks](evidence/scheduler-field-2026-09-29/validation.json) back this report. Gzip archives preserve the exact original JSONL/log bytes. Algorithm rollback means selecting the earlier algorithm in this policy release, not deploying a pre-policy binary.
+[Machine-readable totals and raw-file checksums](evidence/scheduler-field-2026-09-29/summary.json), [experiment manifest](evidence/scheduler-field-2026-09-29/experiment-manifest.json), and [validation checks](evidence/scheduler-field-2026-09-29/validation.json) back this report. Gzip archives preserve the exact original JSONL/log bytes.
+Algorithm rollback means selecting the earlier algorithm in this policy release, not deploying a pre-policy binary.
 
 ## Policy and implementation
 
-New bookings reserve one best-found offer ranked by incremental operating cost, workload balance, earlier promise, and stable identifiers. Arrival promises span four hours and start hourly. Service and return travel must fit regular availability. Existing confirmed dates/windows, actual dated home/depot endpoints, absences, skills, directed routing, holds, and the 06:00 America/Chicago freeze remain hard boundaries. Existing overtime routes retain their facts and are excluded from new work and flagged for follow-up. An already infeasible snapshot still fails closed; it is not silently repaired during booking.
+New bookings reserve one best-found offer ranked by incremental operating cost, workload balance, earlier promise, and stable identifiers. Arrival promises span four hours and start hourly. Service and return travel must fit regular availability.
+Existing confirmed dates/windows, actual dated home/depot endpoints, absences, skills, directed routing, holds, and the 06:00 America/Chicago freeze remain hard boundaries. Existing overtime routes retain their facts and are excluded from new work and flagged for follow-up. An already infeasible snapshot still fails closed; it is not silently repaired during booking.
 
 Insertion covers the normal horizon first, including weekend availability inside the weekday-counted horizon. The search only enters five additional weekdays after a completed normal search finds no candidate, then selects the cheapest candidate on the first feasible overflow date. An interrupted search does not establish infeasibility.
 
-Durable start/status/cancel operations use idempotent UUIDs, one active search per job, a database admission cap of 16, two workers per instance, a 15-second lease renewed each second, and a finite two-minute work lifetime. Search runs outside transactions. Publication revalidates under short transactions and permits one fresh-snapshot retry. Offer TTL starts at publication. Browser reload reconnects using an opaque saved pointer; explicit cancellation releases capacity. Lost ownership becomes a terminal incomplete result. Completed-no-candidate, incomplete, cancelled, and failed results remain distinct.
+Durable start/status/cancel operations use idempotent UUIDs, one active search per job, a database admission cap of 16, two workers per instance, a 15-second lease renewed each second, and a finite two-minute work lifetime. Search runs outside transactions. Publication revalidates under short transactions and permits one fresh-snapshot retry. Offer TTL starts at publication.
+Browser reload reconnects using an opaque saved pointer; explicit cancellation releases capacity. Lost ownership becomes a terminal incomplete result. Completed-no-candidate, incomplete, cancelled, and failed results remain distinct.
 
 ## Tested algorithms and hypotheses
 
@@ -28,7 +32,8 @@ Durable start/status/cancel operations use idempotent UUIDs, one active search p
 | RUIN_RECREATE | Expanded plus removal of 2/3 related visits, constrained/regret-first complete reconstruction | Screened out in favor of shared variant with equal screen cost and lower runtime |
 | SHARED | Same reconstruction search with shared route evaluation across windows | Reject promotion: high-concurrency latency, served-demand deterioration, and retained audit failure |
 
-Ruin-and-recreate counts reconstruction attempts and route/candidate work separately from arrangement limits. Incomplete reconstruction is rejected. Shared evaluation isolates route-evaluation caching; neighborhood ranking caches still exist in the expanded control. Stronger variants are never attributed to an individual move type solely from a combined result. Daily configurations retain their exact XML and phase counters in raw artifacts.
+Ruin-and-recreate counts reconstruction attempts and route/candidate work separately from arrangement limits. Incomplete reconstruction is rejected. Shared evaluation isolates route-evaluation caching; neighborhood ranking caches still exist in the expanded control. Stronger variants are never attributed to an individual move type solely from a combined result.
+Daily configurations retain their exact XML and phase counters in raw artifacts.
 
 ## Booking results
 
@@ -48,7 +53,8 @@ Ruin-and-recreate counts reconstruction attempts and route/candidate work separa
 | stress | BOUNDED | 4 | 21/40 | 9 | 6,356 | $145,912.50 |
 | stress | INSERTION | 4 | 17/40 | 12 | 3,611 | $145,835.00 |
 
-Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup. Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.
+Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup.
+Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.
 
 ### Original baseline versus policy-only controls
 
@@ -67,7 +73,8 @@ Final-cost totals include the existing ten-day workload and differing served cus
 | INSERTION | 41/10 | 3/3 | $3,802.50 | $3,802.50 | True |
 | INSERTION | 41/20 | 3/3 | $7,552.50 | $7,552.50 | True |
 
-These pairs have identical seeded fixture fingerprints and request streams. The original policy includes two-hour promises and multiple choices; the new policy uses four-hour promises, one choice, no new overtime, and durable search. This bundled policy/lifecycle comparison cannot attribute its difference to a single policy. The independent field two-by-two experiment isolates promise width from insertion versus rearrangement. Immediate snapshots are compared there; sequential histories are allowed to diverge in this replay.
+These pairs have identical seeded fixture fingerprints and request streams. The original policy includes two-hour promises and multiple choices; the new policy uses four-hour promises, one choice, no new overtime, and durable search. This bundled policy/lifecycle comparison cannot attribute its difference to a single policy.
+The independent field two-by-two experiment isolates promise width from insertion versus rearrangement. Immediate snapshots are compared there; sequential histories are allowed to diverge in this replay.
 
 ### Resource and route diagnostics
 
@@ -87,7 +94,8 @@ These pairs have identical seeded fixture fingerprints and request streams. The 
 | stress/BOUNDED | 116.9 | 596.3 | 0 | 0.0 | 0 | 0.000171 |
 | stress/INSERTION | 47.0 | 443.3 | 0 | 0.0 | 0 | 0.000154 |
 
-Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).
+Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters.
+[Cost versus runtime chart](scheduler-field-cost-runtime.svg).
 
 | Stage / variant | Mean queue ms | Mean lead days | Overflow | Candidate / route evaluations | Reconstructions | Prepared snapshots |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -105,7 +113,8 @@ Road and waiting totals include existing work across all cases. Queue time, requ
 | stress/BOUNDED | 1,768 | 15.00 | 21 | 30,555/395,769 | 0 | 68 |
 | stress/INSERTION | 1,147 | 15.00 | 17 | 5,995/73,868 | 0 | 68 |
 
-Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.
+Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates.
+Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.
 
 ### Paired comparison against new-policy insertion
 
@@ -120,7 +129,8 @@ Lead time is calendar days from the day before the first normal booking date, fo
 | held | RUIN_RECREATE | 0/0 | 0 | 0 | n/a | n/a |
 | held | SHARED | 16/32 | 2 | -12 | $31.36 | $29.84 to $32.87 |
 
-Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Fleet sizes, cache modes, and concurrency repetitions are averaged within a seeded request stream before a deterministic 10,000-resample percentile bootstrap. Clustered seeds generate the same request sequence and collapse to one stream, so no interval is reported there. Held-out dispersed evidence has only two independent seeded streams. These intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.
+Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Fleet sizes, cache modes, and concurrency repetitions are averaged within a seeded request stream before a deterministic 10,000-resample percentile bootstrap.
+Clustered seeds generate the same request sequence and collapse to one stream, so no interval is reported there. Held-out dispersed evidence has only two independent seeded streams. These intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.
 
 ### Search quality over time
 
@@ -182,11 +192,13 @@ Customer identity is the stable request index within an identical seeded dataset
 | stress/INSERTION | 30 | 37/40 | $19.53 |
 | stress/INSERTION | 60 | 37/40 | $19.53 |
 
-This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.
+This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent.
+API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.
 
 ## Daily solvers
 
-All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget. No-new-request daily optimization is the cleanup control.
+All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget.
+No-new-request daily optimization is the cleanup control.
 
 | Configuration | Mechanism / hypothesis | Decision |
 | --- | --- | --- |
@@ -258,15 +270,18 @@ All eight existing configurations are rerun under the new zero-overtime policy. 
 | 60 | RUIN_RECREATE | 2 | $-24.41 | $-25.02 to $-23.80 |
 | 60 | SUBLIST | 2 | $6.67 | $5.13 to $8.20 |
 
-Daily pairs match the exact dataset fingerprint and budget, average fleet sizes within each seed, then bootstrap seed units. Two held-out seeds cannot establish broad generalization. Conditional configuration comparisons are available for capped/uncapped work, change-only/change-plus-swap, sublist, k-opt, and ruin/recreate additions. They do not establish an isolated causal effect for a move type across different acceptors or combined neighborhoods. Raw reference/fairness phase records retain score calculations, time to best, termination, CPU, heap, and waiting/fairness outcomes.
+Daily pairs match the exact dataset fingerprint and budget, average fleet sizes within each seed, then bootstrap seed units. Two held-out seeds cannot establish broad generalization. Conditional configuration comparisons are available for capped/uncapped work, change-only/change-plus-swap, sublist, k-opt, and ruin/recreate additions.
+They do not establish an isolated causal effect for a move type across different acceptors or combined neighborhoods. Raw reference/fairness phase records retain score calculations, time to best, termination, CPU, heap, and waiting/fairness outcomes.
 
 ## Field scenarios
 
 ![Selected routes and protected-promise backtracking](scheduler-field-routes.svg)
 
-The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.
+The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha.
+Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.
 
-All 180 sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion. Both wider promises and stronger search are separately varied; neither is required for this fixture's optimal grouping.
+All 180 sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion.
+Both wider promises and stronger search are separately varied; neither is required for this fixture's optimal grouping.
 
 ### A, then B, then C
 
@@ -341,7 +356,7 @@ The order table reports each history's actual promises. Equal final cost does no
 | alternating-240-E | omaha: E,A,C,B,D | $162.47 | 105/0 | 2 | REARRANGEMENT |
 | cancelled-omaha | omaha: A,C | $109.97 | 90/0 | 2 | INSERTION |
 | nearby-qualified-false | nearby: ; omaha: A | $100.81 | 85/0 | 2 | INSERTION |
-| nearby-qualified-true | nearby: A; omaha:  | $38.33 | 10/0 | 0 | INSERTION |
+| nearby-qualified-true | nearby: A; omaha: | $38.33 | 10/0 | 0 | INSERTION |
 | protected-omaha | omaha: A,B,C | $184.62 | 170/6 | 4 | INSERTION |
 | reassignment-120-BOUNDED | nearby: A; omaha: B,C | $183.31 | 100/0 | 2 | REARRANGEMENT |
 | reassignment-120-EXPANDED | nearby: A; omaha: B,C | $183.31 | 100/0 | 2 | REARRANGEMENT |
@@ -353,24 +368,35 @@ The order table reports each history's actual promises. Equal final cost does no
 | reassignment-240-SHARED | nearby: A; omaha: C,B | $183.31 | 100/0 | 2 | REARRANGEMENT |
 | released-hold | omaha: A,C | $109.97 | 90/0 | 2 | INSERTION |
 
-The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel. The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.
+The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel.
+The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow.
+Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.
 
-Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.
+Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times.
+Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.
 
 ## Reproducibility and limitations
 
 ### Failed concurrency audit and retained evidence
 
-The initial eight capacity-pressure cases audited only the normal horizon even though their accepted bookings used overflow dates. Their original artifacts remain under stress-normal-only and are excluded from validated cost/route summaries. All eight were rerun under stress-final with every served date included; the harness and report now assert that the audited confirmed-appointment increase equals the reported served count. The limitation is an audit-scope defect, not evidence of a production scheduling violation.
+The initial eight capacity-pressure cases audited only the normal horizon even though their accepted bookings used overflow dates. Their original artifacts remain under stress-normal-only and are excluded from validated cost/route summaries.
+All eight were rerun under stress-final with every served date included; the harness and report now assert that the audited confirmed-appointment increase equals the reported served count. The limitation is an audit-scope defect, not evidence of a production scheduling violation.
 
-The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See [investigation](evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json).
+The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory.
+A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved.
+This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See [investigation](evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json).
 
-Booking artifact `1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b` was built from `2258b2a14e8a9ecd085c79ec377448c0555c2b1e`. Some held runtime headers name the later harness checkout `adcda9a`; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from `6da6d9341815d7f290cfe34190974fef1ffe2ff3`. Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.
+Booking artifact `1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b` was built from `2258b2a14e8a9ecd085c79ec377448c0555c2b1e`. Some held runtime headers name the later harness checkout `adcda9a`; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from `6da6d9341815d7f290cfe34190974fef1ffe2ff3`.
+Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.
 
-Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.
+Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm.
+No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.
 
-The booking harness that produced these runs (`infra/run-field-booking-benchmarks.mjs`) was retired on 2026-10-09; each runtime manifest keeps its FIELD_* settings, and current booking measurement is in [the API load results](api-load.md). Run the field oracle with `mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest`. Rebuild this report with `python infra/report-field-validation.py --require-complete`. The generator verifies complete case counts, served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.
+The booking harness that produced these runs (`infra/run-field-booking-benchmarks.mjs`) was retired on 2026-10-09; each runtime manifest keeps its FIELD_* settings, and current booking measurement is in [the API load results](api-load.md). Run the field oracle with `mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest`.
+Rebuild this report with `python infra/report-field-validation.py --require-complete`. The generator verifies complete case counts, served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.
 
 ## Gates and remaining acceptance boundaries
 
-See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded. Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion.
+See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR.
+The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded.
+Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion.
