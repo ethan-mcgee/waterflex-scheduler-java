@@ -14,7 +14,7 @@ updates:
       # Remove this rule once its peer range includes the newer compiler.
       - dependency-name: typescript
         versions: ['>=6.1']
-      # The types follow the oldest Node the portal runs on (CI uses Node 22), not the newest release.
+      # The types follow the Node the portal runs on (Node 26 in CI and web/Dockerfile, the engines floor), not the newest release.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
   - package-ecosystem: maven

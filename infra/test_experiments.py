@@ -133,6 +133,16 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(set(COLORS), set(DAILY + BOOKING))
         self.assertEqual((COLORS['TABU'], COLORS['SHARED']), ('#2363a0', '#516170'))
 
+    def test_workloads_are_the_benchmark_fixtures(self):
+        import re
+        from experiment_config import WORKLOADS
+        data = Path(__file__).resolve().parents[1] / 'scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverBenchmarkData.java'
+        enum = re.search(r'enum Workload \{([^}]*)\}', data.read_text(encoding='utf-8')).group(1)
+        self.assertEqual(WORKLOADS, [name.strip() for name in enum.split(',')])
+        c = config()
+        c['daily']['workloads'] = ['MIXED_SHIFT', 'CLUSTERED']
+        self.assertEqual({r['workload'] for r in expand(c)}, {'MIXED_SHIFT', 'CLUSTERED'})
+
     def test_frozen_source_contains_every_reactor_module(self):
         import re
         pom = (Path(__file__).resolve().parents[1] / 'pom.xml').read_text(encoding='utf-8')
