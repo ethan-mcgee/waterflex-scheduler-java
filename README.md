@@ -34,8 +34,9 @@ The top-level paths and what each holds:
 - **`web/`:** The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`.
 - **`infra/`:** Map preparation and activation scripts, `map-import` image, routing fixture, experiment and study harnesses, CI helpers and their Python tests, and the [host conformance kit](infra/host-conformance/README.md).
 - **`deploy/vm/`:** The production VM's Compose stack, `.env.example` and the local rehearsal override.
-- **`experiments/`, `run_experiment.py`:** Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). See [docs/configurable-experiments.md](docs/configurable-experiments.md).
-- **`docs/`:** Living docs, the OpenAPI contract, evidence JSON and dated study reports (see [Documentation](#documentation)).
+- **`experiments/`, `run_experiment.py`:** Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). The launcher's guide is `research/configurable-experiments.md`.
+- **`docs/`:** The OpenAPI contract and the runtime, setup and integration docs (see [Documentation](#documentation)).
+- **`research/`:** Local only and gitignored: study reports, evidence, explainers, the Timefold audit, the vendored Timefold documentation and the report generators (`research/tools/`).
 
 ## Requirements and versions
 
@@ -211,10 +212,8 @@ npm run build
 npm run test:ui          # Playwright; needs the isolated nullability_ui schema
 cd ..
 
-# Infra and audit helpers (JAVA_HOME must point at a JDK with javac)
+# Infra helpers (JAVA_HOME must point at a JDK with javac)
 python -m unittest discover -s infra -p 'test_*.py'
-python -m unittest discover -s docs/timefold-audit -p 'test_*.py'
-python -m unittest discover -s docs/timefold-audit/remediation -p 'test_*.py'
 
 # Host conformance kit
 cd infra/host-conformance; npm ci; npm run typecheck; npm test
@@ -237,14 +236,10 @@ Living references:
 - [Operations runbook](docs/operations-runbook.md): running the scheduler, scaling levers, failure modes.
 - [Scheduling policy](docs/scheduler-policy.md): promises, overtime, cost and fairness, lifecycle, configuration.
 - [Stateless API design](docs/stateless-api-design.md) and [integration guide](docs/integration-guide.md), with the [OpenAPI contract](docs/api/openapi-v1.yaml).
-- [API load results](docs/api-load.md) and [solver experiments](docs/solver-benchmarks.md): measured behavior and the studies behind each default.
-- [Configurable experiments](docs/configurable-experiments.md): the one-command experiment launcher.
 - [Dealerships and depots](docs/dealerships.md), [address matching and booking location](docs/address-and-location.md) and [sequential booking tests](docs/sequential-booking-tests.md).
 - [CI runtime and coverage](docs/ci-runtime.md) and [nullability remediation](docs/nullability-remediation.md).
-- [Field validation](docs/scheduler-field-validation.md) and the [algorithm comparison](docs/scheduler-algorithm-comparison-2026-09-29.md) (generated reports).
-- [Timefold audit](docs/timefold-audit/README.md) and its remediation phases, including the opt-in [benchmark adapters](docs/timefold-audit/remediation/phase11/README.md). `docs/timefold-documentation/` is a local copy of the Timefold Solver documentation that code comments cite by section number.
 
-Dated study reports, each a Word report with its evidence and builder, are kept as records: `docs/daily-budget-331df1f1`, `daily-tabu-variants-5d15129b`, `daily-search-followup-6454fb05`, `performance-work-2026-10-14`, `scheduler-explained-2026-10-14`, `booking-configuration-study-2026-10-19`, `fairness-measures-2026-10-20`, `road-matrix-numbering-2026-10-20`, `stack-verification-2026-10-20`, `booking-experiment-explainer` and `scheduler-explainer`. Raw evidence is under `docs/evidence/`.
+Research records are kept locally in the gitignored `research/` folder and are not part of the repository: the API load results and solver experiments behind each default, the configurable experiments guide, the field validation and algorithm comparison reports, the Timefold audit and its remediation phases, the dated study reports with their evidence, the explainers and a local copy of the Timefold Solver documentation that code comments cite by section number. Study scripts in `infra/` write their evidence to `research/evidence/`.
 
 ## Known harmless log lines
 

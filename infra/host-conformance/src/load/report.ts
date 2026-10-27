@@ -1,4 +1,4 @@
-// The load run's evidence: JSON for comparison across runs, markdown for docs/api-load.md and reviews.
+// The load run's evidence: JSON for comparison across runs, markdown for research/api-load.md and reviews.
 import type { Snapshot } from "../snapshot.ts";
 import type { ServerView } from "./metrics.ts";
 import { breakdownLines, containerShareLines, studyLines, type ContainerShare, type ServerBreakdown, type StudyReceipt, type StudySummary } from "./serverlog.ts";

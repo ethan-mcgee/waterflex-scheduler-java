@@ -3,7 +3,7 @@
 # docker-compose.yml (context "."), deploy/vm/docker-compose.yml (context "../..")
 # and .github/workflows/maintenance.yml. The portal builds from web/ (web/.dockerignore)
 # and map-import from infra/map-import. Anything not re-included below, such as .env,
-# deploy/vm/.env, docs/ and .scratch/, never reaches the Docker daemon.
+# deploy/vm/.env, docs/, research/ and .scratch/, never reaches the Docker daemon.
 *
 
 # Maven wrapper and reactor

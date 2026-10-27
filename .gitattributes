@@ -1,25 +1,5 @@
 routing-service/src/test/resources/fixture-roads.osm text eol=lf
-docs/evidence/*.json text eol=lf
 infra/summarize-booking-acceptance.py text eol=lf
 /infra/map-import/prepare.sh text eol=lf
 /.mvn/jvm.config text eol=lf
-docs/validation/booking-location-map-*.json text eol=lf
-docs/evidence/scheduler-field-2026-09-29/** -text whitespace=cr-at-eol
-docs/scheduler-field-validation.md text eol=lf
-docs/scheduler-field-validation.html text eol=lf
-docs/scheduler-field-*.svg text eol=lf
-docs/scheduler-algorithm-comparison-2026-09-29.pdf -text -diff
-docs/scheduler-algorithm-comparison-2026-09-29.md text eol=lf
-infra/build-scheduler-algorithm-comparison.py text eol=lf
-docs/evidence/reliable-experiments-validation-2026-09-30/** -text whitespace=cr-at-eol
-docs/evidence/reliable-experiments-validation-2026-09-30/**/*.svg -diff
-docs/timefold-documentation/Timefold-Solver-Docs.md -text whitespace=cr-at-eol
-docs/timefold-audit/Timefold_Second_Review.md -text whitespace=cr-at-eol
-docs/timefold-audit/remediation/phase5/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase6/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase7/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase8/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase9/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase10/evidence/** -text -whitespace
-docs/timefold-audit/remediation/phase11/evidence/** -text -whitespace
 experiments/datasets/contract-lifecycle.json -text whitespace=cr-at-eol

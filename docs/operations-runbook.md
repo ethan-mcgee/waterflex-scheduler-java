@@ -34,7 +34,7 @@ Each setting, whether it is required, and what it controls:
   - **Meaning:** `COORDINATES_REQUIRED` (default) or `NOMINATIM`.
 - **`SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN`**
   - **Required:** No.
-  - **Meaning:** `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (docs/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503.
+  - **Meaning:** `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (research/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503.
 - **`SCHEDULER_ROLE`**
   - **Required:** No.
   - **Meaning:** `booking`, `daily` or `all` (default). Every replica answers every route; a `booking` replica takes no queued daily work. Any other value stops the replica at startup. See "Replica roles".
@@ -289,7 +289,7 @@ The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs mor
 
 **The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
 
-**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has. The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5 (9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking, daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the proxy), or measure the combined load on the VM rehearsal stack.
+**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has. The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5 (9.5), plus 4 for a remote solver pool. The booking layout research/api-load.md recommends, one replica with as many slots as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking, daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the proxy), or measure the combined load on the VM rehearsal stack.
 
 ## Replica roles
 

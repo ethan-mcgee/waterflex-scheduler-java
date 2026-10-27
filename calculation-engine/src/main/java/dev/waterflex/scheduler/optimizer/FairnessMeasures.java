@@ -28,7 +28,7 @@ public final class FairnessMeasures {
         return Math.floorDiv(Math.addExact(Math.multiplyExact(Math.multiplyExact(RouteScoringFacts.paid(route), scale), 2), route.capacity()), twice);
     }
 
-    /** Timefold's load balance over each technician's utilization, unweighted by capacity (docs/timefold-documentation, chapter 15). */
+    /** Timefold's load balance over each technician's utilization, unweighted by capacity (the Timefold documentation, chapter 15). */
     public static final class LoadBalance extends DayConstraintProvider {
         @Override protected Constraint fairness(UniConstraintStream<RouteScoringFacts.@NonNull ScoredRoute> routes,
                 BiConstraintStream<List<RouteScoringFacts.@NonNull ScoredRoute>, RouteScoringFacts> fleet) {
