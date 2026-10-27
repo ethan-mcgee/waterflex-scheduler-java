@@ -52,17 +52,15 @@ py -3 infra/experiments.py import-history docs/evidence/scheduler-field-2026-09-
 
 JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requires all its fields except the two optional ones below; unknown fields, duplicate JSON keys, duplicate values, nulls, empty selections and invalid values are rejected before execution. Counts derive exclusively from the lists.
 
-| Field | Daily |
-| --- | --- |
-| `solvers` | Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE, TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT, TABU_KOPT_SIZE_3 |
-| `control` | One selected solver |
-| `seeds` | Distinct integers 0..2147483647 |
-| `fleets` | Any of 5, 10, 20, 30, 50 |
-| `workloads` | SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY, MIXED_SHIFT (4, 6 and 9 hour days by technician rank, so capacity-weighted and unweighted fairness differ; every other workload gives every technician a 9 hour day) |
-| `budgets_seconds` | 0.1..900, whole millisecond resolution |
-| `fixture_seeds` | Optional. Distinct integers 0..2147483647. 0 is the canonical fixture of each fleet and workload (the only one earlier studies used); any other seed draws a new fixture of the same shape |
-| `phases` | Optional. COST_AND_FAIRNESS (two thirds of the budget for the cost search, the rest for fairness within the 2% ceiling, as before) or COST_ONLY (the whole budget for the cost search, no fairness phase) |
-| `parallel_cases` | Required integer, at least 1. Booleans, decimals, strings and null are rejected. The usable core count is checked at run time |
+- **`solvers`:** Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE, TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT, TABU_KOPT_SIZE_3.
+- **`control`:** One selected solver.
+- **`seeds`:** Distinct integers 0..2147483647.
+- **`fleets`:** Any of 5, 10, 20, 30, 50.
+- **`workloads`:** SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY, MIXED_SHIFT (4, 6 and 9 hour days by technician rank, so capacity-weighted and unweighted fairness differ; every other workload gives every technician a 9 hour day).
+- **`budgets_seconds`:** 0.1..900, whole millisecond resolution.
+- **`fixture_seeds`:** Optional. Distinct integers 0..2147483647. 0 is the canonical fixture of each fleet and workload (the only one earlier studies used); any other seed draws a new fixture of the same shape.
+- **`phases`:** Optional. COST_AND_FAIRNESS (two thirds of the budget for the cost search, the rest for fairness within the 2% ceiling, as before) or COST_ONLY (the whole budget for the cost search, no fairness phase).
+- **`parallel_cases`:** Required integer, at least 1. Booleans, decimals, strings and null are rejected. The usable core count is checked at run time.
 
 `parallel_cases` is the number of independent daily cases, each a fresh solver JVM, that run at the same time. Each running case is confined to one dedicated physical core (both SMT threads), so the setting also decides how many cores the study occupies: `parallel_cases` cores, plus core 0, which stays free for Windows and the orchestrator. There is no cores-per-case setting because the solver search is single threaded. `1` runs one case at a time. The value is part of the saved configuration, so the config and case hashes bind it to the run and a resume cannot change it. Running more than one case at a time needs Windows, and a value above the usable physical cores (11 on the 12-core workstation) fails before any measurement.
 
@@ -159,7 +157,6 @@ npm.cmd --prefix web run test:unit
 ```
 
 Regression tests cover invalid configurations including `parallel_cases`, core slot ordering and affinity, concurrent dispatch limits, failure and interruption with in-flight receipts, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, rejection of retired booking configurations, and overlapping booking outcomes and pooled percentiles in archived evidence. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the archived 1,280-case study.
-
 
 ### Earlier matrices
 

@@ -4,15 +4,27 @@
 
 The briefing is built from files in the repository, read through the loaders that already validate each study, so the same checks apply here.
 
-| Source | Read through | What the briefing takes from it |
-| --- | --- | --- |
-| The September booking study, the field validation summary, the September routing evidence, the two daily search studies and the October load studies | `docs/scheduler-explained-2026-10-14/report_data.py` (imported; its document-table check is not called, because the living docs it parses have changed since) and, through it, the sibling loaders | Booking methods, daily-plan savings, wins and losses, the example day, savings by budget, load progression, holds, time split, routing |
-| `docs/evidence/api-load-2026-10-16-dynamic-horizon.json` | this folder's loader | Searches with no offer and offers per search, high demand, 1 and 5 desks, three seeds summed |
-| `docs/evidence/api-load-2026-10-19-booking-configuration*.json.gz` | `docs/booking-configuration-study-2026-10-19/report_data.py` (imported) | The full-schedule polish frontier (rerun) and the booking layouts (first study) |
-| `docs/evidence/solver-representation-2026-10-20.json` | this folder's loader | Speed ratios of T and S |
-| `docs/evidence/solver-variance-2026-10-20.json` | `docs/fairness-measures-2026-10-20/report_data.py` (imported) | Formula b and c summaries and decisions |
-| `docs/evidence/solver-matrix-2026-10-20.json` | `docs/road-matrix-numbering-2026-10-20/report_data.py` (imported) | The numbering fix, formula b's 36 pairs and its speed by fleet |
-| `docs/evidence/api-load-2026-10-20-binary-variance.json`, `api-load-2026-10-22-long-score-money-w-a.json` | `docs/stack-verification-2026-10-20/report_data.py` (imported, validates the first) and this folder's loader | Stack ratios by fleet for formula b and for the shipped engine changes |
+- **The September booking study, the field validation summary, the September routing evidence, the two daily search studies and the October load studies**
+  - **Read through:** `docs/scheduler-explained-2026-10-14/report_data.py` (imported; its document-table check is not called, because the living docs it parses have changed since) and, through it, the sibling loaders.
+  - **What the briefing takes from it:** Booking methods, daily-plan savings, wins and losses, the example day, savings by budget, load progression, holds, time split, routing.
+- **`docs/evidence/api-load-2026-10-16-dynamic-horizon.json`**
+  - **Read through:** this folder's loader.
+  - **What the briefing takes from it:** Searches with no offer and offers per search, high demand, 1 and 5 desks, three seeds summed.
+- **`docs/evidence/api-load-2026-10-19-booking-configuration*.json.gz`**
+  - **Read through:** `docs/booking-configuration-study-2026-10-19/report_data.py` (imported).
+  - **What the briefing takes from it:** The full-schedule polish frontier (rerun) and the booking layouts (first study).
+- **`docs/evidence/solver-representation-2026-10-20.json`**
+  - **Read through:** this folder's loader.
+  - **What the briefing takes from it:** Speed ratios of T and S.
+- **`docs/evidence/solver-variance-2026-10-20.json`**
+  - **Read through:** `docs/fairness-measures-2026-10-20/report_data.py` (imported).
+  - **What the briefing takes from it:** Formula b and c summaries and decisions.
+- **`docs/evidence/solver-matrix-2026-10-20.json`**
+  - **Read through:** `docs/road-matrix-numbering-2026-10-20/report_data.py` (imported).
+  - **What the briefing takes from it:** The numbering fix, formula b's 36 pairs and its speed by fleet.
+- **`docs/evidence/api-load-2026-10-20-binary-variance.json`, `api-load-2026-10-22-long-score-money-w-a.json`**
+  - **Read through:** `docs/stack-verification-2026-10-20/report_data.py` (imported, validates the first) and this folder's loader.
+  - **What the briefing takes from it:** Stack ratios by fleet for formula b and for the shipped engine changes.
 
 The technical descriptions (the score's seven levels, the cost and fairness formulas, the acceptance rule, the booking search's bounds and deadline, admission, the daily methods' moves and acceptance settings, the engine changes) are taken from the code and the living docs: `docs/scheduler-policy.md` (Numeric contract; Search and reservation lifecycle; Configuration), `calculation-engine/.../SolverEngine.java` (move weights, tabu size 7 or 3, late acceptance size 400, accepted-count 1,000 or 1), `SchedulingPolicy.fairness` (the capacity-weighted variance) and `docs/solver-benchmarks.md` (Road matrix numbering; Shipped representation). The CPU and memory limits table is read at build time from the defaults in `deploy/vm/docker-compose.yml`.
 

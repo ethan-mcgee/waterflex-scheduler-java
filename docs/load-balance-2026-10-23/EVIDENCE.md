@@ -4,19 +4,18 @@
 
 The one immutable input is `docs/evidence/solver-load-balance-2026-10-23.json`. `infra/load_balance_study.py summarize` wrote it at the end of the run `infra/run-load-balance-study.ps1` made on 2026-10-23, from 05:36 to 08:59 UTC, on revision `15da8a0`. That revision is main `52339c8` plus the Mixed Shift fixture, a test-only change, built once into a detached worktree under `C:\Projects\waterflex-worktrees`. The raw rows, logs and 96 flight recordings stay in `experiments/runs/load-balance-h2h-20261023T053623/` of the main checkout, which is gitignored.
 
-| Block | What it holds |
-| --- | --- |
-| `manifest` | Revision, JVM flags, fleets, workloads, fixture seeds, solver seed, budgets (15 s and 30 s), repetitions (1), arm order |
-| `budgets.<ms>.runs` | All 240 solves per budget (2 arms, 120 cases). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `budgets.<ms>.measures` | Per measure: median per-case ratio of load balance to b, its 95 percent bootstrap interval, the cases lower and higher, and the cases higher by more than 5 percent |
-| `budgets.<ms>.cost`, `speed`, `convergence`, `byFleet`, `byWorkload`, `acceptance` | Cost differences, paired speed ratios by phase and fleet, time to best over the phase budget, the same readings by group, and acceptance counts |
-| `budgets.<ms>.rule`, `passes` | Each part of the rule written before the run, and whether all hold |
-| `decision` | `switch`: false |
-| `profiles` | One flight-recording profile per arm and phase at 15 s on fixture seed 7001, 24 recordings each, overall and by fleet |
+- **`manifest`:** Revision, JVM flags, fleets, workloads, fixture seeds, solver seed, budgets (15 s and 30 s), repetitions (1), arm order.
+- **`budgets.<ms>.runs`:** All 240 solves per budget (2 arms, 120 cases). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`budgets.<ms>.measures`:** Per measure: median per-case ratio of load balance to b, its 95 percent bootstrap interval, the cases lower and higher, and the cases higher by more than 5 percent.
+- **`budgets.<ms>.cost`, `speed`, `convergence`, `byFleet`, `byWorkload`, `acceptance`:** Cost differences, paired speed ratios by phase and fleet, time to best over the phase budget, the same readings by group, and acceptance counts.
+- **`budgets.<ms>.rule`, `passes`:** Each part of the rule written before the run, and whether all hold.
+- **`decision`:** `switch`: false.
+- **`profiles`:** One flight-recording profile per arm and phase at 15 s on fixture seed 7001, 24 recordings each, overall and by fleet.
 
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The run:** it is the full study on the pinned revision, with the planned matrix (fleets 5, 10, 20 and 50; six workloads; fixture seeds 7001 to 7005; solver seed 17; budgets 15 s and 30 s; one repetition).
 - **Completeness:** every arm and case is present exactly once at each budget.
 - **The results:** zero violations, and no accepted result over its ceiling.
@@ -25,10 +24,11 @@ The one immutable input is `docs/evidence/solver-load-balance-2026-10-23.json`. 
 - **The profiles:** every group is a known one, shares add to 100, and the fleets' recordings add up.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers, finding each table by its header row. It recomputes from the raw JSON:
-- both appendices, every case;
-- the workload table of section 2;
-- the speed table of section 6;
-- the rule table of section 3, with each part's verdict and the decision.
+
+- both appendices, every case
+- the workload table of section 2
+- the speed table of section 6
+- the rule table of section 3, with each part's verdict and the decision
 
 It also checks the chart data against the evidence, the template parts byte for byte, figure descriptions and captions, unsplittable rows, and the absence of em and en dashes.
 
@@ -50,12 +50,13 @@ Nothing missing is replaced with a value. A ratio whose denominator is zero is l
 Nine charts come from `charts.py` (matplotlib, Calibri), and `build_report.py` regenerates them with `chart_data.json`. b is teal and load balance rose, as in the fairness measures report, and each workload keeps one color.
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
-- `study-design.html`: how one case runs;
-- `weighting.html`: how each measure counts a technician.
+
+- `study-design.html`: how one case runs
+- `weighting.html`: how each measure counts a technician
 
 They pass the skill's `self_check.py`. Render them to `generated/` before building:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/study-design.html generated/study-design.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/weighting.html generated/weighting.png 2.5
 ```

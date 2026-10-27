@@ -1,4 +1,5 @@
 # WaterFlex Booking Experiment Results Explained
+
 An accessible guide to route efficiency booking outcomes and response time
 
 September 30 2026
@@ -16,6 +17,7 @@ Prefer bounded search for a controlled, sequential booking workflow where these 
 Read the teaching example first if the methods are new to you. The middle sections explain the charts and units. The final appendix lists all 36 fleet, workload and concurrency groups, including cases that cannot support a route-efficiency comparison.
 
 [[page]]
+
 ## What insertion and bounded search do
 
 Insertion starts with the existing schedule and tests places to add the new visit. It can choose a technician and feasible timing, but it preserves the relative order and assignment of existing work for that insertion candidate. It is like finding room for one more appointment in a calendar that is already arranged. [3]
@@ -35,6 +37,7 @@ The arithmetic does not establish that bounded search will always win. A rearran
 Both benchmark modes used managed reservations. The recorded settings enabled the booking framework and then selected INSERTION or BOUNDED as the search variant. This comparison is not a test of the older legacy booking path, and neither method here is the daily Tabu optimizer. [1, 3]
 
 [[page]]
+
 ## What the experiment actually tested
 
 The booking archive contains 360 expected cases, 360 raw result files and 360 inputs in the saved analysis. Every selected file matched its recorded SHA-256 hash. There were no additional raw attempts outside that selected set. Each case recorded ten request attempts, giving 3,600 observations in total and 1,800 per method. [1, 2]
@@ -50,6 +53,7 @@ The five seeds are 17, 23, 41, 59 and 83. They vary seeded fixture generation wh
 Warm cache means the harness warmed the scheduler's routing cache before timing. The road-provider cache was not reset between cases. Cache order, local hardware and background activity can influence timings. The frozen calendar used ten weekdays from October 1 through October 14 2026, with the same recorded routing identity across the comparison. These are advance-booking observations, not the separate daily experiment. [1, 2]
 
 [[page]]
+
 ## What the measurements mean
 
 Paid route time is the time counted inside paid working segments, including service and modeled travel and waiting. It includes the return legs within those segments. It is not the sum of customer service durations, nor the full scheduled shift. Road driving is only one part of paid time. [3]
@@ -65,6 +69,7 @@ The recorded cost formula is regular paid minutes divided by 60 times $30, plus 
 Configured travel adds 20% of road seconds plus five minutes per included leg, followed by rounding to whole minutes. Consequently, fewer modeled legs can reduce paid time even when road seconds do not change. The fixture contains colocated work; a buffer reduction should not be described as an equivalent reduction in time spent driving on a road.
 
 [[page]]
+
 ## Where route efficiency improved
 
 The table uses only concurrency 1. Every row averages five matched seeds, with the same ten bookings served by both approaches in each seed. The measures are savings per case across the whole audited schedule. [1]
@@ -76,6 +81,7 @@ The table uses only concurrency 1. Every row averages five matched seeds, with t
 The 60 matched pairs saved 2,870 paid minutes and $1,465.12 in total across the experimental repetitions. Dividing by 60 gives 47.83 minutes and $24.42 per case. These repetitions are alternative test schedules; adding them is a descriptive calculation, not an estimate of recurring business savings.
 
 [[page]]
+
 ## Follow one measured case from start to finish
 
 Consider the dispersed fleet of five technicians with seed 17 and one request at a time. Both methods started with 110 confirmed appointments across the ten audited weekdays and ended with 120. There were no reserved stops left in either final audit. This is an observed example, separate from Alex and Blair's teaching example. [1]
@@ -93,6 +99,7 @@ This is why the report recommends bounded search as a modeled-efficiency candida
 Bounded search improved paid time in 36 pairs and tied in 24. It improved cost in 37 pairs and tied in 23. A small mileage-related cost improvement can occur without a change in whole paid minutes. The workload pattern is more useful than one pooled headline: sparse cases offered almost no improvement, while clustered cases consistently did.
 
 [[page]]
+
 ## Booking success under simultaneous demand
 
 At concurrency 1, both methods served every request. At concurrency 5 and 10, both had many incomplete searches. Bounded search served slightly more requests overall, but these totals do not establish a reliable production advantage. The individual customers differed in every concurrent matched-condition pair. [1]
@@ -108,6 +115,7 @@ Incomplete means the prescribed search did not finish; it does not mean the cust
 Concurrency 10 did not produce fewer bookings than concurrency 5 in the pooled results. That does not prove that higher load improves reliability. Request grouping and timing changed, and this small experiment is not a monotonic capacity test. All saved cases passed their independent audit and recorded zero promise violations. That validates these final schedules, not all possible future behavior.
 
 [[page]]
+
 ## How long the search took
 
 The latency measure is the harness's individual search observation. It includes the search path as observed by that local client; selection was timed separately. It excludes customer reading time and is not a browser's complete booking journey. Never relabel these figures as end-to-end customer booking time. [1, 3]
@@ -123,6 +131,7 @@ These percentiles were recomputed from individual requests. Averaging five seed-
 The recorded policy has a five-second booking deadline, yet client observations can exceed five seconds. That deadline is not a measured end-to-end service-level guarantee. The archive alone does not attribute the excess to a specific bottleneck. Long tails are a real user-experience tradeoff, even when bounded search saves paid route time.
 
 [[page]]
+
 ## Read an original outcome graph
 
 This is the outcome panel from original figure 001: five technicians, clustered workload, concurrency 1 and warm caches. It is cropped from the preserved original image to make its labels readable, without changing the plotted data. [2]
@@ -134,6 +143,7 @@ The horizontal axis names the method. The vertical axis is the percentage of req
 Each method has 50 observations from five ten-request cases. Both circles sit at 100%, and both squares and triangles sit at 0%. All five seeds had those same rates, so there is no visible vertical seed range. This graph shows equal booking success; it says nothing by itself about paid route time or modeled cost.
 
 [[page]]
+
 ## Read an original cumulative curve
 
 This is the latency panel from the same original figure 001. Its sample is exactly the same five-technician clustered sequential group, not the pooled 600-observation latency table. [2]
@@ -145,6 +155,7 @@ The horizontal axis is search time in milliseconds: 1,000 milliseconds is one se
 To read p50, move horizontally from 50% until you first meet a method's curve, then move down to the time axis. Use 95% for p95. The curve reaches 100% at the slowest recorded observation; that maximum is not the p95. A large horizontal gap between steps means no observations finished in that interval, not that measurements are missing.
 
 [[page]]
+
 ## Read variation between seeds
 
 This outcome panel comes from original figure 003, using the same five-technician clustered workload at concurrency 10. [2]
@@ -156,6 +167,7 @@ Bounded search served 35 of 50 requests, or 70%. Insertion served 34 of 50, or 6
 Both incomplete squares sit at 30%. Insertion's failure triangle averages 2%, with a seed range of 0% to 10%, because one of the 50 requests encountered a selection conflict. Bounded search had no failures in this group. These rates describe outcomes. They cannot justify subtracting the two route costs, because the served request identities differ for every seed.
 
 [[page]]
+
 ## Read the slower tail under concurrency
 
 This latency panel is the companion to original figure 003. Each curve contains 50 individual search observations pooled across five seeds. [2]
@@ -167,6 +179,7 @@ Compared with the sequential graph, both distributions move right. Insertion fin
 The chart shows why one average response time would be insufficient. Many bounded-search observations finish considerably earlier than its slowest ones, and a tail of slower responses remains. A cumulative curve makes both facts visible. It also explains why the original figure's tail can be shorter than the pooled concurrency-10 p95 of 26.30 seconds: the pooled result includes other fleets and workloads.
 
 [[page]]
+
 ## Recommendation and practical limits
 
 Choose bounded search as the preferred efficiency candidate for controlled sequential bookings. That choice follows the user's priority: paid route time and modeled operating cost. In the 60 comparable pairs, both methods served the identical demand, bounded search never worsened paid time or cost, and the larger benefits appeared in clustered and some dispersed fixtures. A latency-only ranking would miss that benefit.
@@ -184,6 +197,7 @@ Metrics are summed over every audited day. Paid minutes come from the policy wor
 Means weight the five seeds equally within each scenario. Pooled headline means weight the 60 comparable pairs equally. Pooled percentiles use every available individual request. Figures show descriptive ranges, not statistical significance. Fixed fixtures, warm caches, local hardware, serial case order and only five seeds limit generalization to a real customer population.
 
 [[page]]
+
 ## Glossary and source guide
 
 [[glossary]]

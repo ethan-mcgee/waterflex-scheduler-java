@@ -4,21 +4,20 @@
 
 The one immutable input is `docs/evidence/solver-variance-2026-10-20.json`. `infra/variance_study.py summarize` wrote it from the run `infra/run-variance-study.ps1` made on 2026-10-20, 04:53 to 12:24 UTC, on revision `773f9f6`. That revision was built once into a frozen tree.
 
-| Block | What it holds |
-| --- | --- |
-| `manifest` | Revision, JVM flags, fleets, workloads, seeds, budgets (15 s and 60 s), repetitions (2), variant order rotation |
-| `budgets.<ms>.runs` | All 336 solves per budget (7 arms, 24 cases, 2 repetitions). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `budgets.<ms>.pairs` | For b and c, each case's variances and costs on both sides, production's spread between repetitions, and the mean differences |
-| `budgets.<ms>.summary` | b and c against the four bars |
-| `budgets.<ms>.comparison` | Every arm on every measure (median, median ratio to production, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons |
-| `decision` | b promoted, c not, policies compared without bars |
-| `profiles` | One flight-recording profile per arm and phase at 15 s on seed 17, with eight recordings each: samples by kind of work, allocation, and the top leaf frames |
+- **`manifest`:** Revision, JVM flags, fleets, workloads, seeds, budgets (15 s and 60 s), repetitions (2), variant order rotation.
+- **`budgets.<ms>.runs`:** All 336 solves per budget (7 arms, 24 cases, 2 repetitions). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`budgets.<ms>.pairs`:** For b and c, each case's variances and costs on both sides, production's spread between repetitions, and the mean differences.
+- **`budgets.<ms>.summary`:** b and c against the four bars.
+- **`budgets.<ms>.comparison`:** Every arm on every measure (median, median ratio to production, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons.
+- **`decision`:** b promoted, c not, policies compared without bars.
+- **`profiles`:** One flight-recording profile per arm and phase at 15 s on seed 17, with eight recordings each: samples by kind of work, allocation, and the top leaf frames.
 
 The reference and final cost and the reference plan's measures were added to `runs` after the run, by re-running `summarize` on the same rows (commit after `0154ac6`). Every other block of the regenerated file is identical to the run's own output, which was checked field by field before it was replaced.
 
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The run:**
   - it is the full study, not the smoke run, on the pinned revision, with both budgets and two repetitions;
   - every arm, case and repetition is present exactly once;
@@ -42,19 +41,21 @@ The reference and final cost and the reference plan's measures were added to `ru
   - each has eight recordings.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers. It recomputes these tables from the raw JSON:
-- the bars table, including each pass and fail;
-- both comparison tables;
-- the allowance table;
-- both pair appendices;
-- both policy appendices;
-- the profile table.
+
+- the bars table, including each pass and fail
+- both comparison tables
+- the allowance table
+- both pair appendices
+- both policy appendices
+- the profile table
 
 It also checks:
-- the chart data against the evidence;
-- that the reference template's styles, numbering, theme, fonts and footer are byte-identical;
-- that every figure has a description and a black italic caption;
-- that no table row may split;
-- that no em or en dash appears in the document XML.
+
+- the chart data against the evidence
+- that the reference template's styles, numbering, theme, fonts and footer are byte-identical
+- that every figure has a description and a black italic caption
+- that no table row may split
+- that no em or en dash appears in the document XML
 
 ## Derived measures
 
@@ -71,21 +72,23 @@ Nothing missing is replaced with a value. A ratio whose denominator is zero is l
 ## Figures
 
 Eleven charts come from `charts.py` (matplotlib, Calibri). `build_report.py` regenerates them with `chart_data.json`. Each arm keeps one color across every chart:
-- baseline grey;
-- b teal;
-- c light blue;
-- min-max amber;
-- spread gold;
-- abs-dev purple;
-- load-balance rose.
+
+- baseline grey
+- b teal
+- c light blue
+- min-max amber
+- spread gold
+- abs-dev purple
+- load-balance rose
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
-- `fairness-computation.html`: what each arm does after a move;
-- `fairness-acceptance.html`: the acceptance rule.
+
+- `fairness-computation.html`: what each arm does after a move
+- `fairness-acceptance.html`: the acceptance rule
 
 They pass the skill's `self_check.py`. Render them to `generated/` before building, with Playwright's Chromium:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/fairness-computation.html generated/fairness-computation.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/fairness-acceptance.html generated/fairness-acceptance.png 2.5
 ```

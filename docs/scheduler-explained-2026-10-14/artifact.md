@@ -5,6 +5,7 @@ Follows `../daily-tabu-variants-5d15129b/artifact.md`. The formatting authority 
 **Page and type:** one portrait Letter section, Calibri, black headings, pale blue DCE6EF table headers, and alternating FFFFFF and F4F6F8 rows.
 
 **Tables:**
+
 - Header rows repeat, and no table row splits.
 - Tables of twelve or fewer rows stay on one page.
 - Tables appear only in the appendices: the studies index and the definitions and measures. The body uses figures and prose instead.

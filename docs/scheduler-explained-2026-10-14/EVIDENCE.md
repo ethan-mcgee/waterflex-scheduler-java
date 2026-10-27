@@ -4,27 +4,52 @@
 
 The report is built from files in the repository, read and checked at build time. Where a sibling report already validates a source, its loader is imported rather than copied, so the same checks apply here.
 
-| Source | Read through | What the report takes from it |
-| --- | --- | --- |
-| `docs/evidence/api-load-*.json` (11 load studies, #151 to #164; the report leaves study K, #164, the embedded engine against a remote solver pool, out at the owner's request), `solver-profiling-2026-10-14.json`, `routing-ch-omaha-2026-09-24.json`, `routing-ch-2026-10-14.json` | `docs/performance-work-2026-10-14/report_data.py` (imported) | Every load run, the two JFR profiles and the 24 paired solves, the two routing benchmarks |
-| `experiments/runs/20261010T040557Z-daily-tabu-variants-p6-5d15129b` and its sequential confirmation | `docs/daily-tabu-variants-5d15129b/report_data.py` (imported) | 4,480 matched cases on 16 fixtures; 128 confirmation cases |
-| `experiments/runs/20261013T052707Z-daily-search-followup-6454fb05`, the long budget arm and the confirmation | `docs/daily-search-followup-6454fb05/report_data.py` (imported) | 1,200 + 192 + 32 cases on 40 new fixtures; the decision record |
-| `docs/booking-experiment-explainer/evidence.json` | `docs/booking-experiment-explainer/report_data.py` (imported: `verify`, `pairs`, `savings`, `outcomes`) | 360 cases, 3,600 requests; 60 paired sequential cases; p95 by concurrency |
-| `docs/evidence/scheduler-field-2026-09-29/summary.json` | this folder's loader | Held-out booking service per variant; daily paired mean savings per budget and variant |
-| `docs/evidence/sparse-routing-omaha-2026-09-23.json`, `booking-omaha-routing-2026-09-24.json` | this folder's loader | The sparse routing samples; 720 booking requests per graph |
-| `docs/evidence/api-load-2026-10-16-dynamic-horizon.json` | this folder's loader | 24 runs: fixed against dynamic horizon, low and high demand, 1 and 5 desks, three seeds; no defect, no contract breach, no failed search |
-| `docs/evidence/api-load-2026-10-19-booking-configuration.json.gz`, `-full.json.gz` | `docs/booking-configuration-study-2026-10-19/report_data.py` (imported) | The full-schedule refinement frontier (40 priced cases per fleet and cap) and searches per minute by pool layout (the 2:250 variant, four cells per layout) |
-| `docs/evidence/solver-representation-2026-10-20.json` | this folder's loader | T, S and T+S paired summaries; a full run with no violation |
-| `docs/evidence/solver-variance-2026-10-20.json` | `docs/fairness-measures-2026-10-20/report_data.py` (imported) | Formulas b and c at 15 and 60 s, their bars and the decision |
-| `docs/evidence/solver-matrix-2026-10-20.json` | `docs/road-matrix-numbering-2026-10-20/report_data.py` (imported) | The numbering fix's paired speedups; formula b against the fixed production, case by case |
-| `docs/evidence/api-load-2026-10-20-binary-variance.json`, `api-load-2026-10-22-long-score-money-w-a.json` | `docs/stack-verification-2026-10-20/report_data.py` (imported) and this folder's `stack_ratios` | Formula b (#189) and L, M, W and A (#191) through the public API, images pinned to the commits under test, 10, 20 and 50 technicians, three seeds |
-| `docs/api/openapi-v1.yaml`, `docs/stateless-api-design.md`, `docs/integration-guide.md`, `docs/operations-runbook.md` | this folder's loader | Contract version, operations, error codes, version history; the parsed tables behind the surface, refusal, thin store and route cache figures |
+- **`docs/evidence/api-load-*.json` (11 load studies, #151 to #164; the report leaves study K, #164, the embedded engine against a remote solver pool, out at the owner's request), `solver-profiling-2026-10-14.json`, `routing-ch-omaha-2026-09-24.json`, `routing-ch-2026-10-14.json`**
+  - **Read through:** `docs/performance-work-2026-10-14/report_data.py` (imported).
+  - **What the report takes from it:** Every load run, the two JFR profiles and the 24 paired solves, the two routing benchmarks.
+- **`experiments/runs/20261010T040557Z-daily-tabu-variants-p6-5d15129b` and its sequential confirmation**
+  - **Read through:** `docs/daily-tabu-variants-5d15129b/report_data.py` (imported).
+  - **What the report takes from it:** 4,480 matched cases on 16 fixtures; 128 confirmation cases.
+- **`experiments/runs/20261013T052707Z-daily-search-followup-6454fb05`, the long budget arm and the confirmation**
+  - **Read through:** `docs/daily-search-followup-6454fb05/report_data.py` (imported).
+  - **What the report takes from it:** 1,200 + 192 + 32 cases on 40 new fixtures; the decision record.
+- **`docs/booking-experiment-explainer/evidence.json`**
+  - **Read through:** `docs/booking-experiment-explainer/report_data.py` (imported: `verify`, `pairs`, `savings`, `outcomes`).
+  - **What the report takes from it:** 360 cases, 3,600 requests; 60 paired sequential cases; p95 by concurrency.
+- **`docs/evidence/scheduler-field-2026-09-29/summary.json`**
+  - **Read through:** this folder's loader.
+  - **What the report takes from it:** Held-out booking service per variant; daily paired mean savings per budget and variant.
+- **`docs/evidence/sparse-routing-omaha-2026-09-23.json`, `booking-omaha-routing-2026-09-24.json`**
+  - **Read through:** this folder's loader.
+  - **What the report takes from it:** The sparse routing samples; 720 booking requests per graph.
+- **`docs/evidence/api-load-2026-10-16-dynamic-horizon.json`**
+  - **Read through:** this folder's loader.
+  - **What the report takes from it:** 24 runs: fixed against dynamic horizon, low and high demand, 1 and 5 desks, three seeds; no defect, no contract breach, no failed search.
+- **`docs/evidence/api-load-2026-10-19-booking-configuration.json.gz`, `-full.json.gz`**
+  - **Read through:** `docs/booking-configuration-study-2026-10-19/report_data.py` (imported).
+  - **What the report takes from it:** The full-schedule refinement frontier (40 priced cases per fleet and cap) and searches per minute by pool layout (the 2:250 variant, four cells per layout).
+- **`docs/evidence/solver-representation-2026-10-20.json`**
+  - **Read through:** this folder's loader.
+  - **What the report takes from it:** T, S and T+S paired summaries; a full run with no violation.
+- **`docs/evidence/solver-variance-2026-10-20.json`**
+  - **Read through:** `docs/fairness-measures-2026-10-20/report_data.py` (imported).
+  - **What the report takes from it:** Formulas b and c at 15 and 60 s, their bars and the decision.
+- **`docs/evidence/solver-matrix-2026-10-20.json`**
+  - **Read through:** `docs/road-matrix-numbering-2026-10-20/report_data.py` (imported).
+  - **What the report takes from it:** The numbering fix's paired speedups; formula b against the fixed production, case by case.
+- **`docs/evidence/api-load-2026-10-20-binary-variance.json`, `api-load-2026-10-22-long-score-money-w-a.json`**
+  - **Read through:** `docs/stack-verification-2026-10-20/report_data.py` (imported) and this folder's `stack_ratios`.
+  - **What the report takes from it:** Formula b (#189) and L, M, W and A (#191) through the public API, images pinned to the commits under test, 10, 20 and 50 technicians, three seeds.
+- **`docs/api/openapi-v1.yaml`, `docs/stateless-api-design.md`, `docs/integration-guide.md`, `docs/operations-runbook.md`**
+  - **Read through:** this folder's loader.
+  - **What the report takes from it:** Contract version, operations, error codes, version history; the parsed tables behind the surface, refusal, thin store and route cache figures.
 
 Some statements are quoted from reports rather than recomputed, and the text says so: the fleet split of K opt's 15 s result in the September 29 comparison (its per-case daily results are not in `summary.json`); the October 1 budget study (`docs/daily-budget-331df1f1`), whose run archive is not in the repository; study 3 (L+M 1.288x, L+M+W 1.047x and W+A 1.051x over L+M, CR11 0.63x, 2,340 solves), quoted from `docs/solver-benchmarks.md` because its evidence lives on the branch `bench/study-3`, and recorded in `QUOTED` in `report_data.py`; and, from the same document and `docs/api-load.md`, T's clock arithmetic falling from 18.9 to 0.1 percent of cost-phase samples and the horizon study's one-desk p50s of 394 and 372 ms.
 
 ## Validation
 
 `report_data.py` asserts, before anything is read into the document:
+
 - **Documents:** every operation is `implemented`; 12 operations and 10 error codes; the first version in the history equals `info.version`; every error code of the enum appears in the guide's table; each parsed markdown table has the row count recorded in `DOCUMENT_TABLES` (a changed document changes the count and stops the build).
 - **Daily studies:** the sibling loaders' own checks (manifest and case hashes, every raw file's SHA-256, matched pairs sharing a starting schedule, zero violations, fairness variance recomputed from paid minutes); then 4,480 and 1,200 cases, six parallel cases, Tabu as control, `TABU_KOPT_SIZE_3` as the recorded candidate.
 - **September booking:** the explainer's `verify` (360 cases, hashes, ten attempts per case, all audit metrics present); 60 comparable pairs, all at concurrency 1; bounded never worse on paid minutes or cost.

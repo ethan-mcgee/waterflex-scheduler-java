@@ -41,14 +41,14 @@ The expanded report follows the user-selected `docs/WaterFlex_Scheduler_Algorith
 
 `generated/chart_data.json` retains the numerical inputs of every plotted series. `charts.py` produces six PNG figures, embedded in the editable Word report:
 
-| Figure | Measure and denominator |
-| --- | --- |
-| Cost groups | Mean paired accepted cost saving, 40 pairs per fleet/workload/alternative |
-| Budgets | Mean saving within each workload and budget, 40 pairs per point |
-| Variation | Ten seed means over 32 pairs each, plus all 320 case savings per alternative |
-| Measured example | Accepted utilization for five technicians, clustered, seed 17, 60 seconds |
-| Fairness | Mean paired cost saving and variance reduction, 40 pairs per group |
-| Throughput | Mean of per-case phase move rates, 80 cases per solver/fleet point |
+| Figure           | Measure and denominator                                                      |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Cost groups      | Mean paired accepted cost saving, 40 pairs per fleet/workload/alternative    |
+| Budgets          | Mean saving within each workload and budget, 40 pairs per point              |
+| Variation        | Ten seed means over 32 pairs each, plus all 320 case savings per alternative |
+| Measured example | Accepted utilization for five technicians, clustered, seed 17, 60 seconds    |
+| Fairness         | Mean paired cost saving and variance reduction, 40 pairs per group           |
+| Throughput       | Mean of per-case phase move rates, 80 cases per solver/fleet point           |
 
 Additional raw-data checks reconcile positive elapsed and solve times, both phase move rates, the 2% integer cost ceiling, zero recorded overtime, workload cardinality and unique technician IDs, positive capacity, nonnegative paid minutes and diagnostics, and identical starting metrics and appointment counts across each matched comparison. Accepted weighted variance is recomputed from raw workloads. No missing field is replaced by a fabricated default.
 

@@ -13,6 +13,7 @@ No parallel setting met the 0.95 contention bar. The owner chose six at once on 
 ## Validation
 
 `report_data.py` checks, for the main and confirmation archives:
+
 - **Provenance:** canonical configuration and case hashes against the manifest, the complete cross product, unique case ids, every raw SHA-256 listed in the analysis provenance, and one result per raw file.
 - **Measurement:** zero violations, zero overtime, the 2% cost ceiling, TIME_LIMIT termination of both phases, and a two thirds reference phase budget.
 - **Matched pairs:** fixture and starting-schedule identity between every configuration and its Tabu twin.

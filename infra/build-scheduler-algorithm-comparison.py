@@ -548,6 +548,16 @@ def report_blocks(s, manifest, raw_daily, bookings):
     return blocks
 
 
+# Each unit keeps its own leading space, so a run of spaces has one parse and matching stays linear.
+NUMBER=re.compile(r'^[~<>=+\-$]*\d[\d,]*(?:\.\d+)?(?:\s*(?:%|x|s|ms|min))?(?:\s*(?:/|to|-)\s*[~<>=+\-$]*\d[\d,]*(?:\.\d+)?(?:\s*(?:%|x|s|ms|min))?)*(?:\s*\([^)]*\))?$')
+
+
+def align(cells):
+    """Right-align a Markdown column when at least 60 percent of its present cells are numbers (AGENTS.md)."""
+    present=[c for c in map(str,cells) if c not in ('','n/a','not measured')]
+    return '---:' if present and sum(bool(NUMBER.match(c)) for c in present)/len(present)>=0.6 else '---'
+
+
 def markdown(blocks):
     lines=['# Scheduler algorithm comparison | 29 September 2026','']
     for block in blocks:
@@ -555,8 +565,13 @@ def markdown(blocks):
         if kind=='heading': lines.extend(['## '+block[1],''])
         elif kind=='paragraph': lines.extend([block[1],''])
         elif kind=='table':
-            lines.extend(['| '+' | '.join(block[1])+' |','| '+' | '.join(['---']*len(block[1]))+' |'])
-            lines.extend('| '+' | '.join(str(c) for c in row)+' |' for row in block[2]);lines.append('')
+            # Padded so the pipes line up, numeric columns right-aligned (AGENTS.md).
+            rows=[[str(c) for c in row] for row in block[2]]
+            right=[align(row[k] for row in rows)=='---:' for k in range(len(block[1]))]
+            widths=[max(4 if right[k] else 3,len(h),*(len(row[k]) for row in rows)) for k,h in enumerate(block[1])]
+            pad=lambda cells:'| '+' | '.join(c.rjust(w) if r else c.ljust(w) for c,w,r in zip(cells,widths,right))+' |'
+            lines.extend([pad(block[1]),'| '+' | '.join('-'*(w-1)+':' if r else '-'*w for w,r in zip(widths,right))+' |'])
+            lines.extend(pad(row) for row in rows);lines.append('')
         elif kind=='figure':lines.extend([f'![{block[2]}]({block[1].relative_to(MD.parent).as_posix()})','',block[2],''])
         elif kind=='links':lines.extend([f'- [{title}]({url})' for title,url in block[1]]+[''])
     return '\n'.join(lines)

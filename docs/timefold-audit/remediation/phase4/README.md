@@ -16,15 +16,13 @@ The indexed dataset schema remains v1, with an explicitly changed score-model id
 
 `BendableBigDecimalScore` has five hard and two soft levels, compared lexicographically. Later levels cannot compensate for earlier violations.
 
-| Level | Meaning |
-| --- | --- |
-| Hard 0 | Required qualifications and reachable directed roads, counted categorically |
-| Hard 1 | Exclusive-window lateness seconds, unavailable working seconds including absences and return travel, plus capacity excess minutes converted to seconds |
-| Hard 2 | One penalty for each unassigned visit |
-| Hard 3 | Absolute deviation from the recorded reference overtime target, in minutes |
-| Hard 4 | Excess over the reference fairness cost ceiling, in cents |
-| Soft 0 | Reference overtime minimization, or capacity-weighted workload variance in the fairness phase |
-| Soft 1 | Exact fleet cost rounded once to cents |
+- **Hard 0:** Required qualifications and reachable directed roads, counted categorically.
+- **Hard 1:** Exclusive-window lateness seconds, unavailable working seconds including absences and return travel, plus capacity excess minutes converted to seconds.
+- **Hard 2:** One penalty for each unassigned visit.
+- **Hard 3:** Absolute deviation from the recorded reference overtime target, in minutes.
+- **Hard 4:** Excess over the reference fairness cost ceiling, in cents.
+- **Soft 0:** Reference overtime minimization, or capacity-weighted workload variance in the fairness phase.
+- **Soft 1:** Exact fleet cost rounded once to cents.
 
 Feasible routes still use the existing exact route timing search. For an infeasible reachable route, scoring evaluates a relaxed contiguous trajectory to provide a quantitative direction of improvement. Arrival exactly at an exclusive window end has a positive violation. The trajectory is diagnostic, not a minimum-violation solution or independent placement proof. Unknown road durations are never invented; unreachable routes receive a categorical penalty and cannot become eligible through their diagnostic resource totals. Independent validation remains authoritative.
 

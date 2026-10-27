@@ -221,6 +221,7 @@ def build():
     text=(ROOT/'report.md').read_text(encoding='utf-8')
     if '\u2014' in text:raise ValueError('Em dash in prose')
     text=re.sub(r'(?m)^(\[\[[a-z0-9_]+\]\])$',r'\n\1\n',text)
+    subtitle=False
     for block in re.split(r'\n\s*\n',text.strip()):
         block=block.strip()
         if block=='[[page]]':new_page=True
@@ -235,7 +236,10 @@ def build():
         elif block.startswith('# '):
             title,*rest=block.split('\n');paragraph(title[2:],'Title')
             if rest:paragraph(' '.join(rest),'Subtitle')
-        else:paragraph(block.replace('\n',' '))
+            # The paragraph after a lone title line is its subtitle (AGENTS.md wants a blank line after headings).
+            else:subtitle=True;continue
+        else:paragraph(block.replace('\n',' '),'Subtitle' if subtitle else None)
+        subtitle=False
     # Keep source footer page field. Update it on opening in Word.
     settings=doc.settings.element; update=OxmlElement('w:updateFields');update.set(qn('w:val'),'true');settings.append(update)
     raw=BytesIO();doc.save(raw);raw.seek(0)

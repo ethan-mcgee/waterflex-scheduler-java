@@ -15,6 +15,7 @@ The first Tabu variant study (`docs/daily-tabu-variants-5d15129b`, run 5d15129b)
 ## Validation
 
 `report_data.py` checks, for each archive:
+
 - **Provenance:** revision, canonical configuration and case hashes against the manifest, the complete cross product including fixture seeds, unique case ids, every raw SHA-256 listed in the analysis provenance and matching its completion receipt, and one result per raw file.
 - **Measurement:** `COST_ONLY` with no `fairnessPhase`, zero violations, zero overtime at every stage, TIME_LIMIT termination, and a cost search budget equal to the whole case budget.
 - **Policy:** an accepted case keeps the cost search result; a rejected case keeps the starting schedule, and a `FAIRNESS_REGRESSION_WITHIN_ALLOWANCE` rejection has a start within the 2% ceiling and a less even cost search result (SchedulingPolicy.compare).

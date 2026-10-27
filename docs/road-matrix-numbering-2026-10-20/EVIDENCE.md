@@ -3,23 +3,24 @@
 ## Source and scope
 
 The one immutable input is `docs/evidence/solver-matrix-2026-10-20.json`. `infra/matrix_study.py` wrote it from the run `infra/run-matrix-study.ps1` made on 2026-10-20, from 15:55 UTC, in `experiments/runs/matrix-study-20261020T155528`. Two trees were built once each from their commits:
-- tree o: `d571d83`, the code before the fix (the tree the fairness measure study ran);
-- tree n: `ed97d8b`, the fix.
 
-| Block | What it holds |
-| --- | --- |
-| `manifest` | Both revisions, JVM flags, fleets (10, 30, 50), workloads, seeds, the 15 s budget, repetitions (2), tree and arm order rotation |
-| `paired.runs` | All 432 solves (6 arms, 36 cases, 2 repetitions). Each records its tree, reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `paired.fix` | The fix's paired speedups for production (baseline over old) and b (b over old-b), overall and by fleet, and the median cost difference |
-| `paired.pairs` | For b and c, each case's variances and costs on both sides, the fixed production's spread between repetitions, and the mean differences |
-| `paired.summary` | b and c against the four bars, with the fairness-phase speedup by fleet |
-| `paired.comparison` | Every arm on every measure against the fixed production (median ratio, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons |
-| `paired.decision` | The fix promoted, b promoted, c not, load balance compared without bars |
-| `profiles` | One flight-recording profile per arm and phase on seed 17, twelve recordings each (one per fleet and workload): samples by kind of work, allocation, and the top leaf frames |
+- tree o: `d571d83`, the code before the fix (the tree the fairness measure study ran)
+- tree n: `ed97d8b`, the fix
+
+The evidence file's blocks and what each holds:
+
+- **`manifest`:** Both revisions, JVM flags, fleets (10, 30, 50), workloads, seeds, the 15 s budget, repetitions (2), tree and arm order rotation.
+- **`paired.runs`:** All 432 solves (6 arms, 36 cases, 2 repetitions). Each records its tree, reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`paired.fix`:** The fix's paired speedups for production (baseline over old) and b (b over old-b), overall and by fleet, and the median cost difference.
+- **`paired.pairs`:** For b and c, each case's variances and costs on both sides, the fixed production's spread between repetitions, and the mean differences.
+- **`paired.summary`:** b and c against the four bars, with the fairness-phase speedup by fleet.
+- **`paired.comparison`:** Every arm on every measure against the fixed production (median ratio, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons.
+- **`paired.decision`:** The fix promoted, b promoted, c not, load balance compared without bars.
+- **`profiles`:** One flight-recording profile per arm and phase on seed 17, twelve recordings each (one per fleet and workload): samples by kind of work, allocation, and the top leaf frames.
 
 `stacks.json` is the second input. `stacks.py` wrote it once from the run's raw recordings, which stay outside git in the run folder. It holds, for the four arm and phase pairs in section 2 of the report, the share of samples at each named call site and the SHA-256 of every recording read. Rerun it with:
 
-```
+```powershell
 python stacks.py --run <repository>/experiments/runs/matrix-study-20261020T155528 --jfr "C:/Program Files/Java/jdk-25/bin/jfr.exe"
 ```
 
@@ -28,6 +29,7 @@ The fairness measure study's evidence, `docs/evidence/solver-variance-2026-10-20
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The run:**
   - it is the full study, not the smoke run, on the two pinned revisions, at 15 s with two repetitions;
   - the fleets are 10, 30 and 50 technicians, 36 cases in all;
@@ -53,19 +55,21 @@ The fairness measure study's evidence, `docs/evidence/solver-variance-2026-10-20
   - every arm and phase is present.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers, with exact decimal arithmetic (80 digits, so two equal 34-digit variances cannot round apart when averaged). It recomputes these tables from the raw JSON:
-- the fix's speedups by fleet;
-- what the fix's extra moves bought;
-- the bars table, including each pass and fail;
-- the comparison table and load balance against b by fleet;
-- the call-site table (from `stacks.json`) and the profile table;
-- appendices A, B and C.
+
+- the fix's speedups by fleet
+- what the fix's extra moves bought
+- the bars table, including each pass and fail
+- the comparison table and load balance against b by fleet
+- the call-site table (from `stacks.json`) and the profile table
+- appendices A, B and C
 
 It also checks:
-- the chart data against the evidence;
-- that the reference template's styles, numbering, theme, fonts and footer are byte-identical;
-- that every figure has a description and a black italic caption;
-- that no table row may split;
-- that no em or en dash appears in the document XML.
+
+- the chart data against the evidence
+- that the reference template's styles, numbering, theme, fonts and footer are byte-identical
+- that every figure has a description and a black italic caption
+- that no table row may split
+- that no em or en dash appears in the document XML
 
 ## Derived measures
 
@@ -81,20 +85,22 @@ Nothing missing is replaced with a value. A ratio whose denominator is zero is l
 ## Figures
 
 Twelve charts come from `charts.py` (matplotlib, Calibri). `build_report.py` regenerates them with `chart_data.json`. Each arm keeps one color across every chart:
-- old light grey;
-- old-b pale teal;
-- baseline (the fixed production) dark grey;
-- b teal;
-- c light blue;
-- load-balance rose.
+
+- old light grey
+- old-b pale teal
+- baseline (the fixed production) dark grey
+- b teal
+- c light blue
+- load-balance rose
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
-- `numbering-arms.html`: the two trees, the six arms and what each is compared with;
-- `numbering-lookup.html`: how a leg finds its road matrix cell, before and after the fix.
+
+- `numbering-arms.html`: the two trees, the six arms and what each is compared with
+- `numbering-lookup.html`: how a leg finds its road matrix cell, before and after the fix
 
 They pass the skill's `self_check.py`. Render them to `generated/` before building, with Playwright's Chromium:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/numbering-arms.html generated/numbering-arms.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/numbering-lookup.html generated/numbering-lookup.png 2.5
 ```

@@ -4,10 +4,14 @@
 
 The immutable inputs are the two study files under `docs/evidence/`, each written by `infra/run-booking-configuration-study.ps1`:
 
-| File | Runner | Cells | What it holds |
-| --- | --- | ---: | --- |
-| `api-load-2026-10-19-booking-configuration.json.gz` | ef0089d | 1184 | The first study: quality (40), one-desk load (840), capacity (224) and the 500 and 250 ms reserve arms (80) |
-| `api-load-2026-10-19-booking-configuration-full.json.gz` | 530d356 | 35 | The full-schedule rerun after the horizon and reserve fixes: quality (10) and the 800 ms reserve arm (25) |
+- **`api-load-2026-10-19-booking-configuration.json.gz`**
+  - **Runner:** ef0089d.
+  - **Cells:** 1184.
+  - **What it holds:** The first study: quality (40), one-desk load (840), capacity (224) and the 500 and 250 ms reserve arms (80).
+- **`api-load-2026-10-19-booking-configuration-full.json.gz`**
+  - **Runner:** 530d356.
+  - **Cells:** 35.
+  - **What it holds:** The full-schedule rerun after the horizon and reserve fixes: quality (10) and the 800 ms reserve arm (25).
 
 Each file records the stack, the booking pool shape, the protocol, the hypotheses written before the first run, the client token ids (revoked after the rerun), the shapes configured and verified, the runs with defects (none) and the runs that never got an answer (20 in the first study, all uncapped searches at the 500 and 250 ms reserves; none in the rerun).
 
@@ -16,6 +20,7 @@ Every run used the host conformance kit (`infra/host-conformance`: `quality.ts` 
 ## Validation
 
 `report_data.py` checks every kit report before any figure is read from it:
+
 - **Shape:** the machine has 24 processors, and each part holds the number of cells the protocol promised (quality 40, load 840, capacity 224, reserve 80; rerun quality 10, reserve 25).
 - **Contract:** no contract breach and no host anomaly recorded; `runsWithDefects` is empty in both files.
 - **Consistency:** each operation's statuses add up to its calls; p50 ≤ p95 ≤ p99 ≤ max; searches equal the booking offers calls; each quality case has one entry per variant.
