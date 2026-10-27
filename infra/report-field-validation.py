@@ -24,7 +24,8 @@ def money(cents):
     return f"${cents / 100:,.2f}"
 
 
-NUMBER = re.compile(r"^[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?(\s*(/|to|-)\s*[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?)*(\s*\([^)]*\))?$")
+# Each unit keeps its own leading space, so a run of spaces has one parse and matching stays linear.
+NUMBER = re.compile(r"^[~<>=+\-$]*\d[\d,]*(?:\.\d+)?(?:\s*(?:%|x|s|ms|min))?(?:\s*(?:/|to|-)\s*[~<>=+\-$]*\d[\d,]*(?:\.\d+)?(?:\s*(?:%|x|s|ms|min))?)*(?:\s*\([^)]*\))?$")
 
 
 def align(cells):
