@@ -53,7 +53,7 @@ if ($running.Count -gt 0) { throw "$($running.Count) containers are running; sto
 $budgetList = @($Budgets -split ',' | ForEach-Object { [int]$_.Trim() })
 if (@($budgetList | Where-Object { $_ -lt 1000 -or $_ -gt 240000 }).Count -gt 0) { throw '-Budgets are milliseconds from 1000 to 240000' }
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
-$evidence = if ($Smoke) { $null } else { Join-Path $repository "docs/evidence/solver-variance-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
+$evidence = if ($Smoke) { $null } else { Join-Path $repository "research/evidence/solver-variance-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/variance-study-$stamp"
 foreach ($directory in @('rows', 'logs', 'profile-rows', 'profiles')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }

@@ -47,7 +47,7 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
      * The fairness phase's objective: the capacity-weighted workload variance of {@link SchedulingPolicy#fairness},
      * computed in binary64 over the counted technicians and carried as {@code round(variance * 1e9)} (option b of the
      * fairness measure study). The sums are exact longs; the one rounding happens here, so moves never accumulate
-     * binary error, as Timefold's guidance on scaled scores asks (docs/timefold-documentation, 12.1.10 and 15.2.1).
+     * binary error, as Timefold's guidance on scaled scores asks (the Timefold documentation, 12.1.10 and 15.2.1).
      * Acceptance still reads the DECIMAL128 variance ({@link SchedulingPolicy#measure}).
      */
     long fairnessUnits(List<@NonNull ScoredRoute> routes) {

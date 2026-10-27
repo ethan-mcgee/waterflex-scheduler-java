@@ -3,21 +3,15 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    # Skip CI for Markdown-only changes, except Markdown that CI generates or reads.
+    # Skip CI for Markdown-only changes.
     paths:
       - '**'
       - '!**/*.md'
-      - 'docs/scheduler-field-validation.md'
-      - 'docs/scheduler-algorithm-comparison-*.md'
-      - 'docs/timefold-audit/**'
   push:
     branches: [main]
     paths:
       - '**'
       - '!**/*.md'
-      - 'docs/scheduler-field-validation.md'
-      - 'docs/scheduler-algorithm-comparison-*.md'
-      - 'docs/timefold-audit/**'
 
 permissions:
   contents: read
@@ -143,20 +137,11 @@ jobs:
           docker compose --profile map-import config --quiet
           # The scheduler VM file refuses to render without its required settings; dummy values prove the file is valid.
           SCHEDULER_DB_OWNER_PASSWORD=x SCHEDULER_DB_PASSWORD=x SCHEDULER_RETENTION_DAYS=30 SCHEDULER_API_BIND=127.0.0.1             ROUTING_METRO_URLS=metro-omaha=http://routing-omaha:8001 ROUTING_AUTH_TOKEN=x ACTIVE_MAP_VERSION=x             docker compose -f deploy/vm/docker-compose.yml --profile nominatim --profile remote-solver --profile monitoring config --quiet
-      - name: Verify retained field evidence and generated reports
-        run: |
-          python3 infra/report-field-validation.py --require-complete
-          git diff --exit-code -- docs/scheduler-field-validation.md docs/scheduler-field-validation.html docs/scheduler-field-cost-runtime.svg docs/scheduler-field-routes.svg docs/evidence/scheduler-field-2026-09-29/summary.json
       - name: Install report test dependencies
         run: |
-          python3 -m pip install matplotlib==3.11.2 reportlab==5.0.1 pymupdf==1.28.2
+          python3 -m pip install matplotlib==3.11.2
       - name: Verify experiment and campaign toolkits (no full matrix)
         run: python3 -m unittest discover -s infra -p 'test_*.py' -v
-      - name: Verify Timefold audit evidence helpers
-        run: |
-          python3 -m pip install lxml==6.1.3 python-docx==1.2.0
-          python3 -m unittest discover -s docs/timefold-audit -p 'test_*.py' -v
-          python3 -m unittest discover -s docs/timefold-audit/remediation -p 'test_*.py' -v
 
   integration-core:
     name: Database and core workflows

@@ -59,6 +59,7 @@ These rules apply to every `.md` file except the frozen and generated files list
 
 ### Generated and frozen files
 
-- Change a generated report through its generator and regenerate it; never hand-edit the output. `docs/scheduler-field-validation.md` comes from `infra/report-field-validation.py` and `docs/scheduler-algorithm-comparison-2026-09-29.md` from `infra/build-scheduler-algorithm-comparison.py`.
-- Never edit frozen evidence: `docs/timefold-audit/README.md`, `Timefold_Audit.md` and `Timefold_Second_Review.md` (byte-checked by `docs/timefold-audit/remediation/verify_baseline.py`) and the vendored `docs/timefold-documentation/`.
-- Some docs are read by scripts. Rebuild and verify after editing them: `docs/booking-experiment-explainer/report.md` and `docs/scheduler-explainer/expansions.md` (their `build_report.py` and `verify_report.py`) and `docs/api-load.md` (`docs/president-briefing-2026-10-22/verify_report.py`).
+- `docs/` holds only the OpenAPI contract and the runtime, setup and integration docs, and is committed. Study reports, evidence, explainers, the Timefold audit and the vendored Timefold documentation live in the gitignored `research/` folder, which is never committed. Study scripts write their evidence to `research/evidence/`.
+- Change a generated report through its generator and regenerate it; never hand-edit the output. `research/scheduler-field-validation.md` comes from `research/tools/report-field-validation.py` and `research/scheduler-algorithm-comparison-2026-09-29.md` from `research/tools/build-scheduler-algorithm-comparison.py`.
+- Never edit frozen evidence: `research/timefold-audit/README.md`, `Timefold_Audit.md` and `Timefold_Second_Review.md` (byte-checked by `research/timefold-audit/remediation/verify_baseline.py`) and the vendored `research/timefold-documentation/`.
+- Some docs are read by scripts. Rebuild and verify after editing them: `research/booking-experiment-explainer/report.md` and `research/scheduler-explainer/expansions.md` (their `build_report.py` and `verify_report.py`) and `research/api-load.md` (`research/president-briefing-2026-10-22/verify_report.py`).

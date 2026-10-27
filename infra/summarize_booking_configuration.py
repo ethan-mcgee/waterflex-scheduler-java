@@ -1,6 +1,6 @@
-"""Tables for docs/api-load.md from a booking configuration study's evidence (infra/run-booking-configuration-study.ps1).
+"""Tables for research/api-load.md from a booking configuration study's evidence (infra/run-booking-configuration-study.ps1).
 
-    python infra/summarize_booking_configuration.py docs/evidence/api-load-<date>-booking-configuration.json [--part quality|load|price|capacity|reserve]
+    python infra/summarize_booking_configuration.py research/evidence/api-load-<date>-booking-configuration.json [--part quality|load|price|capacity|reserve]
 
 Every table is computed from the reports the study kept (quality.ts and load.ts output), never from figures typed in:
 quality pairs each variant with the uncapped threshold-1000 search case by case; load reads the caller's latency and

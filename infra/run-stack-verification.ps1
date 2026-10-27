@@ -70,7 +70,7 @@ if (-not (Test-Path -LiteralPath $envFile)) { throw "No rehearsal env file at $e
 $runs = Join-Path $repository $RunsDirectory
 New-Item -ItemType Directory -Force $runs | Out-Null
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
-$evidence = Join-Path $repository "docs/evidence/api-load-$stamp-$Study.json"
+$evidence = Join-Path $repository "research/evidence/api-load-$stamp-$Study.json"
 $profiles = -not $NoProfiles
 $profilesDirectory = Join-Path $runs 'profiles'
 $jfr = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin/jfr.exe' } else { 'jfr' }

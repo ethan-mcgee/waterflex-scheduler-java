@@ -81,7 +81,7 @@ if (-not (Test-Path -LiteralPath $envFile)) { throw "No rehearsal env file at $e
 $runs = Join-Path $repository $RunsDirectory
 New-Item -ItemType Directory -Force $runs | Out-Null
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
-$evidence = Join-Path $repository "docs/evidence/api-load-$stamp-$Study.json"
+$evidence = Join-Path $repository "research/evidence/api-load-$stamp-$Study.json"
 
 $parseList = { param($text, $name, $min, $max)
     $items = @($text -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | ForEach-Object { [int]$_ })

@@ -3,7 +3,7 @@
 // under a deadline the slot wait, routing wait, engine time, database time, the commit phase, the routing pairs with
 // cache hits and fetched legs, and the thread's CPU time. This module parses those lines, in the plain console format
 // or the ECS JSON the VM writes, and summarizes them per operation and status in the shape the October 14 performance
-// studies used (`serverBreakdown` in docs/evidence/api-load-2026-10-14-*.json), so a run's caller-side latency can be
+// studies used (`serverBreakdown` in research/evidence/api-load-2026-10-14-*.json), so a run's caller-side latency can be
 // read beside the server's attribution of it.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
