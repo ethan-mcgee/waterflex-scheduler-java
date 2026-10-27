@@ -4,25 +4,31 @@ Step 2 starts at merged phase 1 revision `e197204ee72ab6b6aae0c2943b0e42633fd344
 
 ## Runtime boundary
 
-`PlanFacts` is the authoritative immutable revision for technician identity, shifts, absences, limits, qualifications, visit/service/window/duration/original-assignment facts, road reachability, rates and buffers. `DayPlan` holds mutable route assignments and inverse shadows plus a scoring view of that revision. Matrix/rate/demand replacement setters were removed. A scoring target can change only while retaining the same revision. Technician facts freeze at plan initialization.
+`PlanFacts` is the authoritative immutable revision for technician identity, shifts, absences, limits, qualifications, visit/service/window/duration/original-assignment facts, road reachability, rates and buffers. `DayPlan` holds mutable route assignments and inverse shadows plus a scoring view of that revision. Matrix/rate/demand replacement setters were removed.
+A scoring target can change only while retaining the same revision. Technician facts freeze at plan initialization.
 
-`PlanCopies.copy` validates before constructing its ID map, preserves demand order, shares the facts revision, and allocates independent entities, route lists and inverse shadows. Duplicate identities, duplicate assignments, distinct visit objects masquerading as the same canonical identity, invalid windows/capacities/absences/rates and ambiguous legacy road keys fail explicitly. Evaluator and score-report boundaries verify entity facts against their revision.
+`PlanCopies.copy` validates before constructing its ID map, preserves demand order, shares the facts revision, and allocates independent entities, route lists and inverse shadows. Duplicate identities, duplicate assignments, distinct visit objects masquerading as the same canonical identity, invalid windows/capacities/absences/rates and ambiguous legacy road keys fail explicitly.
+Evaluator and score-report boundaries verify entity facts against their revision.
 
-Daily engine entry requires complete assigned demand and every directed road its declared current neighborhoods may read. The current selectors can propose unqualified assignments, so completeness includes all technician-to-visit departures, visit-to-technician returns and distinct visit-to-visit directions, not just initially used or qualified pairs. Missing and explicit unreachable roads are separate. The production caller records an omitted road as unreachable only after `RoadClient.matrix` completes its full requested pair set; request/transport failures still throw.
+Daily engine entry requires complete assigned demand and every directed road its declared current neighborhoods may read. The current selectors can propose unqualified assignments, so completeness includes all technician-to-visit departures, visit-to-technician returns and distinct visit-to-visit directions, not just initially used or qualified pairs.
+Missing and explicit unreachable roads are separate. The production caller records an omitted road as unreachable only after `RoadClient.matrix` completes its full requested pair set; request/transport failures still throw.
 
-Absence repair and locked repair application use `PlanCopies.withAbsence` to create a new fact revision, clear old fairness targets and bind caller visit metadata to the replacement entities. Ordinary apply retains its independent locked validation. Single-route booking/timing evaluations can still use a caller's larger road pool and report infeasibility on unavailable travel; the daily search completeness check applies at daily engine entry.
+Absence repair and locked repair application use `PlanCopies.withAbsence` to create a new fact revision, clear old fairness targets and bind caller visit metadata to the replacement entities. Ordinary apply retains its independent locked validation.
+Single-route booking/timing evaluations can still use a caller's larger road pool and report infeasibility on unavailable travel; the daily search completeness check applies at daily engine entry.
 
-Five audit characterizations are now desired-behavior regressions in `TimefoldAuditEvidenceTest`: duplicate technician rejection, duplicate visit rejection before copy, nonfinite rate rejection, unassigned daily rejection and immutable matrix/scoring revision sharing. The exact-money and categorical-score-plateau characterizations remain for steps 3 and 4, with their historical identities preserved.
+Five audit characterizations are now desired-behavior regressions in `TimefoldAuditEvidenceTest`: duplicate technician rejection, duplicate visit rejection before copy, nonfinite rate rejection, unassigned daily rejection and immutable matrix/scoring revision sharing.
+The exact-money and categorical-score-plateau characterizations remain for steps 3 and 4, with their historical identities preserved.
 
 ## Indexed wire contract
 
 `DailyDataset` provides `parse`, explicit draft `seal`, `json(DENSE|SPARSE)`, `contentHash`, immutable facts and fresh `toDayPlan` replay. This is a library contract for offline inputs and future adapters, not a new business endpoint. The fixture at `scheduler-service/src/test/resources/daily-dataset-v1.json` is an unsealed synthetic contract example.
 
-Every object below rejects unknown and missing fields. Required fields reject null. Indices are zero-based into the declared arrays, integers are checked before conversion, and duplicate identities/assignments/pairs/JSON keys are rejected before constructing planning entities. Every demand identity occurs once across assigned and unassigned arrays. Nonempty cold/partial or unassigned daily demand and nonzero pinned prefixes fail until step 4 enables those capabilities. Empty demand is supported, including zero technicians.
+Every object below rejects unknown and missing fields. Required fields reject null. Indices are zero-based into the declared arrays, integers are checked before conversion, and duplicate identities/assignments/pairs/JSON keys are rejected before constructing planning entities. Every demand identity occurs once across assigned and unassigned arrays.
+Nonempty cold/partial or unassigned daily demand and nonzero pinned prefixes fail until step 4 enables those capabilities. Empty demand is supported, including zero technicians.
 
 | Object | Required fields and semantics |
 | --- | --- |
-| Root | `schemaVersion=1`, `operation=DAILY`, `mode=ASSIGNED|REPAIR|COLD|PARTIAL`, snapshot ID, content hash, versions, routing, revisions, search, rates, locations, services, technicians, visits, unassigned indices and roads. |
+| Root | `schemaVersion=1`, `operation=DAILY`, `mode=ASSIGNED \| REPAIR \| COLD \| PARTIAL`, snapshot ID, content hash, versions, routing, revisions, search, rates, locations, services, technicians, visits, unassigned indices and roads. |
 | Versions | Policy `zero-overtime-four-hour-v2`, cost `legacy-double-v1`, score `hard-medium-soft-decimal-v1`. Other versions fail. |
 | Routing | Nonblank provider, profile and identity. Caller-owned provenance, with no routing callback. |
 | Revisions | Schedule token per technician in array order, configuration token and reservation token. Tokens are nonblank strings, not commit authority. |
@@ -36,11 +42,15 @@ Every object below rejects unknown and missing fields. Required fields reject nu
 | Sparse roads | `encoding=SPARSE`, size equal to location count, entries with from/to indices and state/seconds/meters. Duplicate pairs fail. Missing required pairs fail. |
 | Dense roads | `encoding=DENSE`, matching size and square cells with state/seconds/meters. `NOT_REQUIRED` with null numeric fields represents an omitted unused pair; using it for a required pair fails. Both encodings currently cap location count at 10,000. |
 
-The compatibility bridge keeps existing stable technician and visit IDs while mapping each indexed departure/return/customer pair to its legacy endpoint role. Technician/visit IDs must be nonblank and cannot contain `>` or end in reserved `:return`; colliding technician/visit/derived-return identities fail. Location IDs are independent of those aliases. No production road encoding has been selected and no indexed hot-path performance benefit is claimed.
+The compatibility bridge keeps existing stable technician and visit IDs while mapping each indexed departure/return/customer pair to its legacy endpoint role. Technician/visit IDs must be nonblank and cannot contain `>` or end in reserved `:return`; colliding technician/visit/derived-return identities fail. Location IDs are independent of those aliases.
+No production road encoding has been selected and no indexed hot-path performance benefit is claimed.
 
-Canonical JSON orders object keys, normalizes instant strings and decimal rate strings, sorts qualification indices and directed sparse entries, preserves indexed array/route order, and excludes the content-hash field from hashing. Dense `NOT_REQUIRED` cells are omitted from the canonical sparse facts. SHA-256 covers facts **and** snapshot/version/routing/revision/search provenance. Dense and sparse representations of the same declared facts therefore share one hash. `seal` explicitly accepts a draft null hash and returns validated canonical sparse JSON; normal `parse` requires the matching hash. Hashes detect content drift and do not authorize apply. The stored canonical JSON is private and exports defensive copies; each replay owns fresh planning entities and shares immutable facts.
+Canonical JSON orders object keys, normalizes instant strings and decimal rate strings, sorts qualification indices and directed sparse entries, preserves indexed array/route order, and excludes the content-hash field from hashing. Dense `NOT_REQUIRED` cells are omitted from the canonical sparse facts. SHA-256 covers facts **and** snapshot/version/routing/revision/search provenance.
+Dense and sparse representations of the same declared facts therefore share one hash. `seal` explicitly accepts a draft null hash and returns validated canonical sparse JSON; normal `parse` requires the matching hash. Hashes detect content drift and do not authorize apply.
+The stored canonical JSON is private and exports defensive copies; each replay owns fresh planning entities and shares immutable facts.
 
-Transport encoding selection, preparation/decode p95 measurements, booking envelopes, shared-module/service packaging, construction/pinning and runtime deadline integration remain with their later ledger owners. Production cost/policy/algorithm defaults remain as recorded in the baseline. This phase runs correctness regressions and preserves their failures; it makes no performance, savings or capacity claim.
+Transport encoding selection, preparation/decode p95 measurements, booking envelopes, shared-module/service packaging, construction/pinning and runtime deadline integration remain with their later ledger owners. Production cost/policy/algorithm defaults remain as recorded in the baseline.
+This phase runs correctness regressions and preserves their failures; it makes no performance, savings or capacity claim.
 
 ## Regression evidence
 

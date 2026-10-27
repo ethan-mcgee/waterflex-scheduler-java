@@ -5,6 +5,7 @@ Follows `../daily-budget-331df1f1/artifact.md`. The formatting authority is `../
 **Page and type:** one portrait Letter section, Calibri, black headings, pale blue DCE6EF table headers, and alternating FFFFFF and F4F6F8 rows.
 
 **Tables:**
+
 - Header rows repeat, and no table row splits.
 - Tables of twelve or fewer rows stay on one page.
 - Appendix tables use 9 pt cell text; body tables use 10 pt.

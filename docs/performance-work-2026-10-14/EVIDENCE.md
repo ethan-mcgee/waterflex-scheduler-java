@@ -27,12 +27,14 @@ Every run used the load tool `infra/host-conformance/load.ts` on one 24-processo
 ## Validation
 
 `report_data.py` checks, for every load tool report before it is read:
+
 - **Shape:** the machine and processor count, a 60 or 90 s duration, a seed in 0 to 1000.
 - **Consistency:** each operation's statuses add up to its calls; p50 ≤ p95 ≤ p99 ≤ max; searches equal the offers calls answered 201; confirms counted as confirmed plus the simulated host's write conflicts equal the confirm calls answered 200; no failed searches and no searches without offers; a queued run's recorded waits match its 201 proposals.
 - **Contract:** no contract breach and no host anomaly recorded.
 - **Queued runs with refusals:** a proposal refused 503 after its queue wait still records that wait, so when a run has 503s the waits cover every proposal, otherwise only the 201s.
 
-For study L it checks that each profile's samples add up across its recordings, that every leaf frame falls in one of the report's six groups (an unknown frame is an error), that each case's recorded speedups equal after over before from its move rates, and it recomputes the summary (median, extremes and per-fleet medians of the cost-phase speedup, the fairness-phase median, wins, ties and losses on the after-cost) from the 24 cases.
+For study L it checks that each profile's samples add up across its recordings, that every leaf frame falls in one of the report's six groups (an unknown frame is an error), that each case's recorded speedups equal after over before from its move rates, and it recomputes the summary (median, extremes and per-fleet medians of the cost-phase speedup, the fairness-phase median, wins,
+ties and losses on the after-cost) from the 24 cases.
 
 For the routing benchmarks it checks the exact directed parity, sparse-equals-full and 132-routable results, the engine order, and the hardware.
 

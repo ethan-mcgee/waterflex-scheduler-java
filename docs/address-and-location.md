@@ -6,11 +6,13 @@ Booking, technician creation, depot creation and depot location edits share one 
 
 `web/lib/streetNormalization.ts` holds all 206 primary street suffix names and their standard abbreviations from [USPS Publication 28, Appendix C1](https://pe.usps.com/text/pub28/28apc_002.htm) (retrieved 2026-09-24). The table's middle column of additional common variants is deliberately excluded.
 
-Street comparison ignores case, repeated or surrounding whitespace and abbreviation periods. A suffix is recognized only at the end, or before a trailing direction, with a street-name token before it. All eight compass directions normalize at street-name boundaries while keeping a nonempty name. Internal words stay literal: `St Charles Rd` does not become `Saint Charles Road`, and `Circle Dr` does not match `Cir Dr`. Directions are never discarded. Street rules do not apply to city, state, country, ZIP or house-number comparisons, and the submitted spelling is what gets stored.
+Street comparison ignores case, repeated or surrounding whitespace and abbreviation periods. A suffix is recognized only at the end, or before a trailing direction, with a street-name token before it. All eight compass directions normalize at street-name boundaries while keeping a nonempty name.
+Internal words stay literal: `St Charles Rd` does not become `Saint Charles Road`, and `Circle Dr` does not match `Cir Dr`. Directions are never discarded. Street rules do not apply to city, state, country, ZIP or house-number comparisons, and the submitted spelling is what gets stored.
 
 So `2825 S 170th Plz`, `2825 S 170th Plaza` and `2825 South 170th Plaza` in Omaha, NE 68130 match the same house, while ZIP 68103 conflicts with the returned 68130 and is rejected without a correction suggestion.
 
-Nominatim's [address categories depend on OSM tagging](https://nominatim.org/release-docs/latest/api/Output/), so absent locality fields are treated as incomplete evidence, not as a mismatch. City, town, village, hamlet, suburb and municipality can each match the entered locality. Known street, direction, house, state, country and ZIP conflicts are rejected. Incomplete evidence is approximate and needs manual pin confirmation. Malformed coordinates, structures and inverted bounds are errors.
+Nominatim's [address categories depend on OSM tagging](https://nominatim.org/release-docs/latest/api/Output/), so absent locality fields are treated as incomplete evidence, not as a mismatch. City, town, village, hamlet, suburb and municipality can each match the entered locality. Known street, direction, house, state, country and ZIP conflicts are rejected.
+Incomplete evidence is approximate and needs manual pin confirmation. Malformed coordinates, structures and inverted bounds are errors.
 
 Technician and depot forms show timeout, unavailable-service and malformed-response messages separately from save errors. Address edits clear candidates, confirmations and stale lookup errors; request versions stop an old response from replacing newer input, and failures keep the draft.
 
@@ -31,9 +33,11 @@ Migration `20260929180000_booking_location_confirmation` added the two nullable 
 
 ## Map coverage
 
-Coverage is the union of each metro's depot circles (`serviceRadiusMi`); maps are prepared for that envelope plus `marginMi`. The import merges the Nebraska, Iowa and [Missouri](https://download.geofabrik.de/north-america/us/missouri.html) extracts and TIGER address data. Its manifest records source timestamps, SHA-256 checksums, the prepared circles and bounds, the merged PBF, tile and graph checksums and tool versions. Each new source snapshot gets a new immutable version.
+Coverage is the union of each metro's depot circles (`serviceRadiusMi`); maps are prepared for that envelope plus `marginMi`. The import merges the Nebraska, Iowa and [Missouri](https://download.geofabrik.de/north-america/us/missouri.html) extracts and TIGER address data.
+Its manifest records source timestamps, SHA-256 checksums, the prepared circles and bounds, the merged PBF, tile and graph checksums and tool versions. Each new source snapshot gets a new immutable version.
 
-Validation checks current depot coverage, preview service readiness, routing identity and version, tile bounds, and real geocoder, road and tile responses for points spread across the covered states. It writes a manifest-bound `validated.json` only on success, and activation refuses a version without one. Revalidate when depot coordinates, radii, data or service versions change. The first prepared version's manifest and validation report are kept in `docs/validation/`.
+Validation checks current depot coverage, preview service readiness, routing identity and version, tile bounds, and real geocoder, road and tile responses for points spread across the covered states. It writes a manifest-bound `validated.json` only on success, and activation refuses a version without one. Revalidate when depot coordinates, radii, data or service versions change.
+The first prepared version's manifest and validation report are kept in `docs/validation/`.
 
 Prepare, validate and activate with `infra/prepare-map.ps1`, `infra/validate-map.ps1` and `infra/activate-map.ps1` (see the README). For rollback, restore the `.env.before-<version>` backup that activation printed and restart `nominatim`, `routing-service` and `tiles`. Never use `docker compose down -v` or delete the application or previous Nominatim volumes.
 

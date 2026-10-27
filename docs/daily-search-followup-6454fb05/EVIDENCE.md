@@ -15,6 +15,7 @@ The first Tabu variant study (`docs/daily-tabu-variants-5d15129b`, run 5d15129b)
 ## Validation
 
 `report_data.py` checks, for each archive:
+
 - **Provenance:** revision, canonical configuration and case hashes against the manifest, the complete cross product including fixture seeds, unique case ids, every raw SHA-256 listed in the analysis provenance and matching its completion receipt, and one result per raw file.
 - **Measurement:** `COST_ONLY` with no `fairnessPhase`, zero violations, zero overtime at every stage, TIME_LIMIT termination, and a cost search budget equal to the whole case budget.
 - **Policy:** an accepted case keeps the cost search result; a rejected case keeps the starting schedule, and a `FAIRNESS_REGRESSION_WITHIN_ALLOWANCE` rejection has a start within the 2% ceiling and a less even cost search result (SchedulingPolicy.compare).
@@ -23,7 +24,8 @@ The first Tabu variant study (`docs/daily-tabu-variants-5d15129b`, run 5d15129b)
 
 36 of the 1,200 main cases kept their starting schedule under the policy rule above, all on 5 and 10 technician days. 1,197 of 1,200 main cases ran with every slot busy for at least 95% of their wall time.
 
-`verify_report.py` recomputes 20 numerical tables and all eleven chart datasets from raw results without using the builder's derived fields, including the cross-study tables and the time curve from the first study's raw cases. It checks that the template's styles, numbering, theme, fonts and footer are byte-identical to the reference, and that no em or en dash appears in the document XML. `build_report.py` asserts every qualitative claim in the prose (signs, orderings, "every" and "never" statements) before writing it.
+`verify_report.py` recomputes 20 numerical tables and all eleven chart datasets from raw results without using the builder's derived fields, including the cross-study tables and the time curve from the first study's raw cases. It checks that the template's styles, numbering, theme, fonts and footer are byte-identical to the reference, and that no em or en dash appears in the document XML.
+`build_report.py` asserts every qualitative claim in the prose (signs, orderings, "every" and "never" statements) before writing it.
 
 ## Derived measures
 

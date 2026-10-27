@@ -793,6 +793,7 @@ commits and pinned with `SCHEDULER_IMAGE` (`infra/run-stack-verification.ps1`,
 
 Both ran the same daily proposals: 10 s cost and 5 s fairness search, 3 visits per technician, the kit's policy (`TABU`,
 `fairnessBudget` 0, so each proposal's cost ceiling is its reference plan's cost).
+
 - **Step 1:** one planner, synchronous, 4 proposals for each fleet and points seed.
 - **Step 2:** two planners queuing on 20 technicians, 12 proposals, the daily pool's shape (background limit 2 on
   2 CPUs).
@@ -829,6 +830,7 @@ are this stack's, not the harness's.
 
   "Fairer" means a proposal whose DECIMAL128 variance is below its own reference plan's. The extra moves become fairer
   plans at the fleet sizes where the decimal variance throttled the search the most.
+
 - **The calls take as long as before, by design.** A daily proposal searches for a fixed 15 s, so b buys more search
   in the same time, not a shorter call. Queued proposals waited 3 ms (p50, 8 ms max) on both images. No run had a
   contract breach or a host anomaly, and every proposal answered 201.
@@ -847,15 +849,18 @@ are this stack's, not the harness's.
 ## Long score and long money on the stack (K)
 
 Representation study 2 promoted two changes on the workstation harness:
+
 - L, the long `BendableScore`: 1.09x in both phases;
 - M, long money on integer rates (API 1.7.0): 1.19x in the cost phase and 1.15x in the fairness phase.
 
 PR #191 ships the pair. This verification checks it behind the public API. It ran on 2026-10-21 on the same rehearsal stack as option b's (`infra/run-stack-verification.ps1`), with:
+
 - images built from **before** `dcbdca6` (main) and **after** `4e2a5fc` (PR #191);
 - the example client policy (`TABU_KOPT` with a 2 percent fairness allowance);
 - every phase of every proposal flight-recorded (`SCHEDULER_STUDY_PROFILES`).
 
 There were two runs:
+
 - **The full protocol** ([evidence](evidence/api-load-2026-10-21-long-score-and-money.json)): fleets of 10, 20 and 50 technicians, seeds 1 to 3, 4 proposals each, and the queued step. Step 1 ran every before run, then every after run.
 - **A rerun of 50 technicians** ([evidence](evidence/api-load-2026-10-21-long-score-and-money-50t.json)): before and after in pairs per seed, the pair order alternating (`-Interleave -SyncOnly`). The daily replica's log was kept for each run.
 
@@ -881,6 +886,7 @@ The table gives the median over seeds of each seed's after/before ratio of Timef
 **The full run's 503s at 50 technicians.** In the full run, 10 of after's 12 calls at 50 technicians, and 1 of before's, answered 503 `CALCULATION_UNAVAILABLE` ("The calculation deadline passed"). A daily call's deadline is its search (15 s) plus a 5 s reserve. Every search ran its full time, so the reserve was being spent outside the search.
 
 The rerun traced this to the workstation, not to the change:
+
 - **Harness probe.** It ran the stack's `calculate()` path at 50 technicians: main and PR #191, each with `TABU` and `TABU_KOPT`, each with the recorder on and off, on the replica's JVM shape. All 8 configurations spent 0.6 to 1.0 s outside the search, the same for both commits.
 - **Interleaved rerun.** All 24 calls answered 201. The replica's own operation receipts put the median call at 16.3 s on before and 16.7 s on after, with the slowest at 18.3 s and 19.0 s.
 - **Where the time goes.** The replica's log places the time outside the search in two places, on both images:
@@ -895,6 +901,7 @@ The reserve is wide enough here, but not by much at 50 technicians on a two-CPU 
 ## W and A with the long score and money on the stack (K, 2026-10-22)
 
 On 2026-10-22 the owner made W and A default alongside L and M (docs/solver-benchmarks.md, "Shipped representation"). On the harness, W+A over main measured 1.342x / 1.312x, and over L+M 1.051x / 1.043x (both derived). This verification checks PR #191 as it now stands ([evidence](evidence/api-load-2026-10-22-long-score-money-w-a.json)):
+
 - images built from **before** `4ce1a56` (main; its scheduler code is unchanged since `dcbdca6`, the L+M run's before) and **after** `b26d0ba` (L, M, W and A);
 - the full protocol: fleets of 10, 20 and 50 technicians, seeds 1 to 3, 4 proposals each, and the queued step;
 - before and after in pairs, the pair order alternating (`-Interleave`); the daily replica's log kept for each run;
@@ -910,7 +917,8 @@ The table gives the median over seeds of each seed's after/before ratio of Timef
 | 20, queued, 2 planners | 1.28x | one run | 1.32x | one run | 12 / 12 of 12 |
 
 - **After is faster in both phases at every fleet size.** Counting only each run's third and fourth calls, once the replica's JIT has warmed, the cost phase is 1.30x, 1.28x and 1.26x at 10, 20 and 50 technicians, and the fairness phase 1.35x, 1.29x and 1.26x (6 calls per image and fleet, from the replica's log).
-- **W's own step is too small to resolve here.** The L+M run of 2026-10-21 measured 1.23x / 1.28x, 1.22x / 1.25x and 1.19x / 1.24x (rerun) at the same fleets. The two days are not paired, and seeds spread by more than the 4 to 5 percent the harness measured for W. The harness's paired ratio is the measurement for W's step; the stack confirms that the default build is faster than main behind the public API.
+- **W's own step is too small to resolve here.** The L+M run of 2026-10-21 measured 1.23x / 1.28x, 1.22x / 1.25x and 1.19x / 1.24x (rerun) at the same fleets. The two days are not paired, and seeds spread by more than the 4 to 5 percent the harness measured for W.
+  The harness's paired ratio is the measurement for W's step; the stack confirms that the default build is faster than main behind the public API.
 - **The decimal work is gone**, as in the L+M run: `BigDecimal` score impacts and decimal money held 16.5 percent of before's cost-phase samples and none of after's. `RouteTimingSearch.segments` is after's top leaf frame (15.4 percent).
 - **Plans of the same quality.** Every proposal on both images was accepted, and none exceeded its cost ceiling. Of the 10 pairs (median proposed cost and variance per run):
   - in 6, at 10 and 20 technicians, both images proposed the same plan to the cent and the DECIMAL128 digit;
@@ -918,6 +926,7 @@ The table gives the median over seeds of each seed's after/before ratio of Timef
   - in 2, both at 50 technicians, the extra moves traded one for the other. At seed 2, after was 57 cents dearer and fairer (0.0309 against 0.0314). At seed 3, after was 715 cents cheaper and less fair (0.0290 against 0.0258).
 
 **Two 503s at 50 technicians.** The first two of after's four calls at 50 technicians, seed 2, answered 503 `CALCULATION_UNAVAILABLE` ("The calculation deadline passed") at 21.9 s and 19.3 s; the deadline is the 15 s search plus a 5 s reserve. Both searches ran their full time, so the reserve was spent outside the search. The replica's log shows why:
+
 - **Every run starts on a cold JVM.** `-Interleave` switches images every run, so the replica restarts each time. At 10 and 20 technicians a run's first call spends 0.6 to 1.6 s outside the search, and later calls 0.1 to 0.3 s.
 - **At 50 technicians the margin is thin on both images.** The time outside the search was:
 
@@ -928,11 +937,13 @@ The table gives the median over seeds of each seed's after/before ratio of Timef
   | Third and fourth | 2.2 s (3.3 s) | 1.8 s (2.7 s) |
 
   Before's slowest call took 19.4 s against the 20 s deadline.
-- **The 503s were cold calls.** In the 21.9 s call even the cost-phase search ran at 234,000 moves per second, against about 365,000 in the same run's later calls: on a two-CPU replica the JIT compiler was still competing with the solver. After warms more slowly than before at 50 technicians: its first calls' cost-phase search reached 0.66x to 0.90x of the same run's warm rate (calls 3 and 4), before's 0.86x to 1.01x. Once warm, after spends less time outside the search than before.
+- **The 503s were cold calls.** In the 21.9 s call even the cost-phase search ran at 234,000 moves per second, against about 365,000 in the same run's later calls: on a two-CPU replica the JIT compiler was still competing with the solver.
+  After warms more slowly than before at 50 technicians: its first calls' cost-phase search reached 0.66x to 0.90x of the same run's warm rate (calls 3 and 4), before's 0.86x to 1.01x. Once warm, after spends less time outside the search than before.
 
 The production replicas are long-lived, so a cold first call happens once per replica start, not per run as here. The reserve is still narrow at 50 technicians on two CPUs for the first calls after a start, on both images; the L+M run left 1.0 s in its slowest call, and this one crossed it twice.
 
-**Verdict:** L, M, W and A are faster than main on the stack in both phases at every fleet size, with plans of the same quality. The 503s come from cold calls at 50 technicians, where both images run close to the deadline. A warm rerun at 50 technicians would show whether they recur after warm-up: `infra/run-stack-verification.ps1 -Before 4ce1a56 -After b26d0ba -Study long-score-money-w-a-50t -Interleave -SyncOnly -Fleets 50 -Proposals 8 -RunsDirectory experiments/runs/stack-verification-w-a-50t` (about 24 minutes).
+**Verdict:** L, M, W and A are faster than main on the stack in both phases at every fleet size, with plans of the same quality. The 503s come from cold calls at 50 technicians, where both images run close to the deadline.
+A warm rerun at 50 technicians would show whether they recur after warm-up: `infra/run-stack-verification.ps1 -Before 4ce1a56 -After b26d0ba -Study long-score-money-w-a-50t -Interleave -SyncOnly -Fleets 50 -Proposals 8 -RunsDirectory experiments/runs/stack-verification-w-a-50t` (about 24 minutes).
 
 ## Repeating the measurement
 

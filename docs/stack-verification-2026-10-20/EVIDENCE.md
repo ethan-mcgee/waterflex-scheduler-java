@@ -31,6 +31,7 @@ The evidence file is not edited. Three things in it read differently from what h
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The images:**
   - both are the pinned commits, with tags that name them;
   - every replica the run verified ran its image's ID with `TIMEFOLD_LOG_LEVEL=INFO`;
@@ -56,6 +57,7 @@ The evidence file is not edited. Three things in it read differently from what h
 `report_data.harness()` checks that the harness file is the numbering study (revision `ed97d8b`, 15 s, 72 pairs, fleets 10, 30 and 50) before reading b's fairness-phase medians by fleet.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers. It recomputes these tables from the raw JSON:
+
 - the summary table;
 - the phase share table;
 - the per-run speed table;
@@ -65,6 +67,7 @@ The evidence file is not edited. Three things in it read differently from what h
 - both appendices of proposals and runs.
 
 It also checks:
+
 - the chart data against the evidence;
 - that the reference template's styles, numbering, theme, fonts and footer are byte-identical;
 - that every figure has a description and a black italic caption;
@@ -84,17 +87,19 @@ Nothing missing is replaced with a value. The loader refuses evidence with an un
 ## Figures
 
 Seven charts come from `charts.py` (matplotlib, Calibri). `build_report.py` regenerates them with `chart_data.json`. Each image keeps one color across every chart:
+
 - before: grey;
 - after: teal;
 - the harness: amber.
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
+
 - `stack-path.html`: the path one proposal takes;
 - `receipt-pairing.html`: how the kit pairs a receipt with its speeds.
 
 They pass the skill's `self_check.py` and `verify-geometry.py`. Render them to `generated/` before building, with Playwright's Chromium:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/stack-path.html generated/stack-path.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/receipt-pairing.html generated/receipt-pairing.png 2.5
 ```

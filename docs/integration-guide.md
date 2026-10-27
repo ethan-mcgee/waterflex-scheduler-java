@@ -17,7 +17,7 @@ The portal in `web/` is a working client of this API and the reference for every
 
 ## 1. Topology and ownership
 
-```
+```text
  WaterFlex Software backend                         Scheduler VM (partitioned CPU and memory)
  +-----------------------------+   HTTPS /api/v1   +-----------------------------------------------+
  | master data and the record  | ----------------> | scheduler-proxy :8000 -> booking / daily pool |
@@ -157,7 +157,7 @@ A missed update is the one way an integration can overwrite a dispatcher's chang
 Booking finds arrival windows for a new job, holds them for 10 minutes, and turns the customer's choice into an
 appointment you write.
 
-```
+```text
 offers --201--> customer picks one --> select --200--> confirm --200--> write receipt (compare-and-set)
    |                                      |409 HOLD_UNAVAILABLE   |409          | write fails
    |                                      v                       v             v

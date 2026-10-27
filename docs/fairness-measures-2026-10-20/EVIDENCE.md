@@ -19,6 +19,7 @@ The reference and final cost and the reference plan's measures were added to `ru
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The run:**
   - it is the full study, not the smoke run, on the pinned revision, with both budgets and two repetitions;
   - every arm, case and repetition is present exactly once;
@@ -42,6 +43,7 @@ The reference and final cost and the reference plan's measures were added to `ru
   - each has eight recordings.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers. It recomputes these tables from the raw JSON:
+
 - the bars table, including each pass and fail;
 - both comparison tables;
 - the allowance table;
@@ -50,6 +52,7 @@ The reference and final cost and the reference plan's measures were added to `ru
 - the profile table.
 
 It also checks:
+
 - the chart data against the evidence;
 - that the reference template's styles, numbering, theme, fonts and footer are byte-identical;
 - that every figure has a description and a black italic caption;
@@ -71,6 +74,7 @@ Nothing missing is replaced with a value. A ratio whose denominator is zero is l
 ## Figures
 
 Eleven charts come from `charts.py` (matplotlib, Calibri). `build_report.py` regenerates them with `chart_data.json`. Each arm keeps one color across every chart:
+
 - baseline grey;
 - b teal;
 - c light blue;
@@ -80,12 +84,13 @@ Eleven charts come from `charts.py` (matplotlib, Calibri). `build_report.py` reg
 - load-balance rose.
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
+
 - `fairness-computation.html`: what each arm does after a move;
 - `fairness-acceptance.html`: the acceptance rule.
 
 They pass the skill's `self_check.py`. Render them to `generated/` before building, with Playwright's Chromium:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/fairness-computation.html generated/fairness-computation.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/fairness-acceptance.html generated/fairness-acceptance.png 2.5
 ```

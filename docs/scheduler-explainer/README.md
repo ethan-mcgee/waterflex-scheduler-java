@@ -25,11 +25,13 @@ All example schedules, costs, people and job timings are illustrative. The utili
 
 Repository claims were checked against the committed implementation, policy, configuration constructors, regressions and archived reports at the pinned revision. Reservation issuance, bounded search, CH routing and prewarming are disabled by default. That statement does not establish production settings. No production environment was inspected or changed, and no new performance benchmark was run.
 
-The benchmark figures remain historical evidence at the revisions named by their reports. The document distinguishes reference and accepted solver metrics, matched served demand, retry responses, fixture roads, real-road browser evidence, and local versus production performance. External Timefold latest documentation currently describes 2.7.0; the repository uses 2.6.0, so implementation claims rely on project source rather than the moving latest documentation.
+The benchmark figures remain historical evidence at the revisions named by their reports. The document distinguishes reference and accepted solver metrics, matched served demand, retry responses, fixture roads, real-road browser evidence, and local versus production performance.
+External Timefold latest documentation currently describes 2.7.0; the repository uses 2.6.0, so implementation claims rely on project source rather than the moving latest documentation.
 
 ## Render verification
 
-The final document was rendered with the documents skill's `render_docx.py` using an isolated Linux Docker image containing LibreOffice Writer, Poppler and Carlito, the Calibri-compatible font. Rendering ran with networking disabled and the authoring directory mounted read-only. Bundled Windows Python was used for authoring. This host has no native or bundled LibreOffice, so the packaged renderer used the isolated container toolchain.
+The final document was rendered with the documents skill's `render_docx.py` using an isolated Linux Docker image containing LibreOffice Writer, Poppler and Carlito, the Calibri-compatible font. Rendering ran with networking disabled and the authoring directory mounted read-only. Bundled Windows Python was used for authoring.
+This host has no native or bundled LibreOffice, so the packaged renderer used the isolated container toolchain.
 
 All 20 page PNGs were visually inspected. Tables are readable, no row is clipped or split, no blank overflow page remains, page numbering is intact, and the navigation ranges match the rendered sections. Word pagination can vary slightly with fonts and renderer versions; rerender after changing content, template, dependency or fonts.
 

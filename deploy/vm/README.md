@@ -64,7 +64,8 @@ Each pool scales on its own, by replica count and by each replica's share (`.env
 - **Booking** (`SCHEDULER_BOOKING_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`): add replicas when booking p95 nears the client's deadline or `scheduler_admission_rejections_total` rises on booking replicas. Keep the search capacity at about the replica's cores.
 - **Daily** (`SCHEDULER_DAILY_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`, `SCHEDULER_DAILY_BACKGROUND_LIMIT`): add replicas, or raise the background limit up to the search capacity with the cores to match, when queued days wait long (from `queuedAt` to `startedAt` in `GET /api/v1/requests/{id}`) or `scheduler_daily_queue_expired_total` rises.
 
-What is single on this VM, what happens when each part stops, and the host's retry contract are in the runbook's "Availability" section ([docs/operations-runbook.md](../../docs/operations-runbook.md)), with the CPU sizing caveat. The proxy finds new replicas within 10 seconds without a restart. A replica stopped while it runs a queued day leaves it to another replica once its lease passes; a synchronous call it was running fails at the caller, who repeats it with the same `requestId`.
+What is single on this VM, what happens when each part stops, and the host's retry contract are in the runbook's "Availability" section ([docs/operations-runbook.md](../../docs/operations-runbook.md)), with the CPU sizing caveat. The proxy finds new replicas within 10 seconds without a restart.
+A replica stopped while it runs a queued day leaves it to another replica once its lease passes; a synchronous call it was running fails at the caller, who repeats it with the same `requestId`.
 
 ## Another metro
 
@@ -87,4 +88,6 @@ curl http://127.0.0.1:18080/health
 
 `rehearsal.override.yml` moves `routing-omaha` into an unused profile and points both pools at the development router, so the Omaha graph is not loaded twice. Moving to the real VM is this directory, a `.env`, the map volume and a token.
 
-A before-and-after verification runs one image per commit: build each in its own worktree under its own tag, then bring the stack up with `SCHEDULER_IMAGE=<tag> SCHEDULER_PULL_POLICY=never` and without `--build`, so the tag is what runs. `infra/run-stack-verification.ps1` does this, with `SCHEDULER_STUDY_RECEIPTS=true` and `TIMEFOLD_LOG_LEVEL=INFO` for the study's readings, and `SCHEDULER_STUDY_PROFILES=/profiles` (a host directory mounted into the daily replica) so every phase of every proposal is flight-recorded; `infra/stack_profiles.py` attributes the recordings into the evidence. Its proposals use the client's example policy, `TABU_KOPT` with a 2 percent fairness budget (`-DailySearch`, `-FairnessBudget`).
+A before-and-after verification runs one image per commit: build each in its own worktree under its own tag, then bring the stack up with `SCHEDULER_IMAGE=<tag> SCHEDULER_PULL_POLICY=never` and without `--build`, so the tag is what runs.
+`infra/run-stack-verification.ps1` does this, with `SCHEDULER_STUDY_RECEIPTS=true` and `TIMEFOLD_LOG_LEVEL=INFO` for the study's readings, and `SCHEDULER_STUDY_PROFILES=/profiles` (a host directory mounted into the daily replica) so every phase of every proposal is flight-recorded; `infra/stack_profiles.py` attributes the recordings into the evidence.
+Its proposals use the client's example policy, `TABU_KOPT` with a 2 percent fairness budget (`-DailySearch`, `-FairnessBudget`).

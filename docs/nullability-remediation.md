@@ -15,7 +15,10 @@ The supplied pre-implementation audit reported 60 scheduler and one routing ECJ 
 | Positional query arrays, unchecked report casts, nullable lookups | Named records, SQL-null readers, persisted JSON decoders, checked arrivals and versions | Unit and transactional integration regressions |
 | Legacy method references and generic inference | Explicit types and contracts, checked library results | Actual pinned ECJ checker, with warnings fatal |
 
-The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and every Maven module use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The Maven nullability profile uses ECJ 3.46.100, matching the compiler embedded in VS Code Java 1.56.0. VS Code Java 1.57.0 embeds a newer JDT whose flow analysis can report dead code that ECJ 3.46.100 does not, for example a statement after a null test of a non-null record component in a compact constructor (seen in the routing service's `MatrixController`, 2026-10-19). The prefs now state `problem.deadCode=warning` explicitly so both compilers treat dead code the same way; when the editor reports a diagnostic the gate does not, fix the code to satisfy both rather than relying on either compiler's version. Null tests on values JSON can still make null go through a helper with a `@Nullable` parameter that returns the accepted value. The remaining editor diagnostics involved method references passed through unannotated Java functional interfaces; explicitly typed lambdas preserve the same comparator, predicate, and mapping behavior while giving ECJ the application null contracts at those boundaries.
+The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and every Maven module use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The Maven nullability profile uses ECJ 3.46.100, matching the compiler embedded in VS Code Java 1.56.0.
+VS Code Java 1.57.0 embeds a newer JDT whose flow analysis can report dead code that ECJ 3.46.100 does not, for example a statement after a null test of a non-null record component in a compact constructor (seen in the routing service's `MatrixController`, 2026-10-19).
+The prefs now state `problem.deadCode=warning` explicitly so both compilers treat dead code the same way; when the editor reports a diagnostic the gate does not, fix the code to satisfy both rather than relying on either compiler's version. Null tests on values JSON can still make null go through a helper with a `@Nullable` parameter that returns the accepted value.
+The remaining editor diagnostics involved method references passed through unannotated Java functional interfaces; explicitly typed lambdas preserve the same comparator, predicate, and mapping behavior while giving ECJ the application null contracts at those boundaries.
 
 ## Confirmed failures and behavior changes
 
@@ -29,7 +32,8 @@ The final clean ECJ run has zero unsuppressed source nullability, raw-type, or u
 * Browser response decoders prevent malformed responses from replacing valid state. Dependent actions are disabled after invalid responses. Appointments with missing coordinates remain visible with a location error and are excluded from map plotting. Empty service/technician lists have controlled disabled states.
 * Offline simulations reject incomplete metrics before recommendations, and scripts use checked lookups instead of unsupported assertions.
 
-The schema-contract script now compares scalar column types and nullability with Prisma, as well as the Java table/column inventory. Four existing PostgreSQL `timestamptz` mappings are now explicitly marked `@db.Timestamptz(6)` in Prisma: `BookingOptimization.createdAt` and `OptimizationRun.serviceDate`, `createdAt`, and `appliedAt`. This aligns metadata with existing migrations and requires no data migration.
+The schema-contract script now compares scalar column types and nullability with Prisma, as well as the Java table/column inventory. Four existing PostgreSQL `timestamptz` mappings are now explicitly marked `@db.Timestamptz(6)` in Prisma: `BookingOptimization.createdAt` and `OptimizationRun.serviceDate`, `createdAt`, and `appliedAt`.
+This aligns metadata with existing migrations and requires no data migration.
 
 ## Intentional absence
 
@@ -43,15 +47,18 @@ The schema-contract script now compares scalar column types and nullability with
 
 ### Generic element nullness under ECJ
 
-ECJ 3.46.100 applies `@NullMarked` like a parameterless `@NonNullByDefault`: parameters, return types, and fields are non-null at the top level, but type arguments are not defaulted. A declared `List<PlannedStop>` is therefore a list of unspecified-nullness elements to ECJ, while values built by `Input.list`, `stream().toList()`, or `List.of` are inferred as `List<@NonNull PlannedStop>`. Passing the more precise value into the less precise declaration produces the `annotatedTypeArgumentToUnannotated` diagnostic ("Unsafe null type conversion ... made accessible using the less-annotated type").
+ECJ 3.46.100 applies `@NullMarked` like a parameterless `@NonNullByDefault`: parameters, return types, and fields are non-null at the top level, but type arguments are not defaulted. A declared `List<PlannedStop>` is therefore a list of unspecified-nullness elements to ECJ, while values built by `Input.list`, `stream().toList()`, or `List.of` are inferred as `List<@NonNull PlannedStop>`.
+Passing the more precise value into the less precise declaration produces the `annotatedTypeArgumentToUnannotated` diagnostic ("Unsafe null type conversion ... made accessible using the less-annotated type").
 
-That option stays at ECJ's default `info` level, so it appears in the editor but does not fail the gate. Raising it to `error` was evaluated in October 2026: about 40 sites failed, and annotating the element types at those declarations moved the failures one layer outward each time. The check only converges when every collection declaration carries explicit element annotations, which is a codebase-wide change with no runtime benefit. Element presence remains enforced at runtime by `Input.list` and the JSON decoders. Revisit this if a later ECJ release defaults type arguments for JSpecify.
+That option stays at ECJ's default `info` level, so it appears in the editor but does not fail the gate. Raising it to `error` was evaluated in October 2026: about 40 sites failed, and annotating the element types at those declarations moved the failures one layer outward each time.
+The check only converges when every collection declaration carries explicit element annotations, which is a codebase-wide change with no runtime benefit. Element presence remains enforced at runtime by `Input.list` and the JSON decoders. Revisit this if a later ECJ release defaults type arguments for JSpecify.
 
 Mockito matcher methods return null sentinels that Mockito consumes while configuring a mock. `MockArguments` contains method-scoped `@SuppressWarnings("null")` only for these framework sentinels, with an explanation. No production class or package disables null analysis. The shared ECJ option permits those narrow suppressions; all unsuppressed diagnostics remain fatal.
 
 ## Required gates
 
-Every Maven module (calculation-engine, scheduler-service, routing-service, solver-service and the opt-in campaign-benchmark) inherits Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.16.0, Plexus Eclipse compiler 2.17.1, ECJ 3.46.100, Java 25, and JSpecify 1.0.1. The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. The normal `clean verify` command validates the javac build and tests. The `-Pnullability clean verify` command is the strict ECJ gate that must report zero source nullability, raw-type, and unchecked-conversion diagnostics.
+Every Maven module (calculation-engine, scheduler-service, routing-service, solver-service and the opt-in campaign-benchmark) inherits Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.16.0, Plexus Eclipse compiler 2.17.1, ECJ 3.46.100, Java 25, and JSpecify 1.0.1.
+The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. The normal `clean verify` command validates the javac build and tests. The `-Pnullability clean verify` command is the strict ECJ gate that must report zero source nullability, raw-type, and unchecked-conversion diagnostics.
 
 TypeScript retains `strict` and `noUncheckedIndexedAccess`. ESLint explicitly pins parser/plugin 8.70.0 and enforces typed unsafe assignment/call/member-access/return/argument/type-assertion rules and non-null assertions. Application code, libraries, scripts, seeds, browser tests, and test configuration are covered. Generated output and dependencies are excluded.
 
@@ -86,7 +93,9 @@ A missing log tab or a prior `package-info.java` event is stale local editor sta
 
 `.vscode/settings.json` excludes `.scratch/`, `.claude/` worktrees, and `experiments/` run snapshots from the Java import. Those directories hold frozen copies of the Maven modules with the same coordinates. Without the exclusion, the editor reports diagnostics for deleted classes and fails to resolve `calculation-engine` for the real modules.
 
-Integration verification uses two PostgreSQL 16 databases, as CI does: the portal's isolated `waterflex_test` (`DATABASE_URL`) and the scheduler's own `scheduler_test` (`JDBC_DATABASE_URL`, with its owner in `DATABASE_USER` and `DATABASE_PASSWORD`; the scheduler's database integration tests migrate it, and `java -jar scheduler-service.jar --command=migrate` does the same for a running scheduler), plus `infra/fixture-routing.mjs`. Local verification used the portal database on port 15432, the scheduler's on 15433, the scheduler on 18000, and fixture routing on 18001. Set `DATABASE_URL`, `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `ROUTING_URL`, `SERVER_PORT`, `SCHEDULER_TEST_URL`, and `ENGINE_URL` to that isolated stack, apply the portal migrations, seed it, migrate the scheduler database, and start the services (the scheduler as its `scheduler_app` login) before running:
+Integration verification uses two PostgreSQL 16 databases, as CI does: the portal's isolated `waterflex_test` (`DATABASE_URL`) and the scheduler's own `scheduler_test` (`JDBC_DATABASE_URL`, with its owner in `DATABASE_USER` and `DATABASE_PASSWORD`;
+the scheduler's database integration tests migrate it, and `java -jar scheduler-service.jar --command=migrate` does the same for a running scheduler), plus `infra/fixture-routing.mjs`. Local verification used the portal database on port 15432, the scheduler's on 15433, the scheduler on 18000, and fixture routing on 18001.
+Set `DATABASE_URL`, `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `ROUTING_URL`, `SERVER_PORT`, `SCHEDULER_TEST_URL`, and `ENGINE_URL` to that isolated stack, apply the portal migrations, seed it, migrate the scheduler database, and start the services (the scheduler as its `scheduler_app` login) before running:
 
 ```powershell
 npm run test:schema-contract
@@ -106,4 +115,3 @@ npm run test:ui
 ```
 
 CI executes the same gates (see [CI runtime and coverage](ci-runtime.md)). Its browser job provisions the isolated schema and Chromium with Linux dependencies, and its integration jobs run the public API smokes against a fixture routing service.
-

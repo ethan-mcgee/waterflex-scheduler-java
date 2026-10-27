@@ -16,13 +16,15 @@ Every run used the host conformance kit (`infra/host-conformance`: `quality.ts` 
 ## Validation
 
 `report_data.py` checks every kit report before any figure is read from it:
+
 - **Shape:** the machine has 24 processors, and each part holds the number of cells the protocol promised (quality 40, load 840, capacity 224, reserve 80; rerun quality 10, reserve 25).
 - **Contract:** no contract breach and no host anomaly recorded; `runsWithDefects` is empty in both files.
 - **Consistency:** each operation's statuses add up to its calls; p50 ≤ p95 ≤ p99 ≤ max; searches equal the booking offers calls; each quality case has one entry per variant.
 
 `build_report.py` asserts the two claims the narrative states without a table: no 2:3000 search at one desk on a full schedule reported `searchComplete` false, and every uncapped search from 10 technicians up did.
 
-`verify_report.py` recomputes the section 4 quality table, the section 8 one-desk table, both section 9 layout grids, the section 10 reserve table and seven chart datasets from the raw evidence with its own loops, without `report_data.py` or the summarizer's pooling, and checks the preserved template parts, the captions, the embedded images, that every table row is kept together and that no em or en dash appears.
+`verify_report.py` recomputes the section 4 quality table, the section 8 one-desk table, both section 9 layout grids, the section 10 reserve table and seven chart datasets from the raw evidence with its own loops, without `report_data.py` or the summarizer's pooling, and checks the preserved template parts, the captions, the embedded images,
+that every table row is kept together and that no em or en dash appears.
 
 ## Derived measures
 
@@ -56,4 +58,5 @@ python docs/booking-configuration-study-2026-10-19/build_report.py
 python docs/booking-configuration-study-2026-10-19/verify_report.py
 ```
 
-Calibri on Windows or Carlito on Linux is required for the figures. Figure 1 (the search pipeline) and the deadline split it draws are read from the code (BookingOffers, SearchDeadline, application.properties), not measured, and its caption says so. Every figure is authored as HTML with inline SVG (figures.py, in the report's skin) and rasterized by render.py, which needs Playwright with its Chromium build (`python -m playwright install chromium`). Render every page after changes.
+Calibri on Windows or Carlito on Linux is required for the figures. Figure 1 (the search pipeline) and the deadline split it draws are read from the code (BookingOffers, SearchDeadline, application.properties), not measured, and its caption says so.
+Every figure is authored as HTML with inline SVG (figures.py, in the report's skin) and rasterized by render.py, which needs Playwright with its Chromium build (`python -m playwright install chromium`). Render every page after changes.

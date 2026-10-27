@@ -4,23 +4,30 @@ For validated JSON matrices, frozen artifacts, interruption/resume, and automati
 
 `SolverBenchmark` is an explicit standalone test-class entry point. It does not run the performance matrix during unit tests or change production configuration. `SolverExperimentTest` checks all eight community configurations under `FULL_ASSERT` and independently validates each starting dataset at 20, 30 and 50 technicians.
 
-The configurations compare the existing 1,000-step cap, the same configuration without that cap, Late Acceptance with relocation alone, Late Acceptance with relocation and swaps, Tabu Search, sublist moves, K-opt, and low-frequency ruin-and-recreate. Late Acceptance uses history 400 and accepted-count 1; Tabu uses entity tabu size 7 and accepted-count 1,000. Configuration XML, seed and SHA-256 are recorded for each run. No preview or Enterprise selection features are enabled.
+The configurations compare the existing 1,000-step cap, the same configuration without that cap, Late Acceptance with relocation alone, Late Acceptance with relocation and swaps, Tabu Search, sublist moves, K-opt, and low-frequency ruin-and-recreate. Late Acceptance uses history 400 and accepted-count 1; Tabu uses entity tabu size 7 and accepted-count 1,000.
+Configuration XML, seed and SHA-256 are recorded for each run. No preview or Enterprise selection features are enabled.
 
-Each measured case receives a 15-second combined budget, split into a 10-second overtime/cost reference search and the remaining time for fairness. An early reference stop transfers time to fairness. Candidate routes are independently evaluated before policy acceptance. Baseline, reference and accepted workload metrics are recorded separately. A short smoke budget verifies the harness but is not quality evidence.
+Each measured case receives a 15-second combined budget, split into a 10-second overtime/cost reference search and the remaining time for fairness. An early reference stop transfers time to fairness. Candidate routes are independently evaluated before policy acceptance. Baseline, reference and accepted workload metrics are recorded separately.
+A short smoke budget verifies the harness but is not quality evidence.
 
 The deterministic datasets cover sparse, clustered, dispersed, mixed-skill, tight-window, absence and uneven near-capacity routes. They contain synthetic directed legs, explicitly identified as fixture evidence. They do not establish Omaha road performance, booking throughput, customer latency, or production capacity. Travel buffers remain 20 percent plus five minutes per leg.
 
-Run the compiled test entry point with a classpath containing test classes, production classes and the Maven dependency classpath. Required JVM properties are `benchmark.revision` (the exact committed harness revision) and `benchmark.output` (a new JSONL path). Optional properties are `benchmark.durationMs` (default 15000), `benchmark.sizes` (20,30,50), `benchmark.workloads`, `benchmark.variants`, and `benchmark.seeds` (default 17). Comma-separated values select subsets. Output uses create-new semantics to prevent accidental replacement of prior evidence.
+Run the compiled test entry point with a classpath containing test classes, production classes and the Maven dependency classpath. Required JVM properties are `benchmark.revision` (the exact committed harness revision) and `benchmark.output` (a new JSONL path).
+Optional properties are `benchmark.durationMs` (default 15000), `benchmark.sizes` (20,30,50), `benchmark.workloads`, `benchmark.variants`, and `benchmark.seeds` (default 17). Comma-separated values select subsets. Output uses create-new semantics to prevent accidental replacement of prior evidence.
 
-Freeze the compiled classes and solver resource into a separate artifact before a long run so concurrent development cannot change its code or configuration. Record its SHA-256, hardware, JVM heap and other local activity alongside the output. Every configuration receives an identical short warmup. Variant order rotates across datasets. Repeat promising comparisons with multiple seeds before choosing production defaults.
+Freeze the compiled classes and solver resource into a separate artifact before a long run so concurrent development cannot change its code or configuration. Record its SHA-256, hardware, JVM heap and other local activity alongside the output. Every configuration receives an identical short warmup. Variant order rotates across datasets.
+Repeat promising comparisons with multiple seeds before choosing production defaults.
 
-Results include actual completed steps, move evaluations, score calculations, time to best, solver time and observed termination classification. They also include process CPU time, heap-pool peak usage, changed assignments, retimed appointments, paid waiting and independently verified hard-constraint violations. Heap-pool peaks are diagnostic measurements, not resident memory. A termination classification of `PHASE_COMPLETED` does not assert global optimality. The adapter intentionally targets the installed Timefold 2.6.0 implementation for diagnostics and must be revisited when upgrading.
+Results include actual completed steps, move evaluations, score calculations, time to best, solver time and observed termination classification. They also include process CPU time, heap-pool peak usage, changed assignments, retimed appointments, paid waiting and independently verified hard-constraint violations. Heap-pool peaks are diagnostic measurements, not resident memory.
+A termination classification of `PHASE_COMPLETED` does not assert global optimality. The adapter intentionally targets the installed Timefold 2.6.0 implementation for diagnostics and must be revisited when upgrading.
 
 Initial harness verification: strict Java clean verify passed; all eight configurations completed 500 ms smoke cases for sparse and absence workloads with independent validation.
 
-The first frozen run at `18a9f0b` exposed two harness limitations. Its `CURRENT_CAPPED` rows did not actually retain the step limit because Timefold's per-call termination override replaced it. Those rows and their cap-related termination labels must be excluded from cap comparisons. The corrected adapter explicitly supplies both limits and has a regression test stopping at exactly 1,000 steps. The other uncapped configurations in that artifact are unaffected by this override issue. Existing ordinary preview calls also used the time-only override, so a cap in the resource was not evidence that it applied to those calls.
+The first frozen run at `18a9f0b` exposed two harness limitations. Its `CURRENT_CAPPED` rows did not actually retain the step limit because Timefold's per-call termination override replaced it. Those rows and their cap-related termination labels must be excluded from cap comparisons. The corrected adapter explicitly supplies both limits and has a regression test stopping at exactly 1,000 steps.
+The other uncapped configurations in that artifact are unaffected by this override issue. Existing ordinary preview calls also used the time-only override, so a cap in the resource was not evidence that it applied to those calls.
 
-The first `NEAR_CAPACITY` fixture was also too lightly loaded (about 62 percent fleet utilization in the 20-technician case). Keep those rows only as uneven-load evidence. The replacement fixture assigns eight 55-minute appointments per technician and tests confirmed paid workload at or above 90 percent of available regular capacity for every fleet size. Rerun the affected comparisons using the corrected committed fixture and retain both artifact revisions in provenance. Do not silently combine datasets with different fingerprints.
+The first `NEAR_CAPACITY` fixture was also too lightly loaded (about 62 percent fleet utilization in the 20-technician case). Keep those rows only as uneven-load evidence. The replacement fixture assigns eight 55-minute appointments per technician and tests confirmed paid workload at or above 90 percent of available regular capacity for every fleet size.
+Rerun the affected comparisons using the corrected committed fixture and retain both artifact revisions in provenance. Do not silently combine datasets with different fingerprints.
 
 ## Solve-scoped profiling and the CR07 treatment (2026-10-14)
 
@@ -72,12 +79,13 @@ chose; a solve now evaluates more moves in the same seconds, which is why 21 of 
 review belongs to policy changes and was not run for this. Two of the audit's items stay out: TF13 (invariant
 technician context) and TF12 (incremental collectors) were not named by the profile; and a `moveThreadCount` variant
 cannot be built, because multithreaded solving is a Timefold Enterprise feature (the commercial editions page,
-https://docs.timefold.ai/timefold-solver/latest/commercial-editions/commercial-editions, retrieved 2026-10-14) and
+<https://docs.timefold.ai/timefold-solver/latest/commercial-editions/commercial-editions>, retrieved 2026-10-14) and
 `CampaignSolverConfiguration` refuses any value but `NONE` for the Community artifact this project builds with.
 
 ## Score and time representation (CR08, 2026-10)
 
-The CR07 profile left two representation costs in the scoring path. `Duration.between` and `Instant.until` held 16 percent, and BigDecimal about 20 percent. CR08 deferred the score representation until the numeric contract was written down and the BigDecimal share was split between the score impacts and the variance formula. This study measures both as separate treatments, and then together. The contract is in [scheduler-policy.md](scheduler-policy.md), "Numeric contract".
+The CR07 profile left two representation costs in the scoring path. `Duration.between` and `Instant.until` held 16 percent, and BigDecimal about 20 percent. CR08 deferred the score representation until the numeric contract was written down and the BigDecimal share was split between the score impacts and the variance formula. This study measures both as separate treatments, and then together.
+The contract is in [scheduler-policy.md](scheduler-policy.md), "Numeric contract".
 
 | Arm | Code | What changes |
 | --- | --- | --- |
@@ -87,6 +95,7 @@ The CR07 profile left two representation costs in the scoring path. `Duration.be
 | T+S | commit `fa62792`, `TABU_KOPT_LONG_SCORE` | both |
 
 Equivalence came before any timing.
+
 - T passes `ScoringExactnessTest` unchanged: same score, moves, arrangement and independent evaluation on its three fixtures. New `RouteTimelineTest` cases pin the `Duration` readings on fractional and negative spans.
 - S passes `ScoreRepresentationTest`. Its integer levels are exact and the variance is within half a unit. It ranks every pair of plans of one target the same way, and the cost ceiling boundary is the same level. Step-limited searches take the same moves in both phases, and the levels stay inside the long range at 50 technicians.
 - Both pass the `FULL_ASSERT` assertion campaign, which covers every variant in four cohorts.
@@ -94,6 +103,7 @@ Equivalence came before any timing.
 `TABU_KOPT_LONG_SCORE` is experiment-only. A solve on it returns a `DayPlan` rescored with the decimal levels, so acceptance and every reader still see the decimal score. Its code lives in commit `ec0efc4`, not on main: Timefold's Spring Boot starter refuses to start the scheduler with a second `@PlanningSolution` class on the classpath, and `PlanningSolutionScanTest` now holds that rule.
 
 The run is `infra/run-representation-study.ps1`, which the owner starts on an idle workstation.
+
 - Each commit is frozen into its own tree and built once.
 - It uses the engine study's 24 cases: `TABU_KOPT`; 20 and 50 technicians; `CLUSTERED`, `DISPERSED`, `ABSENCE`, `TIGHT_WINDOW`; seeds 17, 23, 41; fixture seed 7001; 10 s.
 - Every case is its own JVM per tree (`-Xmx1536m -XX:ActiveProcessorCount=2 -XX:+UseSerialGC`). The tree order and the variant order alternate from case to case.
@@ -120,24 +130,31 @@ Where the time went in the baseline profile, by stack:
 This answers CR08's question. The decimal cost of the fairness phase is the variance formula (`SchedulingPolicy.fairness` dividing and rounding at DECIMAL128 for every technician on every move), not the score representation. The BigDecimal score impacts are 2.6 to 6.2 percent, and the long score's own gain in the cost phase, where no variance is computed, is 1.04x.
 
 Decisions, held to the bars set before the run:
-- **T is promoted.** It is not slower in either phase (1.15x and 1.05x), and `java.time` falls from 18.9 to 0.1 percent of cost-phase samples. It stays in this branch as the production timing path. Its one dearer case beyond noise, 50 `TIGHT_WINDOW` seed 23, is 175 cents dearer at the same variance and inside the ceiling. T's bar does not include cost, since exactness already shows it scores the same.
-- **S is not promoted.** Its fairness phase clears 1.25x by a wide margin, but three cases are dearer than the baseline beyond its spread, so the bar as written is not met: 20 `DISPERSED` 23 (+1 cent, baseline spread 0), 50 `ABSENCE` 17 (+290 cents) and 50 `TIGHT_WINDOW` 23 (+253 cents). All three stay under the cost ceiling. The two large ones are fairer: variance falls from 0.0294 to 0.0132 and from 0.0016 to 0.0010. That is the fairness phase spending its allowance as the policy permits. The cost condition is the right test for a cost-phase treatment and a strict one for a fairness-phase treatment. Changing it after the run is for the owner to decide, not this write-up.
+
+- **T is promoted.** It is not slower in either phase (1.15x and 1.05x), and `java.time` falls from 18.9 to 0.1 percent of cost-phase samples. It stays in this branch as the production timing path. Its one dearer case beyond noise, 50 `TIGHT_WINDOW` seed 23, is 175 cents dearer at the same variance and inside the ceiling.
+  T's bar does not include cost, since exactness already shows it scores the same.
+- **S is not promoted.** Its fairness phase clears 1.25x by a wide margin, but three cases are dearer than the baseline beyond its spread, so the bar as written is not met: 20 `DISPERSED` 23 (+1 cent, baseline spread 0), 50 `ABSENCE` 17 (+290 cents) and 50 `TIGHT_WINDOW` 23 (+253 cents). All three stay under the cost ceiling.
+  The two large ones are fairer: variance falls from 0.0294 to 0.0132 and from 0.0016 to 0.0010. That is the fairness phase spending its allowance as the policy permits. The cost condition is the right test for a cost-phase treatment and a strict one for a fairness-phase treatment. Changing it after the run is for the owner to decide, not this write-up.
 - **CR08 closes.** The score representation is not the bottleneck. The study script builds S from commit `ec0efc4`, so the comparison can be rerun.
 
 Next candidates, from the profile after T:
+
 - **The variance formula itself.** Computing it in binary64 or as exact integers, while keeping the decimal score, would keep most of S's fairness-phase gain without changing the score type. It changes which plan the fairness search finds (the numeric contract's tie tolerance), so it needs the promotion review that a policy change gets.
 - **Identity lookups.** `MapN.probe` (one identity-to-number probe per visit per scored route) is the largest leaf after T, at 21.5 percent of cost-phase samples. Holding each entity's road number on the entity would remove it, with `ScoringExactnessTest` as the gate.
 - **Not named by this profile.** The whole-route re-walk (CR11) and nearby selection did not show as leading costs, so neither is next.
 
 ## Fairness measures (PR 187)
 
-The representation study traced the fairness phase's decimal cost to the variance formula, not to the score type. This study tests two cheaper ways to compute the production variance and four other fairness policies. Each one is a `DayConstraintProvider` that replaces only the fairness constraint (`FairnessMeasures`). The score stays `BendableBigDecimalScore`, and every other level is the production one. All are experiment-only variants of `TABU_KOPT` and are never a client choice.
+The representation study traced the fairness phase's decimal cost to the variance formula, not to the score type. This study tests two cheaper ways to compute the production variance and four other fairness policies. Each one is a `DayConstraintProvider` that replaces only the fairness constraint (`FairnessMeasures`).
+The score stays `BendableBigDecimalScore`, and every other level is the production one. All are experiment-only variants of `TABU_KOPT` and are never a client choice.
 
 Two formulas for the production variance, held to the bars below:
+
 - **b** (`TABU_KOPT_BINARY_VARIANCE`): the variance over the whole fleet in binary64, carried as rounded units of 1e-9. That is the numeric contract's representation, so the tie tolerance is one unit.
 - **c** (`TABU_KOPT_INCREMENTAL_VARIANCE`): the same variance from three running sums the solver keeps, updating only the routes a move changes. The sums are capacity, paid minutes, and paid minutes squared over capacity at a scale of 1e8, all exact longs. The variance is `(sum p^2/c)/C - (P/C)^2`, and only that last difference is binary64.
 
 Four fairness policies, each searched and accepted on its own measure:
+
 - **min-max** (`TABU_KOPT_MIN_MAX_UTILIZATION`): the highest technician utilization.
 - **spread** (`TABU_KOPT_UTILIZATION_SPREAD`): the highest minus the lowest utilization.
 - **abs-dev** (`TABU_KOPT_ABSOLUTE_DEVIATION`): the capacity-weighted mean absolute deviation of utilization.
@@ -146,6 +163,7 @@ Four fairness policies, each searched and accepted on its own measure:
 Every measure counts the technicians the production variance counts: those qualified for the day's demand, with regular capacity.
 
 Equivalence, before any timing (`FairnessMeasureTest`, `SolverBenchmarkTest`):
+
 - Every measure keeps every other score level equal to production's.
 - b and c carry the decimal variance to within one unit, and rank every pair of plans as production does. Ties are allowed under two units.
 - The policies carry their definitions to within two units, against an independent DECIMAL128 reading.
@@ -155,18 +173,21 @@ Equivalence, before any timing (`FairnessMeasureTest`, `SolverBenchmarkTest`):
 - In the harness, a policy arm is accepted on its own measure (`acceptedOn` in the row), and every final plan records all five measures.
 
 The run is `infra/run-variance-study.ps1`, which the owner starts. It freezes one tree from this branch, carrying the nanosecond timing of #186, and runs all seven arms in every JVM, their order rotating from case to case. It uses the representation study's 24 cases and two repetitions at two budgets:
+
 - 15 s is the production default: 10 s of cost search and 5 s of fairness.
 - 60 s (40 s and 20 s) shows whether a gain holds when the fairness search has room.
 
 A JFR pass at 15 s follows, about 7 hours 30 minutes in all. `infra/variance_study.py` pairs and judges each budget.
 
 The bars for b and c were set by the owner before the run (2026-10-20). Each is promoted only if every bar holds at both budgets:
+
 - **Speed:** median fairness-phase moves per second at least 1.25x the baseline.
 - **Fairness:** no case less fair than the baseline beyond that case's own spread between repetitions.
 - **Cost:** the median per-case cost difference is not above zero. A case may be dearer if the median is not, because the fairness phase may spend its allowance on fairness.
 - **Ceiling:** every accepted result inside its cost ceiling, with zero violations.
 
 The policies change what fairness means, so they have no bars. The evidence compares every arm on all five measures, with three figures for each:
+
 - the median over cases;
 - the median ratio to the baseline;
 - the count of cases lower and higher than the baseline.
@@ -208,6 +229,7 @@ The policies, as the median ratio to the baseline on each measure at 60 s (15 s 
 - **The variance stays the policy.**
 
 Next, in order:
+
 1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting.
 2. Remove c and the four policy providers from main, keeping them on this branch.
 3. Re-measure the 10 s and 5 s phase split, since b's fairness phase now needs less time.
@@ -228,7 +250,9 @@ The fairness measure study's profiles kept only leaf frames, so naming the `MapN
 Every leg evaluated looked its visit up by identity. The map's keys were cut from the `from>to` road keys, so they are never the visit's own string, and each lookup compared the whole identity.
 
 The fix, commit `ed97d8b`, changes no rule:
-- **Numbers kept on the entities.** Each `PlanVisit` and `TechRoute` keeps its matrix number together with the fact revision that gave it. A lookup is one reference comparison. A revision that reuses the entities (`PlanCopies.withAbsence`, booking's per-route plans) resolves them again. `RouteTimelineTest.roadNumbersFollowTheRevisionTheyAreScoredAgainst` covers this, and it fails when the revision check is removed.
+
+- **Numbers kept on the entities.** Each `PlanVisit` and `TechRoute` keeps its matrix number together with the fact revision that gave it. A lookup is one reference comparison. A revision that reuses the entities (`PlanCopies.withAbsence`, booking's per-route plans) resolves them again.
+  `RouteTimelineTest.roadNumbersFollowTheRevisionTheyAreScoredAgainst` covers this, and it fails when the revision check is removed.
 - **Arrays for the timing search.** The segment options and the interval frontier are arrays indexed by the number of visits covered, walked in the ascending order the maps iterated in.
 - **Route constants kept.** A frozen route keeps its regular capacity and eligibility per revision.
 - **Gate:** `ScoringExactnessTest` passes unchanged: the same score, move count, arrangement and independent evaluation on its three fixtures, the absence fixture among them.
@@ -291,15 +315,20 @@ Load balance, as the median ratio to the fixed production on each measure (lower
 After the fix, b's fairness phase is scheduler code 30 percent (the timing search's own loop 14.6), Timefold's engine 28, BigDecimal score impacts 16, collections 16 and BigDecimal money 6.
 
 Next, in order:
+
 1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting, and remove c and the three rejected policies. Verify on the VM rehearsal stack.
 2. The scoring path without BigDecimal (a long score, long money, fleet sums without `toList()`) and the timing search, measured as treatments at a 1.05x gate, then verified on the stack.
 3. Load balance against b, head to head, at 5, 10, 20 and 50 technicians and 15 s and 60 s.
 
-**Shipped (PR H, score model `bendable-decimal-repair-v3`).** `DayConstraintProvider.fairness` now penalizes b's binary64 variance in units of 1e-9 (`RouteScoringFacts.fairnessUnits`), and acceptance still reads the DECIMAL128 variance (`docs/scheduler-policy.md`, Numeric contract). The study variants `TABU_KOPT_BINARY_VARIANCE` (now production), `TABU_KOPT_INCREMENTAL_VARIANCE`, `TABU_KOPT_MIN_MAX_UTILIZATION`, `TABU_KOPT_UTILIZATION_SPREAD` and `TABU_KOPT_ABSOLUTE_DEVIATION` were removed; their code stays on `bench/variance-formula`, and the pinned-commit scripts (`run-variance-study.ps1`, `run-matrix-study.ps1`) still build them from their commits. `TABU_KOPT_LOAD_BALANCE` stays for the head-to-head. The study's readers keep every measure (`FairnessReadings`), so later evidence reads all five.
+**Shipped (PR H, score model `bendable-decimal-repair-v3`).** `DayConstraintProvider.fairness` now penalizes b's binary64 variance in units of 1e-9 (`RouteScoringFacts.fairnessUnits`), and acceptance still reads the DECIMAL128 variance (`docs/scheduler-policy.md`, Numeric contract).
+The study variants `TABU_KOPT_BINARY_VARIANCE` (now production), `TABU_KOPT_INCREMENTAL_VARIANCE`, `TABU_KOPT_MIN_MAX_UTILIZATION`, `TABU_KOPT_UTILIZATION_SPREAD` and `TABU_KOPT_ABSOLUTE_DEVIATION` were removed; their code stays on `bench/variance-formula`, and the pinned-commit scripts (`run-variance-study.ps1`, `run-matrix-study.ps1`) still build them from their commits.
+`TABU_KOPT_LOAD_BALANCE` stays for the head-to-head. The study's readers keep every measure (`FairnessReadings`), so later evidence reads all five.
 
 ## Measured configuration choice
 
-[Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
+[Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41.
+The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations.
+Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
 
 | Seed | Capped reference cost, cents | Uncapped reference cost, cents | Tabu reference cost, cents | Capped mean variance | Uncapped mean variance | Tabu mean variance |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -307,9 +336,13 @@ Next, in order:
 | 23 | 7,502,748 | 7,468,861 | 7,448,680 | 0.010018 | 0.015485 | 0.009190 |
 | 41 | 7,501,289 | 7,470,769 | 7,452,334 | 0.011711 | 0.014288 | 0.008942 |
 
-These are aggregate modeled reference costs and unweighted means of per-dataset capacity-weighted utilization variances after acceptance. Each individual case still uses the required overtime target and its own 2 percent ceiling. All three retained variants ended with zero overtime in these cases, so this matrix cannot establish a comparative overtime advantage. Tabu also had lower aggregate accepted cost than both alternatives in every seed. Advanced moves did not demonstrate a reason to adopt their added complexity in the initial comparison.
+These are aggregate modeled reference costs and unweighted means of per-dataset capacity-weighted utilization variances after acceptance. Each individual case still uses the required overtime target and its own 2 percent ceiling. All three retained variants ended with zero overtime in these cases, so this matrix cannot establish a comparative overtime advantage.
+Tabu also had lower aggregate accepted cost than both alternatives in every seed. Advanced moves did not demonstrate a reason to adopt their added complexity in the initial comparison.
 
-The daily default is now `TABU`, seed 17: single-visit relocation and swaps, entity tabu size 7, accepted-count 1000, selected-count 10000, and the existing combined 15-second budget. It has no production step cap. Every capped comparison stopped both phases at 1000 steps; aggregate elapsed time across 21 cases was 62.7, 78.3 and 80.9 seconds, versus about 315 seconds for the uncapped alternatives. Retain `CURRENT_CAPPED` as an explicit reproducible diagnostic configuration and `CURRENT_UNCAPPED` as a rollback comparison. Set `scheduler.optimizer.seed` deliberately; every preview persists the actual XML, fingerprint and phase termination statistics. Since the Tabu variant study (docs/daily-tabu-variants-5d15129b) the daily method is no longer a service setting: each client chooses `TABU_KOPT` or `TABU`, with its own cost and fairness search seconds, in `Snapshot.policy` (see docs/stateless-api-design.md). Ordinary dispatcher preview/manual apply remains unchanged.
+The daily default is now `TABU`, seed 17: single-visit relocation and swaps, entity tabu size 7, accepted-count 1000, selected-count 10000, and the existing combined 15-second budget. It has no production step cap.
+Every capped comparison stopped both phases at 1000 steps; aggregate elapsed time across 21 cases was 62.7, 78.3 and 80.9 seconds, versus about 315 seconds for the uncapped alternatives. Retain `CURRENT_CAPPED` as an explicit reproducible diagnostic configuration and `CURRENT_UNCAPPED` as a rollback comparison.
+Set `scheduler.optimizer.seed` deliberately; every preview persists the actual XML, fingerprint and phase termination statistics. Since the Tabu variant study (docs/daily-tabu-variants-5d15129b) the daily method is no longer a service setting: each client chooses `TABU_KOPT` or `TABU`, with its own cost and fairness search seconds, in `Snapshot.policy` (see docs/stateless-api-design.md).
+Ordinary dispatcher preview/manual apply remains unchanged.
 
 ## Shipped representation: L, M, W and A (PR #191, 2026-10-22)
 
@@ -332,15 +365,18 @@ PR #191 makes four representation changes the default. Each scores every plan ex
 | W+A over L+M | 1.051x / 1.043x | derived after the run |
 | W+A over main | 1.342x / 1.312x | derived after the run |
 
-In cost, L+M+W ended cheaper than L+M in 10 of 60 cases and dearer in none. W's cost-phase gain is largest at 30 and 50 technicians (1.051x and 1.061x). The flight recordings place W's saving in the timing search's arithmetic: route evaluation falls from 68.2 to 57.0 samples per million moves, with no other kind of work changing by more than a few samples. CR11's cascade arms (C and AC) were about 0.63x over L+M and are not shipped.
+In cost, L+M+W ended cheaper than L+M in 10 of 60 cases and dearer in none. W's cost-phase gain is largest at 30 and 50 technicians (1.051x and 1.061x). The flight recordings place W's saving in the timing search's arithmetic: route evaluation falls from 68.2 to 57.0 samples per million moves, with no other kind of work changing by more than a few samples.
+CR11's cascade arms (C and AC) were about 0.63x over L+M and are not shipped.
 
-**Owner decision, 2026-10-22.** W and A ship with L and M as the default. This overrides the bar written before the run: W measured under 1.05x, and A measured no change on either base. W is taken for its consistent gain, larger on bigger fleets; A is taken as neutral. The paired ratios are the harness's; the change is verified on the VM rehearsal stack through the public API before it is called shipped (docs/api-load.md).
+**Owner decision, 2026-10-22.** W and A ship with L and M as the default. This overrides the bar written before the run: W measured under 1.05x, and A measured no change on either base. W is taken for its consistent gain, larger on bigger fleets; A is taken as neutral.
+The paired ratios are the harness's; the change is verified on the VM rehearsal stack through the public API before it is called shipped (docs/api-load.md).
 
 ## Load balance head to head (PR J, planned 2026-10-23)
 
 Should the daily fairness policy move from b, the capacity-weighted variance that ships, to Timefold's load balance (`ConstraintCollectors.loadBalance`, docs 13.4.5.9 and chapter 15)? The road matrix study found load balance fairer on all five measures at 10 to 50 technicians and 15 s. This run covers the fleets and the longer budget that study did not.
 
 **Two gaps in earlier fixtures, closed for this run.**
+
 - **Equal capacities.** Every fixture technician had the same 540-minute day. The two policies differ in how they count technicians:
   - the variance counts each technician in proportion to their capacity;
   - load balance counts every technician equally.
@@ -349,6 +385,7 @@ Should the daily fairness policy move from b, the capacity-weighted variance tha
 - **One problem per fleet and workload.** The earlier studies varied the solver seed on one fixture, so they asked whether a result was luck of the search, not whether it holds on a different day. This run varies the fixture seed instead: 5 drawn days per fleet and workload.
 
 **Design.**
+
 - One tree: `15da8a0`, which is main `52339c8` (L, M, W and A) plus the fixture.
 - Two arms:
   - b: `TABU_KOPT`, accepted on the variance;
@@ -369,12 +406,14 @@ Should the daily fairness policy move from b, the capacity-weighted variance tha
 **Why one repetition.** The rule below is read across cases, not within one. A repetition reruns the same problem with the same seed, so it measures only timing jitter. Spending that time on more distinct problems narrows the interval the decision rests on. The runner still takes `-Repetitions`; with more than one, each case's mean is used, and b's spread between runs is reported.
 
 **The rule for switching, written before the run.** Load balance replaces b only if all of these hold at both budgets:
+
 - **Variance:** the 95 percent bootstrap interval of its median per-case variance ratio to b lies below 1. The interval resamples cases 10,000 times with a fixed seed. In addition, it is less fair than b by more than 5 percent in at most 10 percent of cases.
 - **Highest utilization:** its median per-case ratio to b is at most 1.
 - **Cost:** its median per-case cost difference is at most 0.1 percent of b's cost.
 - **Ceiling:** every accepted result of both arms is inside its cost ceiling, with zero violations.
 
 Also reported, not gated:
+
 - speed in both phases, since the collector runs on every move;
 - convergence, the share of each phase's budget spent before its best plan, which shows whether 30 s still leaves the search improving.
 
@@ -407,4 +446,6 @@ The run took 05:36 to 08:59 UTC: 480 solves and 96 flight recordings, with no vi
 
   If load balance is revisited, filter on the target before the collector, and test a capacity-weighted form.
 
-  **Done 2026-10-26 (owner's scope):** the solver option `TABU_KOPT_LOAD_BALANCE` is removed from main by file edits, with the harness's "accepted on its own measure" path, which only it used. `FairnessMeasures.LoadBalance` stays as a measurement only: `FairnessReadings` scores plans on it through `SolverEngine.scorer` (TABU_KOPT's configuration with the provider swapped, the configuration the variant had), so study receipts and the harness still report all five measures. No variant searches on it. Main carries the arm up to commit 4241c95; the study scripts build their frozen trees from commits and are unchanged.
+  **Done 2026-10-26 (owner's scope):** the solver option `TABU_KOPT_LOAD_BALANCE` is removed from main by file edits, with the harness's "accepted on its own measure" path, which only it used.
+  `FairnessMeasures.LoadBalance` stays as a measurement only: `FairnessReadings` scores plans on it through `SolverEngine.scorer` (TABU_KOPT's configuration with the provider swapped, the configuration the variant had), so study receipts and the harness still report all five measures. No variant searches on it.
+  Main carries the arm up to commit 4241c95; the study scripts build their frozen trees from commits and are unchanged.

@@ -1,6 +1,7 @@
 # Remediation ledger
 
-Owner means the numbered implementation step accountable for completion, not a person. Status is **pending** unless the delivery status below records completed work. Each implementation PR records exact tests, verification receipts, experiment attempt IDs where applicable and its PR URL, with one disposition: implemented, adopt, reject, inconclusive, or prerequisite-not-met. Conditional recommendations require evidence for their disposition; mandatory correctness fixes cannot be closed as experimental rejections.
+Owner means the numbered implementation step accountable for completion, not a person. Status is **pending** unless the delivery status below records completed work. Each implementation PR records exact tests, verification receipts, experiment attempt IDs where applicable and its PR URL, with one disposition: implemented, adopt, reject, inconclusive, or prerequisite-not-met.
+Conditional recommendations require evidence for their disposition; mandatory correctness fixes cannot be closed as experimental rejections.
 
 ## Delivery status
 
@@ -80,7 +81,8 @@ Current source evidence is pinned by [baseline.json](baseline.json). Existing de
 
 ## Benchmark requirements
 
-These rows cover the benchmark redesign sections and the accepted plan's measurement/promotion decisions. Reviewed steps 10-11 implement B01-B14. Step 12 adds B15-B19 analysis and offline calibration/profile tooling with explicit evidence limits, subject to delivery gates. Historical/application calibration and held-out studies remain prerequisites for promotion. The old illustrative design JSON remains historical design evidence, not an executable campaign.
+These rows cover the benchmark redesign sections and the accepted plan's measurement/promotion decisions. Reviewed steps 10-11 implement B01-B14. Step 12 adds B15-B19 analysis and offline calibration/profile tooling with explicit evidence limits, subject to delivery gates. Historical/application calibration and held-out studies remain prerequisites for promotion.
+The old illustrative design JSON remains historical design evidence, not an executable campaign.
 
 | ID | Requirement and owner | Required tests and completion evidence |
 | --- | --- | --- |
@@ -125,6 +127,8 @@ Retain the original test/log identities in baseline.json when these tests change
 
 ## Verification and closure
 
-Every implementation PR runs Java 25 Maven verify and `-Pnullability clean verify`. Interface/persisted-data changes additionally run portal lint/typecheck/nullability/unit/build. Migrations/workflows require schema-contract and DB integration; affected booking/reservation/optimizer/time-off/cancellation/browser regressions remain gates. Benchmark changes run experiment/archive/import/resume/evidence checks; packaging/CI changes validate workflows and Compose. Never weaken nullability or fabricate scheduling defaults to pass.
+Every implementation PR runs Java 25 Maven verify and `-Pnullability clean verify`. Interface/persisted-data changes additionally run portal lint/typecheck/nullability/unit/build. Migrations/workflows require schema-contract and DB integration; affected booking/reservation/optimizer/time-off/cancellation/browser regressions remain gates.
+Benchmark changes run experiment/archive/import/resume/evidence checks; packaging/CI changes validate workflows and Compose. Never weaken nullability or fabricate scheduling defaults to pass.
 
-Historical baseline: see baseline.json. Phase receipts retain their original source identities and recording times. Steps 1-12 are reviewed and merged. Overall audit: **open for combined final delivery review and explicit performance prerequisites**. The remaining delivery preserves computational and modeling dispositions, registered synthetic algorithm studies, confirmation review tooling and rollout instructions. Production confirmation, capacity certification and promotion remain blocked; unrun experiments are not successful evidence.
+Historical baseline: see baseline.json. Phase receipts retain their original source identities and recording times. Steps 1-12 are reviewed and merged. Overall audit: **open for combined final delivery review and explicit performance prerequisites**.
+The remaining delivery preserves computational and modeling dispositions, registered synthetic algorithm studies, confirmation review tooling and rollout instructions. Production confirmation, capacity certification and promotion remain blocked; unrun experiments are not successful evidence.

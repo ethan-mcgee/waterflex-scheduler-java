@@ -1,6 +1,7 @@
 # Scheduler operations runbook
 
-The scheduler runs on its own VM and is reached only through `/api/v1`. On that VM it runs beside one routing service per served metro, its Postgres database (thin store, tenants, route cache), Nominatim when address lookup is on, and optionally a remote solver pool. This runbook covers running that set. The API contract is `docs/api/openapi-v1.yaml`, the host's side is `docs/integration-guide.md`, and the design is `docs/stateless-api-design.md`.
+The scheduler runs on its own VM and is reached only through `/api/v1`. On that VM it runs beside one routing service per served metro, its Postgres database (thin store, tenants, route cache), Nominatim when address lookup is on, and optionally a remote solver pool. This runbook covers running that set.
+The API contract is `docs/api/openapi-v1.yaml`, the host's side is `docs/integration-guide.md`, and the design is `docs/stateless-api-design.md`.
 
 ## Before production traffic: TLS
 
@@ -76,7 +77,8 @@ The running scheduler logs in as a member of `scheduler_app`, which holds exactl
 
 Start order: database, `--command=migrate` (migrations and the login), routing services, Nominatim (if used), the solver pool (if remote), then the scheduler. The scheduler starts without its dependencies, but `/health` answers 503 until they answer.
 
-Stop the scheduler first. A stopping replica stops taking queued jobs, lets running ones finish for `SCHEDULER_DAILY_QUEUE_DRAIN_MS`, and queues any still running again at once for another replica. The web server then drains the calls in progress (booking searches end within their deadline) for up to `SCHEDULER_SHUTDOWN_GRACE`. A call cut off by a forced kill is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires, and a running job that was not handed back is taken again by another replica's worker once its lease passes, at most three times. The solver pool tells any solve still running after its own drain to stop.
+Stop the scheduler first. A stopping replica stops taking queued jobs, lets running ones finish for `SCHEDULER_DAILY_QUEUE_DRAIN_MS`, and queues any still running again at once for another replica. The web server then drains the calls in progress (booking searches end within their deadline) for up to `SCHEDULER_SHUTDOWN_GRACE`.
+A call cut off by a forced kill is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires, and a running job that was not handed back is taken again by another replica's worker once its lease passes, at most three times. The solver pool tells any solve still running after its own drain to stop.
 
 Upgrade:
 
@@ -87,7 +89,8 @@ Upgrade:
 
 Rollback is the reverse: start the previous scheduler with the previous pool. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
 
-Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since. Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
+Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since.
+Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
 
 ## Health
 
@@ -107,11 +110,13 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 Each `/api/v1` call writes one line to the logger `dev.waterflex.scheduler.api.requests`:
 
-```
+```text
 INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374 queueMs=12 routingMs=212 calculationMs=97 dbMs=18 dbCalls=9 routingPairs=310 cacheHits=280 fetched=30 cpuMs=141
 ```
 
-A call that ran under a deadline (booking offers and confirms, route evaluation and geometry, and the routing of a synchronous daily proposal) also says how its time was spent: `queueMs` waiting for a search slot, `routingMs` waiting on routing (identity checks, leg fetches and the route cache reads around them), `calculationMs` in the calculation engine, `dbMs` and `dbCalls` in the thin store, `routingPairs` the legs the call needed with `cacheHits` served from memory or the route cache and `fetched` from the routing service, and `cpuMs` the request thread's own CPU time. A slow search with high `routingMs` and `fetched` is cold routing (new addresses, or a cache gone cold after a map change); one with high `calculationMs` is the engine; one with high `queueMs` waited for a slot behind other calls (add capacity or replicas).
+A call that ran under a deadline (booking offers and confirms, route evaluation and geometry, and the routing of a synchronous daily proposal) also says how its time was spent: `queueMs` waiting for a search slot, `routingMs` waiting on routing (identity checks, leg fetches and the route cache reads around them), `calculationMs` in the calculation engine, `dbMs` and `dbCalls` in the thin store,
+`routingPairs` the legs the call needed with `cacheHits` served from memory or the route cache and `fetched` from the routing service, and `cpuMs` the request thread's own CPU time. A slow search with high `routingMs` and `fetched` is cold routing (new addresses, or a cache gone cold after a map change); one with high `calculationMs` is the engine;
+one with high `queueMs` waited for a slot behind other calls (add capacity or replicas).
 
 Every line written while serving the call, including the solver's worker thread, carries the same tenant and the host's `requestId`. Search by `requestId` to follow one call. With `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` the same fields are JSON properties.
 
@@ -163,13 +168,16 @@ The token is printed once and stored only as a digest. A disabled tenant's token
 
 ## Maps and routing identity
 
-Each prepared map version carries two road graphs, `graph` (flexible) and `graph-ch-car-v1` (contraction hierarchy, which answers a query in a fraction of the time and CPU); `infra/prepare-map.ps1` prepares both, the manifest lists both, and activation requires both. The routing service serves the CH graph by default (`ROUTING_CH_ENABLED=true`). Switching between the two changes the routing identity exactly as a map change does: every route cache goes cold and a call in flight on the old identity is refused and retried by the host.
+Each prepared map version carries two road graphs, `graph` (flexible) and `graph-ch-car-v1` (contraction hierarchy, which answers a query in a fraction of the time and CPU); `infra/prepare-map.ps1` prepares both, the manifest lists both, and activation requires both. The routing service serves the CH graph by default (`ROUTING_CH_ENABLED=true`).
+Switching between the two changes the routing identity exactly as a map change does: every route cache goes cold and a call in flight on the old identity is refused and retried by the host.
 
 A map refresh prepares a new version beside the active one and switches to it (README, "Map versions"). Pause booking during the switch. The routing identity in `/health` changes with the map. The scheduler's route cache is keyed by identity, so it starts cold and routing load is higher until it fills.
 
-Local development stack, as of 2026-10-20: the active map is 2026-10-13 (`waterflex-nominatim-preview-2026-10-13`). Two older volumes are left to delete once bookings on it are confirmed: `waterflex-scheduler-java_nominatim-db` (the volume the base compose file mounts without the map overlay) and `waterflex-nominatim-preview-2026-09-29-booking-coverage`. Update this line when a new version is activated.
+Local development stack, as of 2026-10-20: the active map is 2026-10-13 (`waterflex-nominatim-preview-2026-10-13`). Two older volumes are left to delete once bookings on it are confirmed: `waterflex-scheduler-java_nominatim-db` (the volume the base compose file mounts without the map overlay) and `waterflex-nominatim-preview-2026-09-29-booking-coverage`.
+Update this line when a new version is activated.
 
-The identity also names the GraphHopper release the routing service runs (`engineVersion` in `/health`), so upgrading GraphHopper has the same effect as a map change: deploy it like a map switch, with booking paused, and expect a cold cache. A graph prepared by an earlier release is reused when its storage versions match, which GraphHopper checks at load and logs (`version 11.1|... (9,24,7,5,2,9)`); 11.0 and 11.1 match, and on the 2026-10-13 Omaha map both returned identical legs for 400 directed pairs. A release whose storage versions differ refuses the old graph, and the map version must be prepared again with the new image.
+The identity also names the GraphHopper release the routing service runs (`engineVersion` in `/health`), so upgrading GraphHopper has the same effect as a map change: deploy it like a map switch, with booking paused, and expect a cold cache.
+A graph prepared by an earlier release is reused when its storage versions match, which GraphHopper checks at load and logs (`version 11.1|... (9,24,7,5,2,9)`); 11.0 and 11.1 match, and on the 2026-10-13 Omaha map both returned identical legs for 400 directed pairs. A release whose storage versions differ refuses the old graph, and the map version must be prepared again with the new image.
 
 ## Backup and restore
 
@@ -182,7 +190,8 @@ docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env exec -T
 
 The route cache is left out; it refills from routing. Roles belong to the server, not the dump, and `--command=migrate` recreates them.
 
-To restore, stop `scheduler-service`, restore the dump into an empty `scheduler` database as the owner (`pg_restore -U scheduler_owner -d scheduler --no-owner`), run `--command=migrate` (it recreates the roles and the login, and applies nothing else when the dump is current), and start the scheduler. Holds and offers older than the dump are lost. Hosts searching again get new offers, and a confirm of a lost hold answers 409 `HOLD_UNAVAILABLE`, which the host treats as "search again".
+To restore, stop `scheduler-service`, restore the dump into an empty `scheduler` database as the owner (`pg_restore -U scheduler_owner -d scheduler --no-owner`), run `--command=migrate` (it recreates the roles and the login, and applies nothing else when the dump is current), and start the scheduler. Holds and offers older than the dump are lost.
+Hosts searching again get new offers, and a confirm of a lost hold answers 409 `HOLD_UNAVAILABLE`, which the host treats as "search again".
 
 ## Scaling, in order
 
@@ -190,7 +199,8 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 2. More scheduler replicas on the same database behind a load balancer. Any replica answers any call: queued proposals (`Prefer: respond-async`) are taken by any replica's worker, and `DELETE /api/v1/requests/{requestId}` cancels a call wherever it runs (the replica that receives it records the cancel; the replica running the call stops it within about a second).
 3. Replica roles: a booking pool and a daily pool of the same jar behind one address (see "Replica roles"), each scaled on its own.
 4. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
-5. More routing capacity for a busy metro: run more replicas of its routing service on the same map version and list them in `ROUTING_METRO_URLS` separated by `|`. The scheduler spreads routing calls over them and shares one route cache for the metro. A replica that cannot be reached, answers 5xx or reports another routing identity is left out for 5 seconds at a time while the others answer, so a map switch can be rolled one replica at a time. `routing:<metro>` stays up while any replica answers, and its detail says how many are in rotation.
+5. More routing capacity for a busy metro: run more replicas of its routing service on the same map version and list them in `ROUTING_METRO_URLS` separated by `|`. The scheduler spreads routing calls over them and shares one route cache for the metro.
+   A replica that cannot be reached, answers 5xx or reports another routing identity is left out for 5 seconds at a time while the others answer, so a map switch can be rolled one replica at a time. `routing:<metro>` stays up while any replica answers, and its detail says how many are in rotation.
 
 ## Availability
 
@@ -230,7 +240,8 @@ proxy), or measure the combined load on the VM rehearsal stack.
 
 Every replica answers every route and shares the one database, so the split is about load, not correctness: if the proxy sends a call to the other pool, it still gets the right answer. Bookings keep their priority inside each replica as before. One replica with `SCHEDULER_ROLE=all` (the default) does both and is the right shape for a single small machine.
 
-Scale the booking pool when booking p95 nears the client's deadline or booking replicas reject; scale the daily pool, or raise its background limit with cores to match, when queued days wait (from `queuedAt` to `startedAt`) or `scheduler_daily_queue_expired_total` rises. The proxy re-reads each pool's replicas every 10 seconds. To check which replica answered, read `role` in `/health`, or `scheduler_replica_info` in Prometheus.
+Scale the booking pool when booking p95 nears the client's deadline or booking replicas reject; scale the daily pool, or raise its background limit with cores to match, when queued days wait (from `queuedAt` to `startedAt`) or `scheduler_daily_queue_expired_total` rises. The proxy re-reads each pool's replicas every 10 seconds.
+To check which replica answered, read `role` in `/health`, or `scheduler_replica_info` in Prometheus.
 
 ## Failure modes
 
