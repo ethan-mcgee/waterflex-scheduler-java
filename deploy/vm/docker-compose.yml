@@ -107,7 +107,7 @@ services:
       SCHEDULER_BOOKING_PUBLISH_RESERVE_MS: ${SCHEDULER_BOOKING_PUBLISH_RESERVE_MS:-1000}
       # The cap on an optional booking refinement when a client sets no bookingRefinementMs (0 to 3000).
       SCHEDULER_BOOKING_REFINEMENT_MS: ${SCHEDULER_BOOKING_REFINEMENT_MS:-2000}
-      # JVM flags of this pool (measured in docs/api-load.md, "Confirm priority and JVM settings"); the heap is three
+      # JVM flags of this pool (measured in research/api-load.md, "Confirm priority and JVM settings"); the heap is three
       # quarters of the container's memory limit.
       JAVA_TOOL_OPTIONS: ${SCHEDULER_BOOKING_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
     deploy:
@@ -210,7 +210,7 @@ services:
   # A remote solver pool (SCHEDULER_CALCULATION_MODE=REMOTE, SCHEDULER_CALCULATION_URL=http://solver-service:8002 on
   # this private network). The embedded solver is the default. Its capacity serves every replica's searches at once
   # (booking capacity plus daily capacity, summed over replicas: 4 for the defaults above) and its background limit
-  # is how many daily calculations it runs at once (0: every slot). Measured in docs/api-load.md, "Embedded against
+  # is how many daily calculations it runs at once (0: every slot). Measured in research/api-load.md, "Embedded against
   # remote (K)".
   solver-service:
     profiles: ["remote-solver"]

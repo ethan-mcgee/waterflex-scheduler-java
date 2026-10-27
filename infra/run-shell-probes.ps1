@@ -40,7 +40,7 @@ $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
 $suffix = if ($Name -ne '') { "-$Name" } else { '' }
-$evidence = Join-Path $repository "docs/evidence/shell-probe-$stamp-$Probe$suffix.json"
+$evidence = Join-Path $repository "research/evidence/shell-probe-$stamp-$Probe$suffix.json"
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/shell-probe-$Probe-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null

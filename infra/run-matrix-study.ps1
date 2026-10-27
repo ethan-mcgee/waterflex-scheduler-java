@@ -55,7 +55,7 @@ $ErrorActionPreference = 'Stop'
 if ($version -notmatch '"25') { throw "Java 25 is required, found: $version" }
 if ($running.Count -gt 0) { throw "$($running.Count) containers are running; stop them (docker compose stop) or pass -AllowContainers" }
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
-$evidence = if ($Smoke) { $null } else { Join-Path $repository "docs/evidence/solver-matrix-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
+$evidence = if ($Smoke) { $null } else { Join-Path $repository "research/evidence/solver-matrix-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/matrix-study-$stamp"
 foreach ($directory in @('rows', 'logs', 'profile-rows', 'profiles/o', 'profiles/n')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }

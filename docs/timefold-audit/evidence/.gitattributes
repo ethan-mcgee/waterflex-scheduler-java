@@ -1,2 +1,0 @@
-# Preserve raw command output bytes, including whitespace.
-*.log -text -whitespace

@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
-$evidence = Join-Path $repository "docs/evidence/api-load-$stamp-dynamic-horizon.json"
+$evidence = Join-Path $repository "research/evidence/api-load-$stamp-dynamic-horizon.json"
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/horizon-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
