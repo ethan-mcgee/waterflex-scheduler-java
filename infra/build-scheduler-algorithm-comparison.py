@@ -548,6 +548,15 @@ def report_blocks(s, manifest, raw_daily, bookings):
     return blocks
 
 
+NUMBER=re.compile(r'^[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?(\s*(/|to|-)\s*[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?)*(\s*\([^)]*\))?$')
+
+
+def align(cells):
+    """Right-align a Markdown column when at least 60 percent of its present cells are numbers (AGENTS.md)."""
+    present=[c for c in map(str,cells) if c not in ('','n/a','not measured')]
+    return '---:' if present and sum(bool(NUMBER.match(c)) for c in present)/len(present)>=0.6 else '---'
+
+
 def markdown(blocks):
     lines=['# Scheduler algorithm comparison | 29 September 2026','']
     for block in blocks:
@@ -555,7 +564,7 @@ def markdown(blocks):
         if kind=='heading': lines.extend(['## '+block[1],''])
         elif kind=='paragraph': lines.extend([block[1],''])
         elif kind=='table':
-            lines.extend(['| '+' | '.join(block[1])+' |','| '+' | '.join(['---']*len(block[1]))+' |'])
+            lines.extend(['| '+' | '.join(block[1])+' |','| '+' | '.join(align(row[k] for row in block[2]) for k in range(len(block[1])))+' |'])
             lines.extend('| '+' | '.join(str(c) for c in row)+' |' for row in block[2]);lines.append('')
         elif kind=='figure':lines.extend([f'![{block[2]}]({block[1].relative_to(MD.parent).as_posix()})','',block[2],''])
         elif kind=='links':lines.extend([f'- [{title}]({url})' for title,url in block[1]]+[''])

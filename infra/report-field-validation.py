@@ -24,8 +24,19 @@ def money(cents):
     return f"${cents / 100:,.2f}"
 
 
+NUMBER = re.compile(r"^[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?(\s*(/|to|-)\s*[~<>=+\-$]*\d[\d,]*(\.\d+)?\s*(%|x|s|ms|min)?)*(\s*\([^)]*\))?$")
+
+
+def align(cells):
+    """Right-align a column when at least 60 percent of its present cells are numbers (AGENTS.md Markdown rules)."""
+    present = [c for c in map(str, cells) if c not in ("", "n/a", "not measured")]
+    return "---:" if present and sum(bool(NUMBER.match(c)) for c in present) / len(present) >= 0.6 else "---"
+
+
 def table(headers, rows):
-    return "\n".join(["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"] +
+    rows = [list(row) for row in rows]
+    separator = [align(row[k] for row in rows if k < len(row)) for k in range(len(headers))]
+    return "\n".join(["| " + " | ".join(headers) + " |", "| " + " | ".join(separator) + " |"] +
                      ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows])
 
 
@@ -255,6 +266,7 @@ def main():
       "Insertion covers the normal horizon first, including weekend availability inside the weekday-counted horizon. The search only enters five additional weekdays after a completed normal search finds no candidate, then selects the cheapest candidate on the first feasible overflow date. An interrupted search does not establish infeasibility.",
       "Durable start/status/cancel operations use idempotent UUIDs, one active search per job, a database admission cap of 16, two workers per instance, a 15-second lease renewed each second, and a finite two-minute work lifetime. Search runs outside transactions. Publication revalidates under short transactions and permits one fresh-snapshot retry. Offer TTL starts at publication. Browser reload reconnects using an opaque saved pointer; explicit cancellation releases capacity. Lost ownership becomes a terminal incomplete result. Completed-no-candidate, incomplete, cancelled, and failed results remain distinct.",
       "## Tested algorithms and hypotheses",
+      "Each variant, its work limits and intended effect, and the decision on it:",
       table(["Variant", "Work limits / intended effect", "Decision"], [
         ["INSERTION", "Every eligible route and insertion position; policy-only control", "Retain control"],
         ["BOUNDED", "6 routes, depth 2, beam 8, 500 arrangements/window; relocation, swap, reversal", "Retain existing option"],
@@ -264,14 +276,17 @@ def main():
       ]),
       "Ruin-and-recreate counts reconstruction attempts and route/candidate work separately from arrangement limits. Incomplete reconstruction is rejected. Shared evaluation isolates route-evaluation caching; neighborhood ranking caches still exist in the expanded control. Stronger variants are never attributed to an individual move type solely from a combined result. Daily configurations retain their exact XML and phase counters in raw artifacts.",
       "## Booking results",
+      "Booking outcomes for each stage and variant:",
       table(["Stage", "Variant", "Cases", "Served / requests", "Incomplete", "Mean case p95, ms", "Total modeled final cost"],
             [[s["stage"], s["variant"], s["cases"], f'{s["served"]}/{s["requests"]}', s["incomplete"], f'{s["meanCaseP95Ms"]:,.0f}', money(s["finalCostCents"])] for s in summaries]),
       "Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup. Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.",
       "### Original baseline versus policy-only controls",
+      "The policy-only controls beside the original baseline, by seed and fleet:",
       table(["Variant", "Seed / technicians", "Original / new served", "Original cost", "New policy cost", "Same customers"],
             [[p["variant"], f'{p["seed"]}/{p["size"]}', f'{p["originalServed"]}/{p["policyServed"]}', money(p["originalCostCents"]), money(p["policyCostCents"]), p["sameCustomers"]] for p in policy_pairs]),
       "These pairs have identical seeded fixture fingerprints and request streams. The original policy includes two-hour promises and multiple choices; the new policy uses four-hour promises, one choice, no new overtime, and durable search. This bundled policy/lifecycle comparison cannot attribute its difference to a single policy. The independent field two-by-two experiment isolates promise width from insertion versus rearrangement. Immediate snapshots are compared there; sequential histories are allowed to diverge in this replay.",
       "### Resource and route diagnostics",
+      "CPU, heap, road and waiting totals for each stage and variant:",
       table(["Stage / variant", "CPU sec", "Peak heap MiB", "Requested road pairs", "Road min", "Paid waiting min", "Mean variance"],
             [[s["stage"] + "/" + s["variant"], f'{s["cpuSeconds"]:,.1f}', f'{s["peakHeapBytes"] / 1048576:,.1f}', s["routingPairs"], f'{s["roadMinutes"]:,.1f}', s["waitingMinutes"], f'{s["meanVariance"]:.6f}'] for s in summaries]),
       "Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).",
@@ -281,12 +296,14 @@ def main():
               f'{s["candidateEvaluations"]:,}/{s["routeEvaluations"]:,}', s["reconstructionAttempts"], s["preparationRecords"]] for s in summaries]),
       "Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.",
       "### Paired comparison against new-policy insertion",
+      "Each variant paired with new-policy insertion on the same request streams:",
       table(["Stage", "Variant", "Same customers / different customers", "Stream units", "Served delta", "Mean savings per stream", "Exploratory 95% interval"],
             [[p["stage"], p["variant"], f'{p["equalCustomerCases"]}/{p["differentCustomerCases"]}', p["streamUnits"], p["servedDelta"],
               "n/a" if p["meanSavingsCents"] is None else money(p["meanSavingsCents"]),
               "n/a" if p["exploratory95PercentInterval"] is None else " to ".join(money(v) for v in p["exploratory95PercentInterval"])] for p in paired]),
       "Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Fleet sizes, cache modes, and concurrency repetitions are averaged within a seeded request stream before a deterministic 10,000-resample percentile bootstrap. Clustered seeds generate the same request sequence and collapse to one stream, so no interval is reported there. Held-out dispersed evidence has only two independent seeded streams. These intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.",
       "### Search quality over time",
+      "The incumbent visible at each search time and its mean incremental cost:",
       table(["Stage / variant", "Seconds", "Visible incumbent / searches", "Mean visible incremental cost"],
             [[q["stage"] + "/" + q["variant"], q["seconds"], f'{q["visibleIncumbents"]}/{q["searches"]}', "n/a" if q["meanVisibleCostDeltaCents"] is None else money(q["meanVisibleCostDeltaCents"])] for q in quality if q["stage"] != "original"]),
       "This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.",
@@ -305,9 +322,11 @@ def main():
     dg = defaultdict(list)
     for row in daily:
         dg[row["stage"], row["budget"], row["variant"]].append(row)
+    sections.append("Daily solver results for each stage, budget and variant:")
     sections.append(table(["Stage", "Seconds", "Variant", "Cases", "Mean accepted cost change", "Mean elapsed, ms", "Violations"],
                           [[stage, b, v, len(rs), money(mean(r["after"]["costCents"] - r["before"]["costCents"] for r in rs)),
                             f'{mean(r["elapsedMs"] for r in rs):,.0f}', sum(r["violations"] for r in rs)] for (stage, b, v), rs in sorted(dg.items())]))
+    sections.append("Each variant against TABU at the held budgets, on independent seeds:")
     sections.append(table(["Held budget", "Variant vs TABU", "Independent seeds", "Mean modeled savings", "Exploratory 95% interval"],
         [[p["budgetSeconds"], p["variant"], p["independentSeeds"], money(p["meanSavingsCents"]),
           "n/a" if p["exploratory95PercentInterval"] is None else " to ".join(money(v) for v in p["exploratory95PercentInterval"])] for p in daily_pairs]))
@@ -317,11 +336,12 @@ def main():
       "The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.",
       f"All {len(field['rows'])} sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion. Both wider promises and stronger search are separately varied; neither is required for this fixture's optimal grouping.",
       "### A, then B, then C",
+      "Each promise width and search for the A, then B, then C booking order:",
       table(["Promise", "Search", "After request", "Route (actual endpoints included)", "Cost", "Drive / wait min", "Return (UTC)", "Crossings"],
             [[r["promiseMinutes"], r["variant"], r["request"], "Omaha > " + " > ".join(r["routes"]["omaha"]) + " > Omaha", money(r["costCents"]),
               f'{r["drivingMinutes"]}/{r["waitingMinutes"]}', r["segments"][0]["segments"][-1]["return"], r["crossings"]]
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] in ("INSERTION", "BOUNDED")]),
-      "```text\nArrival history: A (town), B (Omaha), C (town)\nBefore C: Omaha home -> A town -> B Omaha -> Omaha home\nAfter C:  Omaha home -> A/C town together -> B Omaha -> Omaha home\nProtected tight B: Omaha home -> A town -> B Omaha -> C town -> Omaha home\n```",
+      "```text\nArrival history: A (town), B (Omaha), C (town)\nBefore C: Omaha home --> A town --> B Omaha --> Omaha home\nAfter C:  Omaha home --> A/C town together --> B Omaha --> Omaha home\nProtected tight B: Omaha home --> A town --> B Omaha --> C town --> Omaha home\n```",
       "A and C can exchange order in an equivalent optimum. Region crossings are diagnostic only. The protected Omaha case correctly makes grouping lose: its narrow existing promise forces a return before C. Removing that appointment or releasing its reservation restores flexibility without phantom capacity.",
       table(["Booking order", "Width", "Final route", "Final promises (UTC)", "Final cost"],
             [["/".join(r["bookingOrder"]), r["promiseMinutes"], "/".join(r["routes"]["omaha"]),
@@ -331,6 +351,7 @@ def main():
       table(["Promise width", "After request", "Visit", "Promised arrival interval (UTC)", "Planned arrival (UTC)"],
             [[r["promiseMinutes"], r["request"], v["id"], v["windowStart"] + " to " + v["windowEnd"], v["planned"]]
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] == "BOUNDED" for v in r["visits"]]),
+      "The companion scenarios and the routes each selected:",
       table(["Companion", "Selected routes", "Cost", "Drive / wait min", "Crossings", "Source"],
             [[r["scenario"], "; ".join(k + ": " + ",".join(v) for k, v in r["after"].items()), money(r["costCents"]), f'{r["drivingMinutes"]}/{r["waitingMinutes"]}', r["crossings"], r["source"]] for r in companions]),
       "The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel. The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.",

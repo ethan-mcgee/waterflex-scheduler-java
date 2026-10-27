@@ -52,7 +52,7 @@ Modeled operating cost includes paid time and mileage. Retained rates are $30/ho
 Figure 1. Separate categorical stages, with no connecting trend lines. Service counts confirmed requests; latency is the arithmetic mean of each case's p95, not an overall p95. Missing variants are untested. Original policy, stress, and browser populations differ.
 
 | Held variant | Served / rate | Unsuccessful | Incomplete | Served AND incomplete | Unknown completion |
-| --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: |
 | INSERTION | 346/480 (72.1%) | 134 | 132 | 0 | 0 |
 | BOUNDED | 360/480 (75.0%) | 120 | 120 | 0 | 0 |
 | SHARED | 334/480 (69.6%) | 146 | 153 | 7 | 0 |
@@ -81,7 +81,7 @@ Each breakdown pools the other tested dimensions within the same held-out popula
 ## Concurrency
 
 | Concurrency | Variant | Served | Rate | Delta pp |
-| --- | --- | --- | --- | --- |
+| ---: | --- | ---: | ---: | ---: |
 | 1 | INSERTION | 160/160 | 100.00% | reference |
 | 1 | BOUNDED | 158/160 | 98.75% | -1.25 |
 | 1 | SHARED | 160/160 | 100.00% | +0.00 |
@@ -95,7 +95,7 @@ Each breakdown pools the other tested dimensions within the same held-out popula
 ## Fleet size
 
 | Fleet size | Variant | Served | Rate | Delta pp |
-| --- | --- | --- | --- | --- |
+| ---: | --- | ---: | ---: | ---: |
 | 5 | INSERTION | 86/120 | 71.67% | reference |
 | 5 | BOUNDED | 91/120 | 75.83% | +4.17 |
 | 5 | SHARED | 95/120 | 79.17% | +7.50 |
@@ -112,7 +112,7 @@ Each breakdown pools the other tested dimensions within the same held-out popula
 ## Cache condition
 
 | Cache condition | Variant | Served | Rate | Delta pp |
-| --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: |
 | cold | INSERTION | 174/240 | 72.50% | reference |
 | cold | BOUNDED | 179/240 | 74.58% | +2.08 |
 | cold | SHARED | 168/240 | 70.00% | -2.50 |
@@ -127,7 +127,7 @@ At concurrency 1, BOUNDED serves 158/160 versus INSERTION's 160/160. BOUNDED ser
 Request latency is the harness elapsedMs for the search, including queueing and polling, excluding selectionElapsedMs, address entry and geocoding. Request median and pooled p95 use all attempts, including unsuccessful ones. Pooled p95 uses nearest rank, ceil(0.95 x N). Mean case p95 retains the original statistic, giving each case equal weight; it is not the p95 of the pooled requests.
 
 | Stage | Variant | Requests | Mean case p95 s | Request median s | Pooled p95 s |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: | ---: |
 | original | INSERTION | 18 | 0.61 | 0.50 | 0.85 |
 | original | BOUNDED | 18 | 0.85 | 0.70 | 1.13 |
 | screen | INSERTION | 18 | 0.75 | 0.58 | 0.97 |
@@ -145,7 +145,7 @@ Request latency is the harness elapsedMs for the search, including queueing and 
 Cost pairing requires identical served request indices on the same seed, fleet, workload, concurrency, cache condition and dataset fingerprint. First average matched case savings within a stream, then average streams equally. Clustered screen cases collapse to one stream; dispersed held-out streams are seed units. Do not extrapolate these subset estimates to all requests or production.
 
 | Stage | Vs INSERTION | Matched / tested cases | Stream units | Mean savings / stream |
-| --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: |
 | screen | BOUNDED | 6/6 | 1 | $12.50 |
 | screen | EXPANDED | 6/6 | 1 | $15.00 |
 | screen | RUIN_RECREATE | 6/6 | 1 | $20.00 |
@@ -211,7 +211,7 @@ Positive savings means the candidate's accepted cost is lower than TABU. Wins/ti
 ## 15-second budget
 
 | Variant | Seed 59 $ | Seed 83 $ | Mean $ | W/T/L (n=8) |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | -5.15 | +2.80 | -1.18 | 4/1/3 |
 | CURRENT_UNCAPPED | +2.35 | +10.41 | +6.38 | 6/1/1 |
 | LATE_ACCEPTANCE_CHANGE | -25.66 | -18.05 | -21.85 | 5/0/3 |
@@ -224,7 +224,7 @@ Positive savings means the candidate's accepted cost is lower than TABU. Wins/ti
 ## 30-second budget
 
 | Variant | Seed 59 $ | Seed 83 $ | Mean $ | W/T/L (n=8) |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | -8.00 | -1.60 | -4.80 | 3/1/4 |
 | CURRENT_UNCAPPED | -0.51 | +7.88 | +3.68 | 5/2/1 |
 | LATE_ACCEPTANCE_CHANGE | -10.60 | -10.24 | -10.42 | 5/0/3 |
@@ -237,7 +237,7 @@ Positive savings means the candidate's accepted cost is lower than TABU. Wins/ti
 ## 60-second budget
 
 | Variant | Seed 59 $ | Seed 83 $ | Mean $ | W/T/L (n=8) |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | -8.00 | -1.59 | -4.79 | 3/1/4 |
 | CURRENT_UNCAPPED | +0.05 | +7.93 | +3.99 | 5/2/1 |
 | LATE_ACCEPTANCE_CHANGE | -2.31 | +0.83 | -0.74 | 5/0/3 |
@@ -306,7 +306,7 @@ Each cell is mean paired savings in dollars/case against TABU for exactly 2/2 ma
 ## 15 seconds: savings by technician count
 
 | Variant | 5 | 10 | 20 | 50 |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | +2.57 | +7.83 | -2.60 | -12.50 |
 | CURRENT_UNCAPPED | +2.57 | +8.05 | +9.20 | +5.69 |
 | LATE_ACCEPTANCE_CHANGE | +4.69 | +7.42 | +1.82 | -101.36 |
@@ -319,7 +319,7 @@ Each cell is mean paired savings in dollars/case against TABU for exactly 2/2 ma
 ## 30 seconds: savings by technician count
 
 | Variant | 5 | 10 | 20 | 50 |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | +2.57 | +8.07 | -10.25 | -19.60 |
 | CURRENT_UNCAPPED | 0.00 | +9.38 | +1.35 | +4.00 |
 | LATE_ACCEPTANCE_CHANGE | +4.69 | +7.67 | -2.70 | -51.34 |
@@ -332,7 +332,7 @@ Each cell is mean paired savings in dollars/case against TABU for exactly 2/2 ma
 ## 60 seconds: savings by technician count
 
 | Variant | 5 | 10 | 20 | 50 |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | +2.57 | +8.07 | -10.25 | -19.57 |
 | CURRENT_UNCAPPED | 0.00 | +9.88 | +1.38 | +4.72 |
 | LATE_ACCEPTANCE_CHANGE | +4.69 | +7.67 | -1.48 | -13.85 |
@@ -349,7 +349,7 @@ Held-out arithmetic means over eight cases per variant/budget. Cost change is ac
 ## 15-second diagnostics
 
 | Variant | Cost change | Elapsed s | Variance | Waiting min | Assigned | Retimed |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | $-54.46 | 3.24 | 0.008377 | 7.00 | 65.75 | 79.25 |
 | CURRENT_UNCAPPED | $-62.02 | 15.01 | 0.012830 | 14.50 | 65.12 | 78.38 |
 | LATE_ACCEPTANCE_CHANGE | $-33.78 | 15.00 | 0.007126 | 10.12 | 70.00 | 75.50 |
@@ -362,7 +362,7 @@ Held-out arithmetic means over eight cases per variant/budget. Cost change is ac
 ## 30-second diagnostics
 
 | Variant | Cost change | Elapsed s | Variance | Waiting min | Assigned | Retimed |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | $-54.46 | 2.92 | 0.008377 | 7.00 | 65.75 | 79.25 |
 | CURRENT_UNCAPPED | $-62.94 | 30.00 | 0.011419 | 6.00 | 66.50 | 79.25 |
 | LATE_ACCEPTANCE_CHANGE | $-48.84 | 30.00 | 0.015817 | 16.88 | 70.25 | 77.62 |
@@ -375,7 +375,7 @@ Held-out arithmetic means over eight cases per variant/budget. Cost change is ac
 ## 60-second diagnostics
 
 | Variant | Cost change | Elapsed s | Variance | Waiting min | Assigned | Retimed |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | CURRENT_CAPPED | $-54.46 | 2.82 | 0.008377 | 7.00 | 65.75 | 79.25 |
 | CURRENT_UNCAPPED | $-63.25 | 60.01 | 0.009092 | 7.62 | 67.12 | 79.12 |
 | LATE_ACCEPTANCE_CHANGE | $-58.52 | 60.00 | 0.017492 | 12.50 | 68.88 | 77.75 |
@@ -401,7 +401,7 @@ Percentile bootstrap intervals resample only two independent held-out seeds afte
 | RUIN_RECREATE | -39.98 [-42.82, -37.14] | -36.72 [-39.43, -34.02] | -24.41 [-25.02, -23.80] |
 
 | Booking stage / variant | Matched / tested | Mean / interval per stream |
-| --- | --- | --- |
+| --- | ---: | --- |
 | screen / BOUNDED | 6/6 | $12.50 / unavailable: one stream |
 | screen / EXPANDED | 6/6 | $15.00 / unavailable: one stream |
 | screen / RUIN_RECREATE | 6/6 | $20.00 / unavailable: one stream |

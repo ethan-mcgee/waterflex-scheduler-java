@@ -20,6 +20,8 @@ Durable start/status/cancel operations use idempotent UUIDs, one active search p
 
 ## Tested algorithms and hypotheses
 
+Each variant, its work limits and intended effect, and the decision on it:
+
 | Variant | Work limits / intended effect | Decision |
 | --- | --- | --- |
 | INSERTION | Every eligible route and insertion position; policy-only control | Retain control |
@@ -32,8 +34,10 @@ Ruin-and-recreate counts reconstruction attempts and route/candidate work separa
 
 ## Booking results
 
+Booking outcomes for each stage and variant:
+
 | Stage | Variant | Cases | Served / requests | Incomplete | Mean case p95, ms | Total modeled final cost |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
 | browser | INSERTION | 24 | 141/240 | 53 | 3,526 | $195,066.06 |
 | held | BOUNDED | 48 | 360/480 | 120 | 15,708 | $390,664.31 |
 | held | INSERTION | 48 | 346/480 | 132 | 2,877 | $391,365.76 |
@@ -52,8 +56,10 @@ Final-cost totals include the existing ten-day workload and differing served cus
 
 ### Original baseline versus policy-only controls
 
+The policy-only controls beside the original baseline, by seed and fleet:
+
 | Variant | Seed / technicians | Original / new served | Original cost | New policy cost | Same customers |
-| --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | --- |
 | BOUNDED | 17/10 | 3/3 | $3,792.50 | $3,792.50 | True |
 | BOUNDED | 17/20 | 3/3 | $7,537.50 | $7,537.50 | True |
 | BOUNDED | 23/10 | 3/3 | $3,792.50 | $3,792.50 | True |
@@ -71,8 +77,10 @@ These pairs have identical seeded fixture fingerprints and request streams. The 
 
 ### Resource and route diagnostics
 
+CPU, heap, road and waiting totals for each stage and variant:
+
 | Stage / variant | CPU sec | Peak heap MiB | Requested road pairs | Road min | Paid waiting min | Mean variance |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | browser/INSERTION | 71.4 | 371.7 | 0 | 289.5 | 0 | 0.004291 |
 | held/BOUNDED | 2,581.2 | 682.0 | 2098 | 501.9 | 0 | 0.005199 |
 | held/INSERTION | 135.4 | 379.4 | 2014 | 687.2 | 0 | 0.004259 |
@@ -90,7 +98,7 @@ These pairs have identical seeded fixture fingerprints and request streams. The 
 Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).
 
 | Stage / variant | Mean queue ms | Mean lead days | Overflow | Candidate / route evaluations | Reconstructions | Prepared snapshots |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | browser/INSERTION | 1,009 | 1.35 | 0 | 1,329,924/777,268 | 0 | 339 |
 | held/BOUNDED | 4,973 | 1.52 | 0 | 225,038,628/27,891,583 | 0 | 636 |
 | held/INSERTION | 999 | 1.33 | 0 | 2,682,282/1,568,214 | 0 | 653 |
@@ -109,8 +117,10 @@ Lead time is calendar days from the day before the first normal booking date, fo
 
 ### Paired comparison against new-policy insertion
 
+Each variant paired with new-policy insertion on the same request streams:
+
 | Stage | Variant | Same customers / different customers | Stream units | Served delta | Mean savings per stream | Exploratory 95% interval |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
 | screen | BOUNDED | 6/0 | 1 | 0 | $12.50 | n/a |
 | screen | EXPANDED | 6/0 | 1 | 0 | $15.00 | n/a |
 | screen | RUIN_RECREATE | 6/0 | 1 | 0 | $20.00 | n/a |
@@ -124,8 +134,10 @@ Customer identity is the stable request index within an identical seeded dataset
 
 ### Search quality over time
 
+The incumbent visible at each search time and its mean incremental cost:
+
 | Stage / variant | Seconds | Visible incumbent / searches | Mean visible incremental cost |
-| --- | --- | --- | --- |
+| --- | ---: | ---: | ---: |
 | browser/INSERTION | 1 | 93/240 | $19.39 |
 | browser/INSERTION | 5 | 231/240 | $19.15 |
 | browser/INSERTION | 15 | 240/240 | $19.37 |
@@ -199,8 +211,10 @@ All eight existing configurations are rerun under the new zero-overtime policy. 
 | KOPT | Sublist configuration plus k-opt list moves. Explore coordinated order changes. | Inconclusive for promotion |
 | RUIN_RECREATE | K-opt configuration plus list ruin/recreate. Escape larger local minima. | Inconclusive for promotion |
 
+Daily solver results for each stage, budget and variant:
+
 | Stage | Seconds | Variant | Cases | Mean accepted cost change | Mean elapsed, ms | Violations |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
 | held | 15 | CURRENT_CAPPED | 8 | $-54.46 | 3,244 | 0 |
 | held | 15 | CURRENT_UNCAPPED | 8 | $-62.02 | 15,005 | 0 |
 | held | 15 | KOPT | 8 | $-40.28 | 15,005 | 0 |
@@ -234,8 +248,10 @@ All eight existing configurations are rerun under the new zero-overtime policy. 
 | screen | 15 | SUBLIST | 6 | $-40.11 | 15,003 | 0 |
 | screen | 15 | TABU | 6 | $-33.15 | 15,002 | 0 |
 
+Each variant against TABU at the held budgets, on independent seeds:
+
 | Held budget | Variant vs TABU | Independent seeds | Mean modeled savings | Exploratory 95% interval |
-| --- | --- | --- | --- | --- |
+| ---: | --- | ---: | ---: | ---: |
 | 15 | CURRENT_CAPPED | 2 | $-1.18 | $-5.15 to $2.80 |
 | 15 | CURRENT_UNCAPPED | 2 | $6.38 | $2.35 to $10.41 |
 | 15 | KOPT | 2 | $-15.36 | $-17.73 to $-12.98 |
@@ -270,8 +286,10 @@ All 180 sequential steps match their exact optimum: all six booking orders, two/
 
 ### A, then B, then C
 
+Each promise width and search for the A, then B, then C booking order:
+
 | Promise | Search | After request | Route (actual endpoints included) | Cost | Drive / wait min | Return (UTC) | Crossings |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| ---: | --- | --- | --- | ---: | ---: | --- | ---: |
 | 120 | INSERTION | A | Omaha > A > Omaha | $100.81 | 85/0 | 2026-10-26T15:25:00Z | 2 |
 | 120 | INSERTION | B | Omaha > B > A > Omaha | $134.97 | 90/0 | 2026-10-26T16:30:00Z | 2 |
 | 120 | INSERTION | C | Omaha > B > A > C > Omaha | $169.14 | 95/0 | 2026-10-26T17:35:00Z | 2 |
@@ -287,15 +305,15 @@ All 180 sequential steps match their exact optimum: all six booking orders, two/
 
 ```text
 Arrival history: A (town), B (Omaha), C (town)
-Before C: Omaha home -> A town -> B Omaha -> Omaha home
-After C:  Omaha home -> A/C town together -> B Omaha -> Omaha home
-Protected tight B: Omaha home -> A town -> B Omaha -> C town -> Omaha home
+Before C: Omaha home --> A town --> B Omaha --> Omaha home
+After C:  Omaha home --> A/C town together --> B Omaha --> Omaha home
+Protected tight B: Omaha home --> A town --> B Omaha --> C town --> Omaha home
 ```
 
 A and C can exchange order in an equivalent optimum. Region crossings are diagnostic only. The protected Omaha case correctly makes grouping lose: its narrow existing promise forces a return before C. Removing that appointment or releasing its reservation restores flexibility without phantom capacity.
 
 | Booking order | Width | Final route | Final promises (UTC) | Final cost |
-| --- | --- | --- | --- | --- |
+| --- | ---: | --- | --- | ---: |
 | A/B/C | 120 | B/A/C | A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; C: 2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z | $169.14 |
 | A/B/C | 240 | C/A/B | A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z | $169.14 |
 | A/C/B | 120 | A/C/B | A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T15:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z | $169.14 |
@@ -312,7 +330,7 @@ A and C can exchange order in an equivalent optimum. Region crossings are diagno
 The order table reports each history's actual promises. Equal final cost does not require equal promises or an identical optimal route order.
 
 | Promise width | After request | Visit | Promised arrival interval (UTC) | Planned arrival (UTC) |
-| --- | --- | --- | --- | --- |
+| ---: | --- | --- | --- | --- |
 | 120 | A | A | 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z | 2026-10-26T13:40:00Z |
 | 120 | B | A | 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z | 2026-10-26T14:45:00Z |
 | 120 | B | B | 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z | 2026-10-26T13:05:00Z |
@@ -326,8 +344,10 @@ The order table reports each history's actual promises. Equal final cost does no
 | 240 | C | B | 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z | 2026-10-26T16:30:00Z |
 | 240 | C | C | 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z | 2026-10-26T13:40:00Z |
 
+The companion scenarios and the routes each selected:
+
 | Companion | Selected routes | Cost | Drive / wait min | Crossings | Source |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | ---: | ---: | ---: | --- |
 | active-hold | omaha: A,B,C | $184.62 | 170/6 | 4 | INSERTION |
 | alternating-120-A | omaha: A | $85.81 | 85/0 | 2 | INSERTION |
 | alternating-120-B | omaha: B,A | $104.97 | 90/0 | 2 | INSERTION |
