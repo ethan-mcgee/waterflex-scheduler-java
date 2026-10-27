@@ -5,6 +5,7 @@ Follows `../performance-work-2026-10-14/artifact.md`. The formatting authority i
 **Page and type:** one portrait Letter section, Calibri, black headings, pale blue DCE6EF table headers, and alternating FFFFFF and F4F6F8 rows.
 
 **Tables:**
+
 - Header rows repeat, and no table row splits.
 - Tables of twelve or fewer rows stay on one page.
 - Appendix tables use 9 pt cell text; body tables use 10 pt, or 9 pt where a table has more than eight columns.

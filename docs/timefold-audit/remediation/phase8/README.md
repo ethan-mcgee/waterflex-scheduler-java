@@ -13,7 +13,7 @@ The standalone service exposes:
 - `POST /v1/solve/daily`
 - `POST /v1/solve/booking`
 - `DELETE /v1/solves/{requestId}`
-- `GET /health`, a liveness response without scheduling data.
+- `GET /health`, a liveness response without scheduling data
 
 Calculation and cancellation require a bearer service token containing at least 32 non-whitespace characters. The default bind address is loopback. The optional `remote-solver` Compose profile exposes the service only to the internal Compose network, without a published host port. Operators must keep private connectivity and use HTTPS for deployments beyond the provided loopback/internal Compose transports. Tokens have no source-controlled production default.
 

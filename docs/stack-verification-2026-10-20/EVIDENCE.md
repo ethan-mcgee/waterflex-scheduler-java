@@ -4,8 +4,8 @@
 
 The one immutable input is `docs/evidence/api-load-2026-10-20-binary-variance.json`. `infra/run-stack-verification.ps1` wrote it from the run of 2026-10-20, 21:56 to 22:22 UTC, on the VM rehearsal stack (`deploy/vm` with `rehearsal.override.yml`, 127.0.0.1:18080). The runner was at revision `2138349`. Two images were built, each from its own commit:
 
-- **before** `cdd19a6`: main's decimal variance objective, with the study receipt;
-- **after** `68828b5`: option b, score model `bendable-decimal-repair-v3`.
+- **before** `cdd19a6`: main's decimal variance objective, with the study receipt
+- **after** `68828b5`: option b, score model `bendable-decimal-repair-v3`
 
 The report also reads option b's harness ratios by fleet from `docs/evidence/solver-matrix-2026-10-20.json`, the road matrix numbering study.
 
@@ -20,17 +20,18 @@ The report also reads option b's harness ratios by fleet from `docs/evidence/sol
 
 The evidence file is not edited. Three things in it read differently from what happened:
 
-- **Roads were not cold at each run's start.** The protocol text says they were. The scheduler keeps fetched legs in Postgres (`road_route_cache`), and that table survived the switch of images. So roads were cold only for the first image of each pair:
+- **Roads were not cold at each run's start:** The protocol text says they were. The scheduler keeps fetched legs in Postgres (`road_route_cache`), and that table survived the switch of images. So roads were cold only for the first image of each pair:
   - in step 1 the before runs fetched every pair and the after runs fetched none;
   - in step 2 the after run fetched 6,400 pairs and the before run none.
 
   Moves per second and plans do not depend on this, because the search runs its fixed time after routing. Call maxima and the daily replica's mean CPU do, and the report says so.
-- **Booking replica names are one-element lists.** In `containersVerified` each booking replica's `container` is a list holding one name, because the script nested an array. The loader accepts exactly one string in a list and treats it as that name. The script is fixed in the same commit as this report.
-- **The policy is the kit's, not the client's.** Every run used `TABU` with `fairnessBudget` 0, so each cost ceiling equals its reference plan's cost. The settings block records this correctly; the report discloses it because the example client policy is `TABU_KOPT` with 0.02.
+- **Booking replica names are one-element lists:** In `containersVerified` each booking replica's `container` is a list holding one name, because the script nested an array. The loader accepts exactly one string in a list and treats it as that name. The script is fixed in the same commit as this report.
+- **The policy is the kit's, not the client's:** Every run used `TABU` with `fairnessBudget` 0, so each cost ceiling equals its reference plan's cost. The settings block records this correctly; the report discloses it because the example client policy is `TABU_KOPT` with 0.02.
 
 ## Validation
 
 `report_data.py` checks the following before anything reads the file:
+
 - **The images:**
   - both are the pinned commits, with tags that name them;
   - every replica the run verified ran its image's ID with `TIMEFOLD_LOG_LEVEL=INFO`;
@@ -56,20 +57,22 @@ The evidence file is not edited. Three things in it read differently from what h
 `report_data.harness()` checks that the harness file is the numbering study (revision `ed97d8b`, 15 s, 72 pairs, fleets 10, 30 and 50) before reading b's fairness-phase medians by fleet.
 
 `verify_report.py` repeats the work without the builder's or loader's helpers. It recomputes these tables from the raw JSON:
-- the summary table;
-- the phase share table;
-- the per-run speed table;
-- the per-pair plan table;
-- the service table;
-- the queue rows;
-- both appendices of proposals and runs.
+
+- the summary table
+- the phase share table
+- the per-run speed table
+- the per-pair plan table
+- the service table
+- the queue rows
+- both appendices of proposals and runs
 
 It also checks:
-- the chart data against the evidence;
-- that the reference template's styles, numbering, theme, fonts and footer are byte-identical;
-- that every figure has a description and a black italic caption;
-- that no table row may split;
-- that no em or en dash appears in the document XML.
+
+- the chart data against the evidence
+- that the reference template's styles, numbering, theme, fonts and footer are byte-identical
+- that every figure has a description and a black italic caption
+- that no table row may split
+- that no em or en dash appears in the document XML
 
 ## Derived measures
 
@@ -84,17 +87,19 @@ Nothing missing is replaced with a value. The loader refuses evidence with an un
 ## Figures
 
 Seven charts come from `charts.py` (matplotlib, Calibri). `build_report.py` regenerates them with `chart_data.json`. Each image keeps one color across every chart:
-- before: grey;
-- after: teal;
-- the harness: amber.
+
+- before: grey
+- after: teal
+- the harness: amber
 
 Two diagrams are self-contained HTML files in `diagrams/`, made with the diagram-design skill's default skin:
-- `stack-path.html`: the path one proposal takes;
-- `receipt-pairing.html`: how the kit pairs a receipt with its speeds.
+
+- `stack-path.html`: the path one proposal takes
+- `receipt-pairing.html`: how the kit pairs a receipt with its speeds
 
 They pass the skill's `self_check.py` and `verify-geometry.py`. Render them to `generated/` before building, with Playwright's Chromium:
 
-```
+```powershell
 python <diagram-design skill>/scripts/export_png.py diagrams/stack-path.html generated/stack-path.png 2.5
 python <diagram-design skill>/scripts/export_png.py diagrams/receipt-pairing.html generated/receipt-pairing.png 2.5
 ```

@@ -15,6 +15,8 @@ Until then, keep every port on the private network, as Compose does by binding t
 
 ## Settings
 
+Each setting, whether it is required, and what it controls:
+
 | Setting | Required | Meaning |
 | --- | --- | --- |
 | `SCHEDULER_RETENTION_DAYS` | Yes, no default | Days the thin store keeps requests, proposals, offers and receipts (1 to 3650). The scheduler refuses to start without it. |
@@ -63,10 +65,10 @@ On the VM, the `scheduler-admin` service runs this on every start. The serving s
 
 The running scheduler logs in as a member of `scheduler_app`, which holds exactly what it needs:
 
-- it can read `tenant` and `tenant_api_token`,
-- it can read and write `road_route_cache`,
-- it can act as `scheduler_tenant`, whose row-level policies confine each transaction to one tenant's thin store rows,
-- it can run the purge function `scheduler_purge`.
+- it can read `tenant` and `tenant_api_token`
+- it can read and write `road_route_cache`
+- it can act as `scheduler_tenant`, whose row-level policies confine each transaction to one tenant's thin store rows
+- it can run the purge function `scheduler_purge`
 
 `scheduler_app` does not inherit `scheduler_tenant`'s table grants, so the login reads thin store rows only inside a transaction that has switched to that role and set the tenant. It cannot change the schema, write tenants or change tokens.
 
@@ -107,7 +109,7 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 Each `/api/v1` call writes one line to the logger `dev.waterflex.scheduler.api.requests`:
 
-```
+```text
 INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374 queueMs=12 routingMs=212 calculationMs=97 dbMs=18 dbCalls=9 routingPairs=310 cacheHits=280 fetched=30 cpuMs=141
 ```
 
@@ -194,8 +196,7 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 
 ## Availability
 
-The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs more than one of a thing. The rest is
-single, and the scheduler answers the host in a way that lets it retry safely while that part is restored.
+The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs more than one of a thing. The rest is single, and the scheduler answers the host in a way that lets it retry safely while that part is restored.
 
 | Part | How many | When it stops | What the host sees | Recovery |
 | --- | --- | --- | --- | --- |
@@ -206,18 +207,9 @@ single, and the scheduler answers the host in a way that lets it retry safely wh
 | Nominatim (`GEOCODING_MODE=NOMINATIM` only) | One | Address-only locations cannot be located. Calls that send coordinates are unaffected. | 503 for a call with an address-only location, and the address lookup component down in `/health`. | Start it. |
 | Solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE` only) | One service, any number of replicas | Calculations on the replicas that use it cannot run. | 503 with `calculation` down. | Start it, or switch that pool back to `EMBEDDED`. |
 
-**The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the
-same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a
-claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease
-expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
+**The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
 
-**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has.
-The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5
-(9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots
-as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking,
-daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding
-a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the
-proxy), or measure the combined load on the VM rehearsal stack.
+**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has. The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5 (9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking, daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the proxy), or measure the combined load on the VM rehearsal stack.
 
 ## Replica roles
 
@@ -233,6 +225,8 @@ Every replica answers every route and shares the one database, so the split is a
 Scale the booking pool when booking p95 nears the client's deadline or booking replicas reject; scale the daily pool, or raise its background limit with cores to match, when queued days wait (from `queuedAt` to `startedAt`) or `scheduler_daily_queue_expired_total` rises. The proxy re-reads each pool's replicas every 10 seconds. To check which replica answered, read `role` in `/health`, or `scheduler_replica_info` in Prometheus.
 
 ## Failure modes
+
+Symptoms you may see, their usual cause and what to do:
 
 | Symptom | Cause | Action |
 | --- | --- | --- |

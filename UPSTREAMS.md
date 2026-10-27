@@ -1,5 +1,7 @@
 # Upstream starting points
 
+The upstream projects this repository started from, with the version used here and the source revision checked:
+
 | Component | Version used here | Source revision checked 2026-10-22 |
 | --- | --- | --- |
 | [Timefold quickstarts](https://github.com/TimefoldAI/timefold-quickstarts/tree/stable/getting-started/spring-boot-integration) | Starting configuration. This repository now runs Spring Boot 4.1.2 and Timefold Solver 2.7.1 (`timefold.version` in `pom.xml`) | `76993a35123a127f9b630a8f7a37a1fbe76a24b0` (`stable`, which still uses Spring Boot 4.1.1) |

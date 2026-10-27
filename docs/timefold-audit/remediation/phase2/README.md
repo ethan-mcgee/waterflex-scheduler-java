@@ -22,7 +22,7 @@ Every object below rejects unknown and missing fields. Required fields reject nu
 
 | Object | Required fields and semantics |
 | --- | --- |
-| Root | `schemaVersion=1`, `operation=DAILY`, `mode=ASSIGNED|REPAIR|COLD|PARTIAL`, snapshot ID, content hash, versions, routing, revisions, search, rates, locations, services, technicians, visits, unassigned indices and roads. |
+| Root | `schemaVersion=1`, `operation=DAILY`, `mode=ASSIGNED \| REPAIR \| COLD \| PARTIAL`, snapshot ID, content hash, versions, routing, revisions, search, rates, locations, services, technicians, visits, unassigned indices and roads. |
 | Versions | Policy `zero-overtime-four-hour-v2`, cost `legacy-double-v1`, score `hard-medium-soft-decimal-v1`. Other versions fail. |
 | Routing | Nonblank provider, profile and identity. Caller-owned provenance, with no routing callback. |
 | Revisions | Schedule token per technician in array order, configuration token and reservation token. Tokens are nonblank strings, not commit authority. |

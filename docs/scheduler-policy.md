@@ -53,12 +53,14 @@ The daily search score has five hard and two soft levels (`DayScores`), compared
 The production score is `BendableScore`, a `long` per level (Timefold docs 12.2.4), under score model `bendable-decimal-repair-v3`. The model name is kept on purpose: every level carries the same integer it carried as `BendableBigDecimalScore`, so every pair of plans compares the same way, and only the version string crosses the wire (datasets, the calculation protocol, daily outcomes), never a score value. A new name would only mark stored previews stale. Acceptance (`SchedulingPolicy.compare`) always reads the DECIMAL128 variance (34 significant digits) that `SchedulingPolicy.fairness` computes, whatever the search carried.
 
 The cost level is exact in long arithmetic because the cost rates are narrowed to fit it (spec 1.7.0, `Monetary`):
-- **The contract.** Each rate has at most four decimal places; `regularHourly` and `overtimeHourly` are at most 500 and `mileagePerMile` at most 25. The API, the dataset reader, booking snapshots and every fact revision refuse anything else. `travelBufferPct` is not a cost rate and keeps its own rules.
-- **The arithmetic.** Each rate is a whole number of 1e-4 units (`Monetary.Rates`). The fleet's cents are its summed paid minutes, overtime minutes and meters priced once and rounded half up, exactly as the decimal form `Monetary.cents` computes them: the same cents (cost model `exact-fleet-half-up-v3`), the same single rounding boundary. The timing search orders candidate timings by the same integer numerator.
-- **The range.** At the caps a day's cost fits a long for up to about 11 million paid minutes and 5.9 million km of driving (about 7,600 technicians on full 24-hour days). A larger day is refused ("Fleet cost exceeds the cost model's range"), never approximated or priced another way.
+
+- **The contract:** Each rate has at most four decimal places; `regularHourly` and `overtimeHourly` are at most 500 and `mileagePerMile` at most 25. The API, the dataset reader, booking snapshots and every fact revision refuse anything else. `travelBufferPct` is not a cost rate and keeps its own rules.
+- **The arithmetic:** Each rate is a whole number of 1e-4 units (`Monetary.Rates`). The fleet's cents are its summed paid minutes, overtime minutes and meters priced once and rounded half up, exactly as the decimal form `Monetary.cents` computes them: the same cents (cost model `exact-fleet-half-up-v3`), the same single rounding boundary. The timing search orders candidate timings by the same integer numerator.
+- **The range:** At the caps a day's cost fits a long for up to about 11 million paid minutes and 5.9 million km of driving (about 7,600 technicians on full 24-hour days). A larger day is refused ("Fleet cost exceeds the cost model's range"), never approximated or priced another way.
 - **The independent evaluators** (`RouteEvaluator`, `DayScoreCalculator`, `SchedulingPolicy`) keep the decimal form, so `ScoringExactnessTest` and `MonetaryTest` compare the two.
 
 The search carries the variance as option b of the fairness measure study (PR 187) defined it (`RouteScoringFacts.fairnessUnits`). This is the scaled-integer form Timefold's documentation recommends over floating point in a score (12.1.10), keeping more decimal places than its load balancing chapter asks of `unfairness` to avoid score traps (15.2.1):
+
 - The variance is computed in binary64 from the same workloads and the same formula as `SchedulingPolicy.fairness`, with the capacity and paid-minute sums as exact longs. It is then rounded once, half up, to units of 1e-9 and carried as that exact decimal (scale 9). A move never accumulates binary error: each evaluation computes from the sums.
 - A variance outside the range a long can carry (2^62 units) throws, so it never wraps.
 - The tie tolerance: the objective can tie two plans whose variances differ by less than a unit, and with binary64's error (far below a unit) can order two plans the other way round only when their variances differ by less than two units and they are equal on every other level. The tolerance can change which plan the search returns, never whether a plan is accepted.
@@ -74,6 +76,7 @@ The search carries the variance as option b of the fairness measure study (PR 18
 The score representation study (CR08) also measured a long score, the experiment-only variant `TABU_KOPT_LONG_SCORE` in commits `ec0efc4` and `fa62792`; it is not in the production build. With the variance carried as units, every level is now an integer, so a long score is exact on every level.
 
 The route timing (`RouteTimeline`, `RouteTimingSearch`) runs on long nanoseconds after the route's shift start, not on `Instant` and `Duration`:
+
 - It is exact for any instant the API admits, fractional seconds included.
 - The readings are `Duration`'s own: lateness is whole seconds floored plus one second, and an availability violation rounds part of a second up to a whole one. Paid, waiting and overtime minutes are the floored seconds divided by 60 toward zero.
 - Arrivals are instants again on the way out.
@@ -98,17 +101,15 @@ A host cancels a running search, confirm or proposal with `DELETE /api/v1/reques
 
 ## Configuration
 
-Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no
-policy settings (the shared `omaha_setting` table was dropped). The rules are included in configuration fingerprints:
+Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no policy settings (the shared `omaha_setting` table was dropped). The rules are included in configuration fingerprints:
 
 | `Snapshot.policy` field | Meaning | Portal starting value |
-| --- | --- | --- |
+| --- | --- | ---: |
 | `regularWindowThreshold` | 0 to 1000; distinct regular windows above which the booking refinement is kept short | 2 |
 | `fairnessBudget` | 0 to 1; daily fairness phase only, booking uses no allowance | 0.02 |
 | `bookingDeadlineMs` | 1000 to 5000; booking search and confirm deadline at the scheduler | 5000 |
 
-There is no utilization threshold. It only fed the overtime authorization, which the zero-overtime policy always
-refuses, so it was removed with calculation protocol 3.
+There is no utilization threshold. It only fed the overtime authorization, which the zero-overtime policy always refuses, so it was removed with calculation protocol 3.
 
 Spring properties can be supplied as command-line arguments or their standard environment-variable equivalents:
 

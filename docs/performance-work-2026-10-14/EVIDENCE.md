@@ -27,6 +27,7 @@ Every run used the load tool `infra/host-conformance/load.ts` on one 24-processo
 ## Validation
 
 `report_data.py` checks, for every load tool report before it is read:
+
 - **Shape:** the machine and processor count, a 60 or 90 s duration, a seed in 0 to 1000.
 - **Consistency:** each operation's statuses add up to its calls; p50 ≤ p95 ≤ p99 ≤ max; searches equal the offers calls answered 201; confirms counted as confirmed plus the simulated host's write conflicts equal the confirm calls answered 200; no failed searches and no searches without offers; a queued run's recorded waits match its 201 proposals.
 - **Contract:** no contract breach and no host anomaly recorded.

@@ -4,6 +4,8 @@ Owner means the numbered implementation step accountable for completion, not a p
 
 ## Delivery status
 
+Each delivery, with its disposition and evidence:
+
 | Delivery | Disposition and evidence |
 | --- | --- |
 | Step 1 | Implemented and reviewed in [PR #51](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/51), merged as `e197204ee72ab6b6aae0c2943b0e42633fd344b0`. Starting receipts remain immutable. |
@@ -27,8 +29,10 @@ Steps 1-12 are reviewed and merged. Steps 13-16 share one delivery at the owner'
 
 ## Delivery sequence
 
+The delivery steps in order, with each one's completion condition and prerequisites:
+
 | Step | Actionable delivery and objective completion condition | Prerequisites |
-| --- | --- | --- |
+| ---: | --- | ---: |
 | 1 | Record immutable source/dependency/configuration baseline, map every finding and benchmark requirement, inventory Community compatibility, verify and open review PR. | Audit and accepted plan |
 | 2 | Parse and validate indexed datasets before maps/copies; canonicalize and hash; share one immutable fact revision; reject nonempty unassigned input until step 4. | 1 reviewed |
 | 3 | Migrate monetary settings with legacy-decimal receipts; update Java, persisted JSON and TypeScript; verify exact fleet-level arithmetic and version invalidation. | 2 |
@@ -51,7 +55,7 @@ Steps 1-12 are reviewed and merged. Steps 13-16 share one delivery at the owner'
 Current source evidence is pinned by [baseline.json](baseline.json). Existing defect characterizations are historical demonstrations, not desired-behavior acceptance. The compatibility inventory identifies existing tests and gaps; test descriptions below are required future regressions, not claims that those tests exist.
 
 | ID | Owner step(s) | Required tests and objective completion evidence |
-| --- | --- | --- |
+| --- | ---: | --- |
 | TF01 | 2, 7, 8, 15 | Offline daily/booking replay without DB/routing credentials; adapter parity; stale schedule/hold/policy/routing/endpoint rejection; simultaneous claim/apply integration; matched resource/transport study. Caller alone commits. |
 | TF02 | 2, 4 | Until construction exists reject nonempty partial/unassigned input; then empty demand, zero technicians, one visit, cold/partial/pinned/infeasible cases preserve exact coverage. Replace omission characterization. |
 | TF03 | 2 | Reject duplicate JSON keys/IDs, unknown fields, dangling/mismatched references, invalid indices/numbers/windows/durations, missing required legs before maps/copy. Duplicate visits cannot disappear. Replace three malformed-fact characterizations. |

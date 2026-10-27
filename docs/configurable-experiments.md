@@ -160,7 +160,6 @@ npm.cmd --prefix web run test:unit
 
 Regression tests cover invalid configurations including `parallel_cases`, core slot ordering and affinity, concurrent dispatch limits, failure and interruption with in-flight receipts, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, rejection of retired booking configurations, and overlapping booking outcomes and pooled percentiles in archived evidence. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the archived 1,280-case study.
 
-
 ### Earlier matrices
 
 The planning snapshot described five seeds, three workloads and six budgets for 1,440 daily cases with 133,200 seconds of allowance, plus 720 booking cases. Subsequent user configuration changes produced the checked-in daily matrix described above. Regression tests construct the older daily expansion explicitly without changing the current JSON files. Existing archives, including the 413 completed booking cases, remain historical partial evidence under their original source and calendar semantics. New validation archives must not be pooled with them as corrected comparisons.

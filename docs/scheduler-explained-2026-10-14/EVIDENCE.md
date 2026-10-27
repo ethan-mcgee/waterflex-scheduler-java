@@ -25,6 +25,7 @@ Some statements are quoted from reports rather than recomputed, and the text say
 ## Validation
 
 `report_data.py` asserts, before anything is read into the document:
+
 - **Documents:** every operation is `implemented`; 12 operations and 10 error codes; the first version in the history equals `info.version`; every error code of the enum appears in the guide's table; each parsed markdown table has the row count recorded in `DOCUMENT_TABLES` (a changed document changes the count and stops the build).
 - **Daily studies:** the sibling loaders' own checks (manifest and case hashes, every raw file's SHA-256, matched pairs sharing a starting schedule, zero violations, fairness variance recomputed from paid minutes); then 4,480 and 1,200 cases, six parallel cases, Tabu as control, `TABU_KOPT_SIZE_3` as the recorded candidate.
 - **September booking:** the explainer's `verify` (360 cases, hashes, ten attempts per case, all audit metrics present); 60 comparable pairs, all at concurrency 1; bounded never worse on paid minutes or cost.

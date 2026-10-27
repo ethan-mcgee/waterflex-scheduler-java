@@ -16,6 +16,7 @@ Every run used the host conformance kit (`infra/host-conformance`: `quality.ts` 
 ## Validation
 
 `report_data.py` checks every kit report before any figure is read from it:
+
 - **Shape:** the machine has 24 processors, and each part holds the number of cells the protocol promised (quality 40, load 840, capacity 224, reserve 80; rerun quality 10, reserve 25).
 - **Contract:** no contract breach and no host anomaly recorded; `runsWithDefects` is empty in both files.
 - **Consistency:** each operation's statuses add up to its calls; p50 ≤ p95 ≤ p99 ≤ max; searches equal the booking offers calls; each quality case has one entry per variant.

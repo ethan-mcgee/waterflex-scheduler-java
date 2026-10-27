@@ -39,7 +39,7 @@ No SA temperature study, Enterprise feature, custom parallel scoring or solver f
 Eleven separate campaigns in five registrations requested and completed 68 cases, with no launch failures or retries. Sixty-seven are independently valid. All raw native reports, outcomes, elapsed timings, configurations and unsuccessful diagnostic outcomes remain in the pinned archives.
 
 | Cohort | Cases | Recorded outcome |
-| --- | --- | --- |
+| --- | ---: | --- |
 | Reference | 24 | TABU/LA comparison and separate termination treatments; all independently valid across two seeded datasets. |
 | Shared-target fairness | 12 | Same frozen target across treatments; all independently valid. One dataset supports no independent dataset interval. |
 | Repair | 24 | Twenty-three independently valid results; one complete but infeasible fixed-TABU control remains ineligible, with a 2,640 hard penalty and no application authority. |
