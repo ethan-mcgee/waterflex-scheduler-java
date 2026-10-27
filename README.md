@@ -26,18 +26,18 @@ The scheduler owns its database and nothing else connects to it. On the VM it ru
 
 The top-level paths and what each holds:
 
-| Path | What it is |
-| --- | --- |
-| `calculation-engine/` | Maven module: the Timefold model, constraints, scoring and the independent route evaluator, shared by the scheduler and the solver service. |
-| `scheduler-service/` | Maven module: the Spring Boot service behind `/api/v1`, its Flyway migrations (`src/main/resources/db/migration`) and its admin commands. |
-| `solver-service/` | Maven module: the remote solver pool (`remote-solver` profile). |
-| `routing-service/` | Maven module: GraphHopper road matrix, legs and geometry for one metro's prepared map. |
-| `campaign-benchmark/` | Maven module, built only with `-Pcampaign-benchmark`: the Timefold audit benchmark adapters. |
-| `web/` | The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`. |
-| `infra/` | Map preparation and activation scripts, `map-import` image, routing fixture, experiment and study harnesses, CI helpers and their Python tests, and the [host conformance kit](infra/host-conformance/README.md). |
-| `deploy/vm/` | The production VM's Compose stack, `.env.example` and the local rehearsal override. |
-| `experiments/`, `run_experiment.py` | Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). See [docs/configurable-experiments.md](docs/configurable-experiments.md). |
-| `docs/` | Living docs, the OpenAPI contract, evidence JSON and dated study reports (see [Documentation](#documentation)). |
+| Path                                | What it is                                                                                                                                                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calculation-engine/`               | Maven module: the Timefold model, constraints, scoring and the independent route evaluator, shared by the scheduler and the solver service.                                                                       |
+| `scheduler-service/`                | Maven module: the Spring Boot service behind `/api/v1`, its Flyway migrations (`src/main/resources/db/migration`) and its admin commands.                                                                         |
+| `solver-service/`                   | Maven module: the remote solver pool (`remote-solver` profile).                                                                                                                                                   |
+| `routing-service/`                  | Maven module: GraphHopper road matrix, legs and geometry for one metro's prepared map.                                                                                                                            |
+| `campaign-benchmark/`               | Maven module, built only with `-Pcampaign-benchmark`: the Timefold audit benchmark adapters.                                                                                                                      |
+| `web/`                              | The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`.                                                         |
+| `infra/`                            | Map preparation and activation scripts, `map-import` image, routing fixture, experiment and study harnesses, CI helpers and their Python tests, and the [host conformance kit](infra/host-conformance/README.md). |
+| `deploy/vm/`                        | The production VM's Compose stack, `.env.example` and the local rehearsal override.                                                                                                                               |
+| `experiments/`, `run_experiment.py` | Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). See [docs/configurable-experiments.md](docs/configurable-experiments.md).                                             |
+| `docs/`                             | Living docs, the OpenAPI contract, evidence JSON and dated study reports (see [Documentation](#documentation)).                                                                                                   |
 
 ## Requirements and versions
 
@@ -47,14 +47,14 @@ The top-level paths and what each holds:
 
 The main components run at these versions:
 
-| Component | Version |
-| --- | --- |
-| Spring Boot | 4.1.2 |
-| Timefold Solver | 2.7.1 |
-| GraphHopper | 11.1 |
-| PostgreSQL | 16 (`postgres:16-alpine`) |
-| Nominatim | `mediagis/nominatim:5.3` |
-| Planetiler / go-pmtiles | 0.9.0 / v1.22.1 |
+| Component               | Version                   |
+| ----------------------- | ------------------------- |
+| Spring Boot             | 4.1.2                     |
+| Timefold Solver         | 2.7.1                     |
+| GraphHopper             | 11.1                      |
+| PostgreSQL              | 16 (`postgres:16-alpine`) |
+| Nominatim               | `mediagis/nominatim:5.3`  |
+| Planetiler / go-pmtiles | 0.9.0 / v1.22.1           |
 
 [UPSTREAMS.md](UPSTREAMS.md) records the upstream starting points and their source revisions.
 
@@ -62,17 +62,17 @@ The main components run at these versions:
 
 Every published Compose port binds to `127.0.0.1`.
 
-| Port | Service |
-| ---: | --- |
-| 3001 | Portal (`web`) |
-| 8000 / 9000 | Scheduler API / management (`/actuator/health`, `/actuator/prometheus`) |
-| 8001 | Routing service |
-| 8082 | Nominatim |
-| 8083 | PMTiles |
-| 5433 | Portal database (`db`) |
-| 5434 | Scheduler database (`scheduler-db`) |
+|                  Port | Service                                                                                                           |
+| --------------------: | ----------------------------------------------------------------------------------------------------------------- |
+|                  3001 | Portal (`web`)                                                                                                    |
+|           8000 / 9000 | Scheduler API / management (`/actuator/health`, `/actuator/prometheus`)                                           |
+|                  8001 | Routing service                                                                                                   |
+|                  8082 | Nominatim                                                                                                         |
+|                  8083 | PMTiles                                                                                                           |
+|                  5433 | Portal database (`db`)                                                                                            |
+|                  5434 | Scheduler database (`scheduler-db`)                                                                               |
 | 18082 / 18001 / 18083 | Map preview Nominatim, routing and tiles (`docker-compose.map-preview.yml`, while a new map version is validated) |
-| 18080 | The VM rehearsal stack's API, when it runs beside this one ([deploy/vm/README.md](deploy/vm/README.md)) |
+|                 18080 | The VM rehearsal stack's API, when it runs beside this one ([deploy/vm/README.md](deploy/vm/README.md))           |
 
 ## First local setup
 

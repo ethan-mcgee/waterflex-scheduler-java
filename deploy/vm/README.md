@@ -4,17 +4,17 @@ The scheduler runs on its own VM with a fixed share of compute and is reached on
 
 `docker-compose.yml` here is the whole VM:
 
-| Service | Role |
-| --- | --- |
-| `scheduler-db` | The scheduler's own Postgres: tenants and token digests, the thin store, the route cache. |
-| `scheduler-admin` | One-shot, as the database owner: applies migrations and creates the serving login on every start. Operators run tenant commands through it. |
-| `scheduler-proxy` | nginx: the one API address (`/api/v1`, `/health`) on the private interface. It sends daily and repair proposals and `/api/v1/requests/*` to the daily pool and everything else to the booking pool ([nginx.conf](nginx.conf)). |
-| `scheduler-booking` | Booking replicas (`SCHEDULER_ROLE=booking`): booking searches, confirms, commits and route calls. They take no queued daily work. |
-| `scheduler-daily` | Daily replicas (`SCHEDULER_ROLE=daily`): daily and repair proposals, synchronous and queued, up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` at once each. |
-| `routing-omaha` | Omaha's routing service. Add one per served metro. |
-| `nominatim` | Profile `nominatim`: address lookup for locations sent without coordinates (`GEOCODING_MODE=NOMINATIM`). |
-| `solver-service` | Profile `remote-solver`: a remote solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE`). The embedded solver is the default. |
-| `prometheus` | Profile `monitoring`: scrapes every scheduler replica's metrics. |
+| Service             | Role                                                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scheduler-db`      | The scheduler's own Postgres: tenants and token digests, the thin store, the route cache.                                                                                                                                      |
+| `scheduler-admin`   | One-shot, as the database owner: applies migrations and creates the serving login on every start. Operators run tenant commands through it.                                                                                    |
+| `scheduler-proxy`   | nginx: the one API address (`/api/v1`, `/health`) on the private interface. It sends daily and repair proposals and `/api/v1/requests/*` to the daily pool and everything else to the booking pool ([nginx.conf](nginx.conf)). |
+| `scheduler-booking` | Booking replicas (`SCHEDULER_ROLE=booking`): booking searches, confirms, commits and route calls. They take no queued daily work.                                                                                              |
+| `scheduler-daily`   | Daily replicas (`SCHEDULER_ROLE=daily`): daily and repair proposals, synchronous and queued, up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` at once each.                                                                            |
+| `routing-omaha`     | Omaha's routing service. Add one per served metro.                                                                                                                                                                             |
+| `nominatim`         | Profile `nominatim`: address lookup for locations sent without coordinates (`GEOCODING_MODE=NOMINATIM`).                                                                                                                       |
+| `solver-service`    | Profile `remote-solver`: a remote solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE`). The embedded solver is the default.                                                                                                       |
+| `prometheus`        | Profile `monitoring`: scrapes every scheduler replica's metrics.                                                                                                                                                               |
 
 Each service has `deploy.resources` limits set from `.env`, so the VM's partition is explicit; a pool's limits apply to each of its replicas. Both pools run the same image and every replica answers every route, so a call that reaches the other pool still gets the right answer. Running it is covered by [the operations runbook](../../docs/operations-runbook.md).
 

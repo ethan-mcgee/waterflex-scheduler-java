@@ -40,15 +40,15 @@ Repair proposals must also have zero overtime at preview and apply. Overtime is 
 
 The daily search score has five hard and two soft levels (`DayScores`), compared in order, so no lower level can make up for a higher one. Every level is an integer count except one:
 
-| Level | Quantity | Unit |
-| --- | --- | --- |
-| hard 0, categorical | missing qualifications, unreachable directed roads | count |
-| hard 1, quantitative | window lateness, absence and return violation, capacity excess | seconds (capacity excess is whole minutes times 60) |
-| hard 2, unassigned | unassigned visits | count |
-| hard 3, overtime target | deviation from the reference overtime (fairness phase) | minutes |
-| hard 4, cost ceiling | cost above the ceiling (fairness phase) | cents |
-| soft 0, phase objective | overtime (reference phase), or the workload variance (fairness phase) | minutes, or the variance in units of 1e-9 |
-| soft 1, cost | modeled operating cost | cents, at most `Monetary.MAX_CENTS` (2^53) |
+| Level                   | Quantity                                                              | Unit                                                |
+| ----------------------- | --------------------------------------------------------------------- | --------------------------------------------------- |
+| hard 0, categorical     | missing qualifications, unreachable directed roads                    | count                                               |
+| hard 1, quantitative    | window lateness, absence and return violation, capacity excess        | seconds (capacity excess is whole minutes times 60) |
+| hard 2, unassigned      | unassigned visits                                                     | count                                               |
+| hard 3, overtime target | deviation from the reference overtime (fairness phase)                | minutes                                             |
+| hard 4, cost ceiling    | cost above the ceiling (fairness phase)                               | cents                                               |
+| soft 0, phase objective | overtime (reference phase), or the workload variance (fairness phase) | minutes, or the variance in units of 1e-9           |
+| soft 1, cost            | modeled operating cost                                                | cents, at most `Monetary.MAX_CENTS` (2^53)          |
 
 The production score is `BendableScore`, a `long` per level (Timefold docs 12.2.4), under score model `bendable-decimal-repair-v3`. The model name is kept on purpose: every level carries the same integer it carried as `BendableBigDecimalScore`, so every pair of plans compares the same way, and only the version string crosses the wire (datasets, the calculation protocol, daily outcomes), never a score value. A new name would only mark stored previews stale. Acceptance (`SchedulingPolicy.compare`) always reads the DECIMAL128 variance (34 significant digits) that `SchedulingPolicy.fairness` computes, whatever the search carried.
 
@@ -103,29 +103,29 @@ A host cancels a running search, confirm or proposal with `DELETE /api/v1/reques
 
 Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no policy settings (the shared `omaha_setting` table was dropped). The rules are included in configuration fingerprints:
 
-| `Snapshot.policy` field | Meaning | Portal starting value |
-| --- | --- | ---: |
-| `regularWindowThreshold` | 0 to 1000; distinct regular windows above which the booking refinement is kept short | 2 |
-| `fairnessBudget` | 0 to 1; daily fairness phase only, booking uses no allowance | 0.02 |
-| `bookingDeadlineMs` | 1000 to 5000; booking search and confirm deadline at the scheduler | 5000 |
+| `Snapshot.policy` field  | Meaning                                                                              | Portal starting value |
+| ------------------------ | ------------------------------------------------------------------------------------ | --------------------: |
+| `regularWindowThreshold` | 0 to 1000; distinct regular windows above which the booking refinement is kept short |                     2 |
+| `fairnessBudget`         | 0 to 1; daily fairness phase only, booking uses no allowance                         |                  0.02 |
+| `bookingDeadlineMs`      | 1000 to 5000; booking search and confirm deadline at the scheduler                   |                  5000 |
 
 There is no utilization threshold. It only fed the overtime authorization, which the zero-overtime policy always refuses, so it was removed with calculation protocol 3.
 
 Spring properties can be supplied as command-line arguments or their standard environment-variable equivalents:
 
-| Property | Default / purpose |
-| --- | --- |
-| `booking.search.variant` | `BOUNDED`; the booking search variant (bounded rearrangement after insertion) |
-| `booking.search.refinement-ms` | 2000 (`SCHEDULER_BOOKING_REFINEMENT_MS`, 250 before 2026-10-20); optional abundant-capacity refinement, range 0..3000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
-| `booking.search.publish-reserve-ms` | 1000 (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`); the part of a client's `bookingDeadlineMs` kept back from exploration to validate, prepare and publish the offers, range 800..1000; the request log's `commitMs` says how much of it a search used |
-| `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
-| `scheduler.search.queue-limit` | 16; bounded queue |
-| `scheduler.search.confirm-slots` | 1 (`SCHEDULER_SEARCH_CONFIRM_SLOTS`); slots beyond the capacity open to confirms alone, 0 to the capacity; confirms start before waiting searches in any case |
-| `routing.ch.enabled` | true (routing-service, `ROUTING_CH_ENABLED`); serves the map version's contraction hierarchy graph (`graph-ch-car-v1`, prepared beside the flexible graph by `infra/prepare-map.ps1`); false serves the flexible graph with another routing identity |
-| `routing.parallelism` | 0 (routing-service, `ROUTING_PARALLELISM`): the pairs of one request are routed on this many threads at once, 0 meaning the processors available |
-| `routing.identity-ttl-ms` | 2000 (scheduler, `ROUTING_IDENTITY_TTL_MS`): how long a fetched routing identity is trusted before `/health` is asked again; the routing service still checks the identity on every call and a 409 drops it |
-| `routing.flights.threads`, `routing.flights.queue` | 8 and 64 (scheduler): batches of legs fetched from a metro's routing service at once, and batches that may wait; a batch that finds the queue full is refused as busy |
-| `spring.datasource.hikari.connection-timeout` | 250 ms |
-| `spring.datasource.hikari.validation-timeout` | 250 ms |
+| Property                                           | Default / purpose                                                                                                                                                                                                                                    |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `booking.search.variant`                           | `BOUNDED`; the booking search variant (bounded rearrangement after insertion)                                                                                                                                                                        |
+| `booking.search.refinement-ms`                     | 2000 (`SCHEDULER_BOOKING_REFINEMENT_MS`, 250 before 2026-10-20); optional abundant-capacity refinement, range 0..3000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued                      |
+| `booking.search.publish-reserve-ms`                | 1000 (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`); the part of a client's `bookingDeadlineMs` kept back from exploration to validate, prepare and publish the offers, range 800..1000; the request log's `commitMs` says how much of it a search used    |
+| `scheduler.search.capacity`                        | 0 selects CPU-aware one/two default                                                                                                                                                                                                                  |
+| `scheduler.search.queue-limit`                     | 16; bounded queue                                                                                                                                                                                                                                    |
+| `scheduler.search.confirm-slots`                   | 1 (`SCHEDULER_SEARCH_CONFIRM_SLOTS`); slots beyond the capacity open to confirms alone, 0 to the capacity; confirms start before waiting searches in any case                                                                                        |
+| `routing.ch.enabled`                               | true (routing-service, `ROUTING_CH_ENABLED`); serves the map version's contraction hierarchy graph (`graph-ch-car-v1`, prepared beside the flexible graph by `infra/prepare-map.ps1`); false serves the flexible graph with another routing identity |
+| `routing.parallelism`                              | 0 (routing-service, `ROUTING_PARALLELISM`): the pairs of one request are routed on this many threads at once, 0 meaning the processors available                                                                                                     |
+| `routing.identity-ttl-ms`                          | 2000 (scheduler, `ROUTING_IDENTITY_TTL_MS`): how long a fetched routing identity is trusted before `/health` is asked again; the routing service still checks the identity on every call and a 409 drops it                                          |
+| `routing.flights.threads`, `routing.flights.queue` | 8 and 64 (scheduler): batches of legs fetched from a metro's routing service at once, and batches that may wait; a batch that finds the queue full is refused as busy                                                                                |
+| `spring.datasource.hikari.connection-timeout`      | 250 ms                                                                                                                                                                                                                                               |
+| `spring.datasource.hikari.validation-timeout`      | 250 ms                                                                                                                                                                                                                                               |
 
 Start with the default admission capacity (`SCHEDULER_SEARCH_CAPACITY`; the VM compose sets 2) and measure before raising it; [the operations runbook](operations-runbook.md) lists the scaling levers. Budget database connections across scheduler replicas; search admission alone does not bound every replica's idle pool. A configuration or road graph change invalidates stale search and proposal provenance and requires a fresh search or proposal. CH uses a separate graph directory and routing identity; disabling it returns to the original graph artifact, and either switch leaves the route cache cold.
