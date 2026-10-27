@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 from pathlib import Path
+import re
 import unittest
 from unittest.mock import patch
 
@@ -93,11 +94,13 @@ class ComparisonTests(unittest.TestCase):
         with patch.object(report, "chart", side_effect=lambda fig, name: (report.plt.close(fig) or report.ASSETS / (name + ".png"))):
             blocks = report.report_blocks(self.summary, self.manifest, self.daily, self.booking)
         text = report.markdown(blocks)
+        # Table cells are padded so the pipes line up; compare rows without the padding.
+        rows = re.sub(r" *\| *", " | ", text)
         self.assertIn("BOUNDED serves 158/160", text)
-        self.assertIn("| 1 | BOUNDED | 158/160 | 98.75% | -1.25 |", text)
+        self.assertIn("| 1 | BOUNDED | 158/160 | 98.75% | -1.25 |", rows)
         self.assertIn("7 SHARED requests were served despite incomplete search", text)
         self.assertIn("30 seconds: $0.30/case", text)
-        self.assertIn("| LATE_ACCEPTANCE | -1.11 | +1.71 | +0.30 | 6/0/2 |", text)
+        self.assertIn("| LATE_ACCEPTANCE | -1.11 | +1.71 | +0.30 | 6/0/2 |", rows)
         # Existing output must match the common content model, including tables.
         self.assertEqual(report.MD.read_text(encoding="utf-8"), text)
         report.check_outputs(blocks)
