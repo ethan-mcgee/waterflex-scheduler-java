@@ -9,12 +9,12 @@ The one immutable input is `docs/evidence/api-load-2026-10-20-binary-variance.js
 
 The report also reads option b's harness ratios by fleet from `docs/evidence/solver-matrix-2026-10-20.json`, the road matrix numbering study.
 
-| Block | What it holds |
-| --- | --- |
-| `images` | Each image's commit, tag and image ID |
-| `protocol` | The run's own description of its two steps (see the correction below) |
-| `containersVerified` | Every replica the run read: its image ID, CPU and memory limits, and the study environment variables |
-| `runs` | 20 kit reports: step 1 (18 runs: 3 fleets, 3 seeds, 2 images, 4 proposals each) and step 2 (2 runs of 12 queued proposals). Each report carries the calls, decisions, queue waits, routing, containers and the study receipts, every receipt with Timefold's speed for each phase |
+| Block                | What it holds                                                                                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `images`             | Each image's commit, tag and image ID                                                                                                                                                                                                                                             |
+| `protocol`           | The run's own description of its two steps (see the correction below)                                                                                                                                                                                                             |
+| `containersVerified` | Every replica the run read: its image ID, CPU and memory limits, and the study environment variables                                                                                                                                                                              |
+| `runs`               | 20 kit reports: step 1 (18 runs: 3 fleets, 3 seeds, 2 images, 4 proposals each) and step 2 (2 runs of 12 queued proposals). Each report carries the calls, decisions, queue waits, routing, containers and the study receipts, every receipt with Timefold's speed for each phase |
 
 ## Corrections to the evidence
 

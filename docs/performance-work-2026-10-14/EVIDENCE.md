@@ -4,19 +4,19 @@
 
 The immutable inputs are the load study files under `docs/evidence/`, one per pull request, each recorded by the pull request that made the change it judges:
 
-| Study | File | PR | What it judged |
-| --- | --- | --- | --- |
-| baseline | `api-load-2026-10-13.json` | #151 | The load tool and the first measurement (revision 6abf872 plus the deadline 500 fix) |
-| concurrency | `api-load-2026-10-13-booking-concurrency.json` | #152 | Late snapshots answered `STALE`; bookings publish without waiting on unrelated days; `coldRemeasurement` repeats 1, 5 and 10 desks on fresh seeds |
-| admission | `api-load-2026-10-13-daily-admission.json` | #153 | Daily proposals refused early with `Retry-After`, routed before the slot |
-| outcome | `api-load-2026-10-13-search-outcome.json` | #154 | `searchComplete` false only when a needed pass was cut short; `refinement` reported |
-| shedding | `api-load-2026-10-13-refinement-shedding.json` | #155 | Optional refinement shed while bookings wait; `abComparison` is the five-desk A/B on fresh seeds |
-| queue | `api-load-2026-10-13-daily-queue.json` | #157 | Queued proposals (`Prefer: respond-async`) with per-client fair turns; two clients for 90 s, then mixed load |
-| roles | `api-load-2026-10-14-replica-roles.json` | #158 | One `all` replica against booking and daily pools at equal search capacity, four runs |
-| vm | `api-load-2026-10-14-vm-baseline.json` | #159 | The `deploy/vm` rehearsal stack with CPU limits, `--date-spread`, and the request log's attribution of each call's time |
-| routing | `api-load-2026-10-14-routing.json` | #160 | The same stack with the J changes, once on the flexible graph and once on the CH graph |
-| priority | `api-load-2026-10-14-confirm-priority-and-jvm.json` | #162 | Confirm priority alone, then with a confirm-only slot (shipped), and the GC and compact-header A/Bs on the same stack; four runs, one confounded run left out as the file's protocol says |
-| remote | `api-load-2026-10-14-embedded-vs-remote.json` | #164 | `SCHEDULER_CALCULATION_MODE` EMBEDDED against REMOTE with the solver pool at its previous defaults, at capacity 4, and with `SOLVER_BACKGROUND_LIMIT` 0 (the new defaults) |
+| Study       | File                                                | PR   | What it judged                                                                                                                                                                            |
+| ----------- | --------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| baseline    | `api-load-2026-10-13.json`                          | #151 | The load tool and the first measurement (revision 6abf872 plus the deadline 500 fix)                                                                                                      |
+| concurrency | `api-load-2026-10-13-booking-concurrency.json`      | #152 | Late snapshots answered `STALE`; bookings publish without waiting on unrelated days; `coldRemeasurement` repeats 1, 5 and 10 desks on fresh seeds                                         |
+| admission   | `api-load-2026-10-13-daily-admission.json`          | #153 | Daily proposals refused early with `Retry-After`, routed before the slot                                                                                                                  |
+| outcome     | `api-load-2026-10-13-search-outcome.json`           | #154 | `searchComplete` false only when a needed pass was cut short; `refinement` reported                                                                                                       |
+| shedding    | `api-load-2026-10-13-refinement-shedding.json`      | #155 | Optional refinement shed while bookings wait; `abComparison` is the five-desk A/B on fresh seeds                                                                                          |
+| queue       | `api-load-2026-10-13-daily-queue.json`              | #157 | Queued proposals (`Prefer: respond-async`) with per-client fair turns; two clients for 90 s, then mixed load                                                                              |
+| roles       | `api-load-2026-10-14-replica-roles.json`            | #158 | One `all` replica against booking and daily pools at equal search capacity, four runs                                                                                                     |
+| vm          | `api-load-2026-10-14-vm-baseline.json`              | #159 | The `deploy/vm` rehearsal stack with CPU limits, `--date-spread`, and the request log's attribution of each call's time                                                                   |
+| routing     | `api-load-2026-10-14-routing.json`                  | #160 | The same stack with the J changes, once on the flexible graph and once on the CH graph                                                                                                    |
+| priority    | `api-load-2026-10-14-confirm-priority-and-jvm.json` | #162 | Confirm priority alone, then with a confirm-only slot (shipped), and the GC and compact-header A/Bs on the same stack; four runs, one confounded run left out as the file's protocol says |
+| remote      | `api-load-2026-10-14-embedded-vs-remote.json`       | #164 | `SCHEDULER_CALCULATION_MODE` EMBEDDED against REMOTE with the solver pool at its previous defaults, at capacity 4, and with `SOLVER_BACKGROUND_LIMIT` 0 (the new defaults)                |
 
 Study L (#163) is not a load study. `solver-profiling-2026-10-14.json` holds two solve-scoped JFR profiles (eight recordings each, the top 20 leaf frames and the move rates of the four profiled solves) and the 24-case paired study of the engine before and after the `RoadMatrix` treatment, with both sides' provenance.
 

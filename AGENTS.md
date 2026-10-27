@@ -31,8 +31,10 @@ These rules apply to every `.md` file except the frozen and generated files list
 
 ### Tables
 
-- Every row has a leading and trailing pipe and the same number of cells. Use `---` separators without padding columns to line up.
-- Right-align numeric columns (`---:`) and left-align text columns.
+- Every row has a leading and trailing pipe and the same number of cells.
+- Align the table in the source: pad every cell to its column's widest entry so the pipes line up in every row, with one space inside each pipe. The separator row's dashes fill the column width.
+- Right-align numeric columns (`---:` at full width) and left-align text columns. Left-aligned cells pad on the right and right-aligned cells pad on the left.
+- When a cell changes width, realign the whole table. Keep cells ASCII so character count matches display width.
 - In new tables, put a shared unit in the header, as in `p95 (s)`, rather than in every cell.
 - Escape `|` inside a cell as `\|`, including inside code.
 - Write a missing value as `not measured` and a value that does not apply as `n/a`. Never write `0`, `-`, `none` or a blank cell for missing data.

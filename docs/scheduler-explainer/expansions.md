@@ -10,13 +10,13 @@ Alex and Blair will help us follow the decisions. Both can perform maintenance v
 
 The baseline is the day already on the books. It is the comparison point for deciding whether to change anything. The reference is the best overtime and cost combination discovered during the first search phase. It provides a target and a ceiling for the second phase. The proposal is the independently checked arrangement offered for dispatcher review. These roles remain distinct even when two of them happen to contain the same routes. [3, 4]
 
-| Arrangement | Overtime | Fleet cost | Alex and Blair paid minutes |
-| --- | ---: | ---: | --- |
-| Existing baseline | 0 min | $1,000 | 240 and 240 |
-| Discovered reference | 0 min | $970 | 360 and 120 |
-| Fairness proposal | 0 min | $985 | 320 and 160 |
-| Outside the ceiling | 0 min | $995 | 320 and 160 |
-| Cheaper overtime option | 15 min | $960 | Not admissible |
+| Arrangement             | Overtime | Fleet cost | Alex and Blair paid minutes |
+| ----------------------- | -------: | ---------: | --------------------------- |
+| Existing baseline       |    0 min |     $1,000 | 240 and 240                 |
+| Discovered reference    |    0 min |       $970 | 360 and 120                 |
+| Fairness proposal       |    0 min |       $985 | 320 and 160                 |
+| Outside the ceiling     |    0 min |       $995 | 320 and 160                 |
+| Cheaper overtime option |   15 min |       $960 | Not admissible              |
 
 The amounts summarize the whole illustrative fleet; the last column isolates our two technicians. They are not labor bills calculated from that column. With a $970 reference, the allowance produces a $989.40 ceiling. The $985 proposal fits; the $995 arrangement does not. The $960 option adds overtime to a zero-overtime baseline, so its attractive price never makes it an ordinary accepted proposal.
 
@@ -44,13 +44,13 @@ First, insertion tests C before A, between A and B, and after B on Alex's route.
 
 A relocation then moves B to Blair and repeats insertion for C. The new arrangement must still serve A and B exactly once on their promised date, within their existing windows. A swap is useful if Blair cannot simply accept B: an ordinary Blair visit might move to Alex while B moves the other way. Reversal changes order within a route; it does not make Blair qualified for C.
 
-| Candidate check | Example reason for discarding it |
-| --- | --- |
-| Qualification and coverage | C assigned to Blair, or B accidentally duplicated |
-| Optimistic timing bounds | Even the earliest possible arrival misses A's window |
-| Complete route evaluation | Service fits, but buffered return crosses an absence |
-| Search deduplication | The same arrangement was already examined |
-| Beam retention | A valid arrangement ranks below those retained for expansion |
+| Candidate check            | Example reason for discarding it                             |
+| -------------------------- | ------------------------------------------------------------ |
+| Qualification and coverage | C assigned to Blair, or B accidentally duplicated            |
+| Optimistic timing bounds   | Even the earliest possible arrival misses A's window         |
+| Complete route evaluation  | Service fits, but buffered return crosses an absence         |
+| Search deduplication       | The same arrangement was already examined                    |
+| Beam retention             | A valid arrangement ranks below those retained for expansion |
 
 The last row is a resource decision, not a declaration of infeasibility. Bounds reuse unchanged route prefixes and suffixes to screen candidates cheaply. Passing the screen requires detailed timing and workload evaluation. A missing road response is an explicit unavailable-data outcome; it is never a zero-minute journey. [5, 6, 9]
 
@@ -72,13 +72,13 @@ If the deadline arrives while required exploration is unfinished, regular capaci
 
 Later, C is confirmed and Alex remains its only qualified technician. This illustrative reference-phase path uses valid schedules with zero overtime. Maintenance visits D, E and F provide other entities to move. The costs are not a recorded solver trace.
 
-| Step | Small route change | Current fleet cost | Best retained cost |
-| ---: | --- | ---: | ---: |
-| Start | Existing routes including C on Alex | $1,000 | $1,000 |
-| 1 | Relocate B to Blair at a valid position | $980 | $980 |
-| 2 | Reposition D in another route | $990 | $980 |
-| 3 | Swap compatible visits E and F | $970 | $970 |
-| Stop | Budget expires while exploring | $970 | $970 |
+|  Step | Small route change                      | Current fleet cost | Best retained cost |
+| ----: | --------------------------------------- | -----------------: | -----------------: |
+| Start | Existing routes including C on Alex     |             $1,000 |             $1,000 |
+|     1 | Relocate B to Blair at a valid position |               $980 |               $980 |
+|     2 | Reposition D in another route           |               $990 |               $980 |
+|     3 | Swap compatible visits E and F          |               $970 |               $970 |
+|  Stop | Budget expires while exploring          |               $970 |               $970 |
 
 ### Several candidate moves compete for one step
 
@@ -108,11 +108,11 @@ Use Alex's 08:00 to 12:00 and 13:00 to 17:00 working blocks, separated by an app
 
 The configured travel allowance makes each of those road legs 17 planned minutes. Alex departs at 08:43, reaches A at 09:00, finishes at 09:45, reaches C at 10:02, finishes at 11:02 and returns at 11:19. There is no paid waiting. The segment uses 156 paid minutes: 105 service minutes plus three planned legs of 17 minutes. It returns before the absence starts.
 
-| Technician segment | Departure | Service arrivals | Return | Paid minutes |
-| --- | --- | --- | --- | ---: |
-| Alex morning A then C | 08:43 | A 09:00; C 10:02 | 11:19 | 156 |
-| Alex afternoon D | 13:43 | D 14:00 | 15:02 | 79 |
-| Blair afternoon B | 13:43 | B 14:00 | 15:02 | 79 |
+| Technician segment    | Departure | Service arrivals | Return | Paid minutes |
+| --------------------- | --------- | ---------------- | ------ | -----------: |
+| Alex morning A then C | 08:43     | A 09:00; C 10:02 | 11:19  |          156 |
+| Alex afternoon D      | 13:43     | D 14:00          | 15:02  |           79 |
+| Blair afternoon B     | 13:43     | B 14:00          | 15:02  |           79 |
 
 Each afternoon segment comprises 45 service minutes and two 17-minute legs. Alex's total is 235 paid minutes across two segments. Both depart from their configured start and return to their configured endpoint separately. The gap is not continuous paid route time. These visits explain part of the day, rather than replacing the complete utilization example workloads. [8, 9]
 
@@ -140,13 +140,13 @@ The independent evaluator rebuilds timing and workload from the proposed assignm
 
 Preview records the input versions, baseline, proposal, policy reference, routing identity and actual solver configuration. A dispatcher can review changes to assignment, route order, timing, overtime and cost before choosing Apply. The optimizer's search budget ending does not itself write those changes to appointments.
 
-| Moment | Relevant facts | Result |
-| --- | --- | --- |
-| Search snapshot | A, B and C have known windows and versions | Search can compare fixed candidates |
-| Independent validation | Every obligation and route total is recomputed | Invalid candidate is rejected |
-| Preview | Checked $985 plan and its provenance are saved | Dispatcher can inspect the proposal |
-| Concurrent edit | B's promise or Blair's availability changes | Saved facts may now be stale |
-| Apply | Facts are reread and checked under locks | Commit only if still valid and admissible |
+| Moment                 | Relevant facts                                 | Result                                    |
+| ---------------------- | ---------------------------------------------- | ----------------------------------------- |
+| Search snapshot        | A, B and C have known windows and versions     | Search can compare fixed candidates       |
+| Independent validation | Every obligation and route total is recomputed | Invalid candidate is rejected             |
+| Preview                | Checked $985 plan and its provenance are saved | Dispatcher can inspect the proposal       |
+| Concurrent edit        | B's promise or Blair's availability changes    | Saved facts may now be stale              |
+| Apply                  | Facts are reread and checked under locks       | Commit only if still valid and admissible |
 
 ### A stale preview is a concrete conflict
 
@@ -171,10 +171,10 @@ The evidence answers several different questions. Constructed cases show that a 
 The final booking fixture served 2,331 of 3,780 requests, about 61.67 percent. The remaining 1,449 were retryable outcomes: 815 schedule conflicts, 587 busy responses and 47 incomplete searches. Its pooled p95 was 3,975.5 milliseconds. A low pooled p95 with this completion fraction describes quick responses under that fixture; it does not mean almost every customer completed a booking in four seconds.
 
 | Simultaneous requests | Served requests | Completion fraction |
-| ---: | ---: | ---: |
-| 1 | 1,260 of 1,260 | 100 percent |
-| 5 | 670 of 1,260 | 53.17 percent |
-| 10 | 401 of 1,260 | 31.83 percent |
+| --------------------: | --------------: | ------------------: |
+|                     1 |  1,260 of 1,260 |         100 percent |
+|                     5 |    670 of 1,260 |       53.17 percent |
+|                    10 |    401 of 1,260 |       31.83 percent |
 
 These cases direct concurrent requests at shared schedules. More simultaneous requests create reservation conflicts and admission pressure, rather than simply multiplying independent work. The counts show why a latency comparison needs a served-demand denominator. They do not justify increasing worker admission or predict hosted throughput. Retried preparations are also not new confirmed jobs. [11]
 
