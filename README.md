@@ -40,8 +40,8 @@ The top-level paths and what each holds:
 ## Requirements and versions
 
 - Docker Desktop with space for the Nebraska, Iowa and Missouri OSM extracts, the US Census TIGER address file (about 1.9 GB downloaded temporarily per map version; only the ranges near the depots are kept), a GraphHopper graph, Nominatim and PMTiles.
-- Java 25 to run Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.10.0.
-- Node to run portal checks outside Docker. CI uses Node 22, while `web/Dockerfile` builds on `node:26-slim`; `web/package.json` declares no engine yet.
+- Java 25 (LTS) to run Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.10.0. CI (`java-version: '25'`) and the images (`eclipse-temurin:25-jdk`/`25-jre`) take the newest Temurin 25 patch; no patch is pinned.
+- Node 26 (LTS from 2026-10-28) to run portal checks outside Docker. CI, `web/Dockerfile` (`node:26-slim`) and `web/package.json` (`engines: >=26`) all use it. The conformance kit still supports Node 22 or newer for hosts.
 
 The main components run at these versions:
 
