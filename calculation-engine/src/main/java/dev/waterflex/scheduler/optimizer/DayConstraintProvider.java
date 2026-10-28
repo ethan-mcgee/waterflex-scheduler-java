@@ -47,7 +47,9 @@ public class DayConstraintProvider implements ConstraintProvider {
                 routes.join(RouteScoringFacts.class).filter((_, facts) -> facts.target() == null)
                         .penalize(DayScores.soft(DayScores.PHASE_OBJECTIVE), (result, _) -> result.metrics().overtimeMinutes())
                         .asConstraint("Minimize overtime before operating cost"),
-                routes.penalize(DayScores.soft(DayScores.BUFFER), result -> result.metrics().bufferSeconds())
+                // Most routes, and every route of a plan without a buffer, use none; filtered out, they never reach the scorer.
+                routes.filter(result -> result.metrics().bufferSeconds() > 0)
+                        .penalize(DayScores.soft(DayScores.BUFFER), result -> result.metrics().bufferSeconds())
                         .asConstraint("Late-arrival buffer seconds"),
                 fleet.penalize(DayScores.soft(DayScores.COST), (results, facts) -> facts.cost(Required.value(results)))
                         .asConstraint("Modeled operating cost rounded at fleet level"),

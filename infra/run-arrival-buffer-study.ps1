@@ -12,7 +12,7 @@
 # Run output goes to experiments/runs/<run-id>/ of the main checkout; the evidence to research/evidence/.
 # Long (about 4 hours 20 minutes with the defaults); the owner starts it:
 #   powershell -ExecutionPolicy Bypass -File infra/run-arrival-buffer-study.ps1 -BranchRevision <commit>
-# A check of about 5 minutes that writes no evidence: add -Smoke.
+# A check of about 5 minutes that writes no evidence: add -Smoke. Parameters given with it override its defaults.
 param(
     # bench/arrival-buffer-main: main fed9565 plus the test-only window option.
     [ValidatePattern('^[0-9a-f]{40}$')][string]$MainRevision = '170ab77001214d6b23d4e8c7ae43b76e5d14541d',
@@ -51,8 +51,12 @@ function Invoke-Native($program, [string[]]$arguments, $log) {
     return $LASTEXITCODE
 }
 
-if ($Smoke) { $BudgetMs = 1500; $Sizes = '5,10'; $Workloads = 'TIGHT_WINDOW,ABSENCE'; $WindowHours = '2,6'; $FixtureSeeds = '7001'; $Seeds = '17'; $Repetitions = 2
-              $ProfileFixtureSeeds = '7001'; $ProfileWindowHours = '6' }
+# A smoke's own defaults; a parameter given on the command line keeps its value (a speed check at the full budget).
+if ($Smoke) {
+    $smokeDefaults = @{ BudgetMs = 1500; Sizes = '5,10'; Workloads = 'TIGHT_WINDOW,ABSENCE'; WindowHours = '2,6'; FixtureSeeds = '7001'; Seeds = '17'
+                        Repetitions = 2; ProfileFixtureSeeds = '7001'; ProfileWindowHours = '6' }
+    foreach ($name in $smokeDefaults.Keys) { if (-not $PSBoundParameters.ContainsKey($name)) { Set-Variable -Name $name -Value $smokeDefaults[$name] } }
+}
 $repository = Split-Path $PSScriptRoot -Parent
 # The main checkout holds every worktree's run output (experiments/runs is gitignored there).
 $common = (& git -C $repository rev-parse --path-format=absolute --git-common-dir).Trim()
