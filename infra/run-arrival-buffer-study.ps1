@@ -3,32 +3,40 @@
 #   main  tree m, TABU_KOPT, no buffer           production before the buffer
 #   off   tree b, TABU_KOPT, no buffer           the buffer branch with the setting absent
 #   on    tree b, TABU_KOPT, -Buffer             the buffer branch with the portal default (25 percent, 15 to 60 minutes)
+# Tree m is main plus a test-only change (bench/arrival-buffer-main) that lets the fixtures take 4- and 6-hour windows,
+# placed exactly as the buffer branch places them; no production code differs from main.
 # Each tree is a detached worktree of its commit under -TreeRoot (outside OneDrive), built once. A case is one fleet,
-# workload, fixture seed and solver seed. Every case runs each arm as its own JVM, the arm order rotating from case to
-# case, so a slow drift in the machine shows in every arm. A JFR pass per arm follows, then the evidence.
+# window length, workload, fixture seed and solver seed. Every case runs each arm as its own JVM, the arm order rotating
+# from case to case, so a slow drift in the machine shows in every arm. A JFR pass per arm follows, then the evidence.
 # -BranchRevision has no default: commit the buffer branch first and pass that commit.
 # Run output goes to experiments/runs/<run-id>/ of the main checkout; the evidence to research/evidence/.
-# Long (about 75 minutes with the defaults); the owner starts it:
+# Long (about 4 hours 20 minutes with the defaults); the owner starts it:
 #   powershell -ExecutionPolicy Bypass -File infra/run-arrival-buffer-study.ps1 -BranchRevision <commit>
 # A check of about 5 minutes that writes no evidence: add -Smoke.
 param(
-    [ValidatePattern('^[0-9a-f]{40}$')][string]$MainRevision = 'fed9565e46167a5be81688bb673752e240798b3c',
+    # bench/arrival-buffer-main: main fed9565 plus the test-only window option.
+    [ValidatePattern('^[0-9a-f]{40}$')][string]$MainRevision = '170ab77001214d6b23d4e8c7ae43b76e5d14541d',
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$BranchRevision,
     [string]$TreeRoot = 'C:\Projects\waterflex-worktrees',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
     # 15000 is the production default (10 s cost, 5 s fairness).
     [ValidateRange(1000, 240000)][int]$BudgetMs = 15000,
     # Comma-separated, as -File passes every value as text.
-    [string]$Sizes = '10,30,50',
+    [string]$Sizes = '5,10,30,50',
     [string]$Workloads = 'CLUSTERED,DISPERSED,ABSENCE,TIGHT_WINDOW,NEAR_CAPACITY',
+    # Arrival window lengths in whole hours (1 to 9). Each window keeps the fixture's start unless it would end after
+    # 17:00; 2 is the fixtures' own length.
+    [string]$WindowHours = '2,4,6',
     # Fixture seeds give different problems; solver seeds give different searches of the same problem.
     [string]$FixtureSeeds = '7001,7002',
     [string]$Seeds = '17',
     [ValidateRange(1, 5)][int]$Repetitions = 2,
     # The buffer the on arm runs and the off arm counts its stops against: percent,minMinutes,maxMinutes.
     [ValidatePattern('^\d+,\d+,\d+$')][string]$Buffer = '25,15,60',
-    # The JFR pass: every size and workload at these fixture seeds, one recording per phase per solve.
+    # The JFR pass: every size and workload at these fixture seeds and window lengths, one recording per phase per solve.
+    # 4 hours is the portal's default window.
     [string]$ProfileFixtureSeeds = '7001',
+    [string]$ProfileWindowHours = '4',
     [switch]$Smoke,
     # Compose containers compete for the CPU; the run refuses while any are up unless this is given.
     [switch]$AllowContainers
@@ -43,7 +51,8 @@ function Invoke-Native($program, [string[]]$arguments, $log) {
     return $LASTEXITCODE
 }
 
-if ($Smoke) { $BudgetMs = 1500; $Sizes = '10'; $Workloads = 'TIGHT_WINDOW,ABSENCE'; $FixtureSeeds = '7001'; $Seeds = '17'; $Repetitions = 2; $ProfileFixtureSeeds = '7001' }
+if ($Smoke) { $BudgetMs = 1500; $Sizes = '5,10'; $Workloads = 'TIGHT_WINDOW,ABSENCE'; $WindowHours = '2,6'; $FixtureSeeds = '7001'; $Seeds = '17'; $Repetitions = 2
+              $ProfileFixtureSeeds = '7001'; $ProfileWindowHours = '6' }
 $repository = Split-Path $PSScriptRoot -Parent
 # The main checkout holds every worktree's run output (experiments/runs is gitignored there).
 $common = (& git -C $repository rev-parse --path-format=absolute --git-common-dir).Trim()
@@ -60,13 +69,17 @@ if (-not $AllowContainers -and (Get-Command docker -ErrorAction SilentlyContinue
 $ErrorActionPreference = 'Stop'
 if ($version -notmatch '"25') { throw "Java 25 is required, found: $version" }
 if ($running.Count -gt 0) { throw "$($running.Count) containers are running; stop them (docker compose stop) or pass -AllowContainers" }
-& git -C $main merge-base --is-ancestor $MainRevision $BranchRevision
-if ($LASTEXITCODE -ne 0) { throw "$BranchRevision does not build on $MainRevision; pass the buffer branch's commit" }
+# Tree m must be the branch's production base with test-only changes, so the main arm runs production code unchanged.
+$base = (& git -C $main merge-base $MainRevision $BranchRevision).Trim()
+if ($LASTEXITCODE -ne 0) { throw "$MainRevision and $BranchRevision share no history" }
+$changed = @(& git -C $main diff --name-only $base $MainRevision)
+$production = @($changed | Where-Object { $_ -notmatch '/src/test/' })
+if ($production.Count -gt 0) { throw "$MainRevision changes production code over $base ($($production -join ', ')); tree m must differ from it only in tests" }
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
 $evidence = if ($Smoke) { $null } else { Join-Path $main "research/evidence/arrival-buffer-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $main "experiments/runs/arrival-buffer-$(if ($Smoke) { 'smoke-' })$stamp"
-foreach ($directory in @('rows', 'logs', 'profile-rows', 'profiles/main', 'profiles/off', 'profiles/on')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }
+foreach ($directory in @('rows', 'logs', 'profile-rows')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }
 
 # Keep the machine awake for the run (the display may sleep).
 Add-Type -Name Power -Namespace Study -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);'
@@ -112,17 +125,21 @@ $sizeList = @($Sizes -split ',' | ForEach-Object { $_.Trim() })
 $workloadList = @($Workloads -split ',' | ForEach-Object { $_.Trim() })
 $fixtureList = @($FixtureSeeds -split ',' | ForEach-Object { $_.Trim() })
 $seedList = @($Seeds -split ',' | ForEach-Object { $_.Trim() })
+$windowList = @($WindowHours -split ',' | ForEach-Object { [int]$_.Trim() })
 $profileFixtureList = @($ProfileFixtureSeeds -split ',' | ForEach-Object { $_.Trim() })
-$cases = @(foreach ($size in $sizeList) { foreach ($workload in $workloadList) { foreach ($fixture in $fixtureList) { foreach ($seed in $seedList) {
-    , @($size, $workload, $fixture, $seed) } } } })
+$profileWindowList = @($ProfileWindowHours -split ',' | ForEach-Object { [int]$_.Trim() })
+if (@($windowList + $profileWindowList | Where-Object { $_ -lt 1 -or $_ -gt 9 }).Count -gt 0) { throw '-WindowHours and -ProfileWindowHours are whole hours from 1 to 9' }
+$cases = @(foreach ($size in $sizeList) { foreach ($hours in $windowList) { foreach ($workload in $workloadList) { foreach ($fixture in $fixtureList) {
+    foreach ($seed in $seedList) { , @($size, $workload, $fixture, $seed, $hours) } } } } })
 # Each solve takes its budget and about 5 s more (JVM start, warmup, fixture, validation).
 $perSolve = $BudgetMs / 1000 + 5
-$seconds = $cases.Count * $Repetitions * $armNames.Count * $perSolve + $sizeList.Count * $workloadList.Count * $profileFixtureList.Count * $seedList.Count * $armNames.Count * $perSolve
+$seconds = $cases.Count * $Repetitions * $armNames.Count * $perSolve +
+    $sizeList.Count * $workloadList.Count * $profileFixtureList.Count * $seedList.Count * $profileWindowList.Count * $armNames.Count * $perSolve
 @{ study = 'late-arrival buffer'; startedAt = [DateTime]::UtcNow.ToString('o'); smoke = [bool]$Smoke
    revisions = @{ m = $MainRevision; b = $BranchRevision }; arms = @{ main = 'tree m, no buffer'; off = 'tree b, no buffer'; on = "tree b, buffer $Buffer" }
    arrivalBuffer = $Buffer; jvm = $jvm; java = $version; processors = [Environment]::ProcessorCount; budgetMs = $BudgetMs
-   sizes = $sizeList; workloads = $workloadList; fixtureSeeds = $fixtureList; seeds = $seedList; repetitions = $Repetitions
-   profileFixtureSeeds = $profileFixtureList; order = 'per case: each arm its own JVM, arm order rotating' } |
+   sizes = $sizeList; windowHours = $windowList; workloads = $workloadList; fixtureSeeds = $fixtureList; seeds = $seedList; repetitions = $Repetitions
+   profileFixtureSeeds = $profileFixtureList; profileWindowHours = $profileWindowList; order = 'per case: each arm its own JVM, arm order rotating' } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $runs 'manifest.json') -Encoding utf8
 Write-Output "$($cases.Count) cases x $Repetitions repetitions x $($armNames.Count) arms at $BudgetMs ms, about $([math]::Ceiling($seconds / 60)) minutes. Output: $runs"
 
@@ -141,23 +158,28 @@ $total = $cases.Count * $Repetitions
 for ($repetition = 1; $repetition -le $Repetitions; $repetition++) {
     foreach ($case in $cases) {
         $index++
-        $size, $workload, $fixture, $seed = $case
+        $size, $workload, $fixture, $seed, $hours = $case
         $order = @(for ($offset = 0; $offset -lt $armNames.Count; $offset++) { $armNames[(($index + $repetition + $offset) % $armNames.Count)] })
         foreach ($arm in $order) {
-            $name = "rep$repetition-$size-$workload-$fixture-$seed-$arm"
+            $name = "rep$repetition-$size-$workload-$fixture-$seed-$($hours)h-$arm"
             Write-Output "[$index/$total] $name"
             $code = Invoke-Benchmark $arm (Join-Path $runs "rows/$name.jsonl") (Join-Path $runs "logs/$name.log") `
-                @("-Dbenchmark.sizes=$size", "-Dbenchmark.workloads=$workload", "-Dbenchmark.fixtureSeeds=$fixture", "-Dbenchmark.seeds=$seed")
+                @("-Dbenchmark.sizes=$size", "-Dbenchmark.workloads=$workload", "-Dbenchmark.fixtureSeeds=$fixture", "-Dbenchmark.seeds=$seed",
+                  "-Dbenchmark.windowHours=$hours")
             if ($code -ne 0) { $failures += $name }
         }
     }
 }
-foreach ($arm in $armNames) {
-    Write-Output "[profile] $arm"
-    $code = Invoke-Benchmark $arm (Join-Path $runs "profile-rows/profile-$arm.jsonl") (Join-Path $runs "logs/profile-$arm.log") `
-        @("-Dbenchmark.sizes=$Sizes", "-Dbenchmark.workloads=$Workloads", "-Dbenchmark.fixtureSeeds=$ProfileFixtureSeeds", "-Dbenchmark.seeds=$Seeds",
-          "-Dbenchmark.jfr=$(Join-Path $runs "profiles/$arm")")
-    if ($code -ne 0) { $failures += "profile-$arm" }
+foreach ($hours in $profileWindowList) {
+    foreach ($arm in $armNames) {
+        Write-Output "[profile] $arm, $hours-hour windows"
+        # Recordings are named by case and phase only, so each window length gets its own folder.
+        $recordings = Join-Path $runs "profiles/$arm/$($hours)h"
+        $code = Invoke-Benchmark $arm (Join-Path $runs "profile-rows/profile-$arm-$($hours)h.jsonl") (Join-Path $runs "logs/profile-$arm-$($hours)h.log") `
+            @("-Dbenchmark.sizes=$Sizes", "-Dbenchmark.workloads=$Workloads", "-Dbenchmark.fixtureSeeds=$ProfileFixtureSeeds", "-Dbenchmark.seeds=$Seeds",
+              "-Dbenchmark.windowHours=$hours", "-Dbenchmark.jfr=$recordings")
+        if ($code -ne 0) { $failures += "profile-$arm-$($hours)h" }
+    }
 }
 [Study.Power]::SetThreadExecutionState([uint32]'0x80000000') | Out-Null
 if ($failures.Count -gt 0) { throw "Runs failed (see their logs): $($failures -join ', ')" }

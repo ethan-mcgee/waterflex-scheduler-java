@@ -40,6 +40,9 @@ public final class SolverBenchmark {
         // shows how many arrivals today's timing puts where a buffer would be.
         @Nullable String reported = System.getProperty("benchmark.reportArrivalBuffer");
         PlanFacts.@Nullable ArrivalBuffer reportedBuffer = reported == null ? null : arrivalBuffer(reported);
+        // Optional: the fixtures' window length in whole hours; without it they keep their two-hour windows.
+        @Nullable String windowHours = System.getProperty("benchmark.windowHours");
+        int windowMinutes = windowHours == null ? SolverBenchmarkData.DEFAULT_WINDOW_MINUTES : Math.multiplyExact(Integer.parseInt(windowHours.trim()), 60);
         reportBuffer = reportedBuffer;
         // Optional: a directory that receives one JFR recording per measured solve (the solve alone: no warmup, no
         // validation, no report), named <technicians>-<workload>-<fixtureSeed>-<variant>-<seed>-<phase>.jfr.
@@ -56,6 +59,7 @@ public final class SolverBenchmark {
             provenance.put("budgetMs", budget); provenance.put("routingIdentity", "deterministic-directed-fixtures-v1");
             provenance.put("phases", phases.name()); provenance.put("arrivalBuffer", buffer);
             if (reportedBuffer != null) provenance.put("reportArrivalBuffer", reportedBuffer);
+            provenance.put("windowMinutes", windowMinutes);
             provenance.put("jfr", jfr == null ? "disabled" : "profile settings, one recording per measured solve in " + jfr);
             provenance.put("engine", EngineProvenance.loaded());
             provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", SolverEngine.INSTRUMENTATION);
@@ -76,7 +80,7 @@ public final class SolverBenchmark {
             }
             writer.flush(); int round = 0;
             for (int size : sizes) for (var workload : workloads) for (long fixtureSeed : fixtureSeeds) for (long seed : seeds) {
-                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload), fixtureSeed, buffer);
+                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload), fixtureSeed, buffer, windowMinutes);
                 String fingerprint = fingerprint(fixture);
                 var ordered = new ArrayList<>(variants); Collections.rotate(ordered, round++ % ordered.size());
                 for (var variant : ordered) {
@@ -90,7 +94,7 @@ public final class SolverBenchmark {
                     if (!fingerprint.equals(fingerprint(fixture))) throw new IllegalStateException("Starting fixture changed");
                     row.put("type", "result"); row.put("technicians", size); row.put("workload", workload.name());
                     row.put("datasetFingerprint", fingerprint); row.put("appointments", fixture.getVisits().size());
-                    row.put("fixtureSeed", fixtureSeed); row.put("phases", phases.name());
+                    row.put("fixtureSeed", fixtureSeed); row.put("phases", phases.name()); row.put("windowMinutes", windowMinutes);
                     row.put("completedAt", Instant.now().toString());
                     writer.write(json.writeValueAsString(row)); writer.newLine(); writer.flush();
                     System.out.println(size + "/" + workload + "/" + fixtureSeed + "/" + variant + "/" + seed + " " + row.get("acceptanceReason"));

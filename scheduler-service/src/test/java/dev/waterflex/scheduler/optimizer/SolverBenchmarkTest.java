@@ -89,6 +89,31 @@ class SolverBenchmarkTest {
         for (TechRoute route : SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.ABSENCE, 7001).getRoutes()) assertEquals(540, route.getMaxDailyMinutes());
     }
 
+    /** The arrival buffer study's 4- and 6-hour windows: feasible, each containing its 2-hour window, none ending after 17:00. */
+    @Test void longerWindowsContainTheTwoHourWindowAndEndByFivePm() throws Exception {
+        var none = PlanFacts.ArrivalBuffer.NONE;
+        var fivePm = Required.value(java.time.Instant.parse("2026-10-26T17:00:00Z"));
+        for (int fleet : new int[] {5, 10, 30, 50}) for (var workload : List.of(SolverBenchmarkData.Workload.CLUSTERED, SolverBenchmarkData.Workload.DISPERSED,
+                SolverBenchmarkData.Workload.ABSENCE, SolverBenchmarkData.Workload.TIGHT_WINDOW, SolverBenchmarkData.Workload.NEAR_CAPACITY))
+            for (long seed : new long[] {7001, 7002}) {
+                var shape = Required.value(workload);
+                var two = SolverBenchmarkData.create(fleet, shape, seed);
+                assertEquals(SolverBenchmark.fingerprint(two), SolverBenchmark.fingerprint(SolverBenchmarkData.create(fleet, shape, seed, none, 120)));
+                for (int minutes : new int[] {240, 360}) {
+                    var wide = SolverBenchmarkData.create(fleet, shape, seed, none, minutes);
+                    assertTrue(RouteEvaluator.evaluate(wide).feasible(), fleet + "/" + shape + "/" + seed + "/" + minutes);
+                    for (int index = 0; index < two.getVisits().size(); index++) {
+                        PlanVisit narrow = Required.value(two.getVisits().get(index)), wider = Required.value(wide.getVisits().get(index));
+                        assertEquals(narrow.getId(), wider.getId());
+                        assertEquals(minutes, java.time.Duration.between(wider.getWindowStart(), wider.getWindowEnd()).toMinutes());
+                        assertFalse(wider.getWindowStart().isAfter(narrow.getWindowStart()) || wider.getWindowEnd().isBefore(narrow.getWindowEnd()), wider.getId());
+                        assertFalse(wider.getWindowEnd().isAfter(fivePm), wider.getId());
+                    }
+                }
+            }
+        assertThrows(IllegalArgumentException.class, () -> SolverBenchmarkData.create(5, SolverBenchmarkData.Workload.CLUSTERED, 1, none, 600));
+    }
+
     /** A cost-only case spends the whole budget on the cost search and records no fairness phase. */
     @Test void costOnlyRunsOneSearchOverTheWholeBudget() {
         var definition = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17);

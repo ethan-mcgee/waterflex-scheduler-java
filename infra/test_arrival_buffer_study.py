@@ -6,15 +6,17 @@ from pathlib import Path
 import arrival_buffer_study as abs_
 
 CASES = [(10, 'CLUSTERED', 7001, 17), (30, 'ABSENCE', 7001, 17), (50, 'TIGHT_WINDOW', 7002, 17)]
+WINDOWS = (2, 6)
 BUFFER = {'percent': 25, 'minMinutes': 15, 'maxMinutes': 60}
 
 
-def result(case, moves, cost, inside, buffer_seconds=None):
+def result(case, hours, moves, cost, inside, buffer_seconds=None):
     technicians, workload, fixture, seed = case
     after = {'costCents': cost, 'overtimeMinutes': 0}
     line = {'type': 'result', 'variant': 'TABU_KOPT', 'technicians': technicians, 'workload': workload, 'fixtureSeed': fixture, 'seed': seed,
-            'violations': 0, 'appointments': 40, 'acceptanceReason': 'FAIRNESS_IMPROVEMENT',
-            'referencePhase': {'moveEvaluations': moves, 'solveMs': 1000}, 'fairnessPhase': {'moveEvaluations': moves, 'solveMs': 1000}, 'after': after}
+            'windowMinutes': hours * 60, 'datasetFingerprint': f'{technicians}-{workload}-{fixture}-{hours}', 'violations': 0, 'appointments': 40,
+            'acceptanceReason': 'FAIRNESS_IMPROVEMENT', 'referencePhase': {'moveEvaluations': moves, 'solveMs': 1000},
+            'fairnessPhase': {'moveEvaluations': moves, 'solveMs': 1000}, 'after': after}
     if buffer_seconds is not None:
         after['bufferSeconds'] = buffer_seconds
         line['stopsInsideBufferBefore'] = 6
@@ -22,20 +24,23 @@ def result(case, moves, cost, inside, buffer_seconds=None):
     return line
 
 
-def write_run(root, off_speed=99, on_speed=93, absence_on_speed=None):
-    """Main runs 100 moves per second in each phase; off and on run their own speeds, ABSENCE optionally slower for on."""
+def write_run(root, off_speed=99, on_speed=93, absence_on_speed=None, wide_on_cost=1010):
+    """Main runs 100 moves per second in each phase; off and on run their own speeds, ABSENCE optionally slower for on.
+    On costs 10 cents more than off on 2-hour windows and {@code wide_on_cost} - 1000 on 6-hour ones."""
     (root / 'rows').mkdir()
     (root / 'manifest.json').write_text('﻿' + json.dumps({'study': 'test', 'arrivalBuffer': '25,15,60'}), encoding='utf-8')
     for rep in (1, 2):
-        for case in CASES:
-            on = absence_on_speed if absence_on_speed is not None and case[1] == 'ABSENCE' else on_speed
-            arms = {'main': ({}, result(case, 100, 1000, 0)),
-                    'off': ({'arrivalBuffer': {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}, 'reportArrivalBuffer': BUFFER}, result(case, off_speed, 1000, 5, 0)),
-                    'on': ({'arrivalBuffer': BUFFER}, result(case, on, 1010, 0, 0))}
-            for arm, (extra, line) in arms.items():
-                provenance = {'type': 'provenance', 'revision': 'arrival-buffer-study arm=' + arm, 'budgetMs': 15000, **extra}
-                name = f'rep{rep}-{case[0]}-{case[1]}-{case[2]}-{case[3]}-{arm}.jsonl'
-                (root / 'rows' / name).write_text('\n'.join(json.dumps(item) for item in [provenance, line]) + '\n', encoding='utf-8')
+        for hours in WINDOWS:
+            for case in CASES:
+                on = absence_on_speed if absence_on_speed is not None and case[1] == 'ABSENCE' else on_speed
+                arms = {'main': ({}, result(case, hours, 100, 1000, 0)),
+                        'off': ({'arrivalBuffer': {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}, 'reportArrivalBuffer': BUFFER},
+                                result(case, hours, off_speed, 1000, 5, 0)),
+                        'on': ({'arrivalBuffer': BUFFER}, result(case, hours, on, 1010 if hours == 2 else wide_on_cost, 0, 0))}
+                for arm, (extra, line) in arms.items():
+                    provenance = {'type': 'provenance', 'revision': 'arrival-buffer-study arm=' + arm, 'budgetMs': 15000, 'windowMinutes': hours * 60, **extra}
+                    name = f'rep{rep}-{case[0]}-{case[1]}-{case[2]}-{case[3]}-{hours}h-{arm}.jsonl'
+                    (root / 'rows' / name).write_text('\n'.join(json.dumps(item) for item in [provenance, line]) + '\n', encoding='utf-8')
     return root
 
 
@@ -53,10 +58,12 @@ class ArrivalBufferStudyTest(unittest.TestCase):
 
     def test_both_arms_pass_their_bars_against_main(self):
         paired = self.summarize()['paired']
+        self.assertEqual(paired['cases'], len(CASES) * len(WINDOWS))
         self.assertEqual(paired['speed']['off/main']['referencePhase']['overall']['median'], 0.99)
         self.assertEqual(paired['speed']['on/main']['fairnessPhase']['overall']['median'], 0.93)
         self.assertEqual(sorted(paired['speed']['on/main']['referencePhase']['byWorkload']), ['ABSENCE', 'CLUSTERED', 'TIGHT_WINDOW'])
-        self.assertEqual(paired['speed']['on/main']['referencePhase']['byFleet']['30']['pairs'], 2)
+        self.assertEqual(paired['speed']['on/main']['referencePhase']['byFleet']['30']['pairs'], 4)
+        self.assertEqual(paired['speed']['on/main']['referencePhase']['byWindowHours']['6']['pairs'], 6)
         self.assertTrue(paired['decision']['off']['promoted'] and paired['decision']['on']['promoted'])
 
     def test_each_arm_is_held_to_its_own_bar(self):
@@ -71,17 +78,26 @@ class ArrivalBufferStudyTest(unittest.TestCase):
 
     def test_quality_reports_what_the_buffer_buys_and_costs(self):
         paired = self.summarize()['paired']
-        self.assertEqual((paired['quality']['off']['stopsInsideBufferAfter'], paired['quality']['on']['stopsInsideBufferAfter']), (30, 0))
+        self.assertEqual((paired['quality']['off']['stopsInsideBufferAfter'], paired['quality']['on']['stopsInsideBufferAfter']), (60, 0))
         self.assertNotIn('stopsInsideBufferAfter', paired['quality']['main'])
-        self.assertEqual((paired['costAgainstOff']['median'], paired['costAgainstOff']['higher']), (10, 6))
-        self.assertEqual(paired['stopsInsideBufferAgainstOff']['lower'], 6)
+        self.assertEqual((paired['costAgainstOff']['median'], paired['costAgainstOff']['higher']), (10, 12))
+        self.assertEqual(paired['stopsInsideBufferAgainstOff']['lower'], 12)
 
-    def test_an_arm_that_ran_the_wrong_buffer_or_tree_is_refused(self):
+    def test_each_window_length_reports_its_own_cost(self):
+        windows = self.summarize(wide_on_cost=1040)['paired']['byWindowHours']
+        self.assertEqual(sorted(windows), ['2', '6'])
+        self.assertEqual((windows['2']['costAgainstOff']['median'], windows['6']['costAgainstOff']['median']), (10, 40))
+        self.assertEqual(windows['6']['quality']['off']['stopsInsideBufferAfter'], 30)
+
+    def test_an_arm_that_ran_the_wrong_buffer_tree_or_window_is_refused(self):
         for suffix, change, message in [
-                ('-on.jsonl', lambda lines: lines[0].update(arrivalBuffer={'percent': 30, 'minMinutes': 15, 'maxMinutes': 60}), 'wrong buffer'),
-                ('-off.jsonl', lambda lines: lines[0].pop('reportArrivalBuffer'), 'count stops'),
-                ('-main.jsonl', lambda lines: lines[0].update(arrivalBuffer=BUFFER), 'before the buffer'),
-                ('-on.jsonl', lambda lines: lines[1].update(variant='TABU'), 'TABU_KOPT')]:
+                ('-2h-on.jsonl', lambda lines: lines[0].update(arrivalBuffer={'percent': 30, 'minMinutes': 15, 'maxMinutes': 60}), 'wrong buffer'),
+                ('-2h-off.jsonl', lambda lines: lines[0].pop('reportArrivalBuffer'), 'count stops'),
+                ('-2h-main.jsonl', lambda lines: lines[0].update(arrivalBuffer=BUFFER), 'before the buffer'),
+                ('-2h-on.jsonl', lambda lines: lines[1].update(variant='TABU'), 'TABU_KOPT'),
+                ('-6h-main.jsonl', lambda lines: lines[0].update(windowMinutes=120), '6-hour windows'),
+                ('-6h-on.jsonl', lambda lines: lines[1].update(windowMinutes=240), 'does not match'),
+                ('-6h-main.jsonl', lambda lines: lines[1].update(datasetFingerprint='another day'), 'different days')]:
             with tempfile.TemporaryDirectory() as temporary:
                 run = write_run(Path(temporary))
                 rewrite(next((run / 'rows').glob('rep1-10-*' + suffix)), change)
@@ -91,12 +107,12 @@ class ArrivalBufferStudyTest(unittest.TestCase):
     def test_an_incomplete_or_mixed_run_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             run = write_run(Path(temporary))
-            next((run / 'rows').glob('rep2-50-*-main.jsonl')).unlink()
+            next((run / 'rows').glob('rep2-50-*-6h-main.jsonl')).unlink()
             with self.assertRaisesRegex(ValueError, 'missing'):
                 abs_.summarize(run, run / 'out.json', 'jfr')
         with tempfile.TemporaryDirectory() as temporary:
             run = write_run(Path(temporary))
-            rewrite(next((run / 'rows').glob('rep1-10-*-on.jsonl')), lambda lines: lines[0].update(budgetMs=30000))
+            rewrite(next((run / 'rows').glob('rep1-10-*-2h-on.jsonl')), lambda lines: lines[0].update(budgetMs=30000))
             with self.assertRaisesRegex(ValueError, 'one budget'):
                 abs_.summarize(run, run / 'out.json', 'jfr')
 

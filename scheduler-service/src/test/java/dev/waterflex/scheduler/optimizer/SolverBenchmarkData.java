@@ -19,8 +19,21 @@ final class SolverBenchmarkData {
     private SolverBenchmarkData() { }
     static DayPlan create(int count, Workload workload) { return create(count, workload, 0); }
     static DayPlan create(int count, Workload workload, long fixtureSeed) { return create(count, workload, fixtureSeed, PlanFacts.ArrivalBuffer.NONE); }
+    /** The fixtures' window length: two hours, as every study before the window option measured them. */
+    static final int DEFAULT_WINDOW_MINUTES = 120;
+    /** Windows end by 17:00, the end of the standard nine-hour shift. */
+    private static final int DAY_END_MINUTE = 1020;
     /** The same fixture with a late-arrival buffer: every route, visit and leg is identical, only the buffer differs. */
     static DayPlan create(int count, Workload workload, long fixtureSeed, PlanFacts.ArrivalBuffer buffer) {
+        return create(count, workload, fixtureSeed, buffer, DEFAULT_WINDOW_MINUTES);
+    }
+    /**
+     * The same fixture with windows {@code windowMinutes} long. Each window keeps its start unless it would end after
+     * 17:00, when it starts earlier so it ends then; two-hour windows never move, and every longer window contains the
+     * two-hour one, so the fixture stays feasible.
+     */
+    static DayPlan create(int count, Workload workload, long fixtureSeed, PlanFacts.ArrivalBuffer buffer, int windowMinutes) {
+        if (windowMinutes < 60 || windowMinutes > 540) throw new IllegalArgumentException("Benchmark windows must be 60 to 540 minutes");
         if (count != 5 && count != 10 && count != 20 && count != 30 && count != 50) throw new IllegalArgumentException("Benchmark fleet must be 5, 10, 20, 30 or 50");
         if (fixtureSeed < 0) throw new IllegalArgumentException("Benchmark fixture seed must not be negative");
         Random random = new Random(fixtureSeed);
@@ -47,9 +60,9 @@ final class SolverBenchmarkData {
             int duration = workload == Workload.NEAR_CAPACITY ? 55 : workload == Workload.TIGHT_WINDOW ? 45 : 30;
             for (int index = 0; index < assigned; index++) {
                 String visitId = "visit-" + technician + "-" + index;
-                int window = 480 + (index / 2) * (workload == Workload.TIGHT_WINDOW ? 90 : 120);
+                int window = Math.min(480 + (index / 2) * (workload == Workload.TIGHT_WINDOW ? 90 : 120), DAY_END_MINUTE - windowMinutes);
                 String service = workload == Workload.MIXED_SKILL && rank % 3 == 0 && index % 2 == 0 ? "scarce" : "common";
-                PlanVisit visit = new PlanVisit(visitId, service, at(window), at(window + 120), duration, id, at(window));
+                PlanVisit visit = new PlanVisit(visitId, service, at(window), at(window + windowMinutes), duration, id, at(window));
                 visit.setTechnician(route); route.getVisits().add(visit); visits.add(visit);
                 location.put(visitId, locationNumber(count + visits.size(), fixtureSeed, random, usedLocations)); cluster.put(visitId, rank % 4);
             }

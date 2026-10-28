@@ -4,6 +4,9 @@ Arms, all TABU_KOPT at one budget, paired per case and repetition:
   main  tree m (main before the buffer), no buffer                 production as it ships today
   off   tree b (the buffer branch), no buffer                      the branch with the setting absent
   on    tree b, the client buffer (25 percent, 15 to 60 minutes)   the branch with the portal default
+Tree m is main plus a test-only fixture change (bench/arrival-buffer-main) so it can build the same 4- and 6-hour
+windows; a case is a fleet, workload, fixture seed, solver seed and window length, and its three arms must have solved
+the same day (one dataset fingerprint), which the summary checks.
 
 Bars, written before the run (2026-10-27). Speed is the median over pairs of moves per second, arm over main, per phase:
   off  at least 0.98x in both phases and zero violations: with no buffer the arithmetic is the same apart from one more
@@ -17,7 +20,7 @@ off against on shows what the buffer buys. A buffer that costs more than the own
   python infra/arrival_buffer_study.py summarize --run <run directory> --out <evidence json>
 
 The run directory is what infra/run-arrival-buffer-study.ps1 writes: rows/rep<r>-<technicians>-<workload>-<fixture>-
-<seed>-<arm>.jsonl, manifest.json and profiles/<arm>/*.jfr.
+<seed>-<window>h-<arm>.jsonl, manifest.json and profiles/<arm>/<window>h/*.jfr.
 """
 import argparse
 import json
@@ -34,7 +37,9 @@ ARMS = ('main', 'off', 'on')
 PHASES = ('referencePhase', 'fairnessPhase')
 BARS = {'off': 0.98, 'on': 0.90}
 NONE = {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}
-ROW_FILE = re.compile(r'rep(\d+)-(\d+)-([A-Z_]+)-(\d+)-(\d+)-(main|off|on)\.jsonl')
+ROW_FILE = re.compile(r'rep(\d+)-(\d+)-([A-Z_]+)-(\d+)-(\d+)-(\d+)h-(main|off|on)\.jsonl')
+# Positions in a case: (technicians, workload, fixture seed, solver seed, window hours).
+FLEET, WORKLOAD, WINDOW = 0, 1, 4
 JFR_FILE = re.compile(r'(\d+)-([A-Z_]+)-(\d+)-([A-Z_0-9]+)-(\d+)-(cost|fairness)\.jfr')
 
 
@@ -47,12 +52,14 @@ def buffer_of(text):
 def read_rows(path, buffer):
     match = ROW_FILE.fullmatch(path.name)
     check(match is not None, 'unexpected row file name: ' + path.name)
-    rep, technicians, workload, fixture, seed, arm = int(match[1]), int(match[2]), match[3], int(match[4]), int(match[5]), match[6]
+    rep, technicians, workload, fixture, seed, hours, arm = (int(match[1]), int(match[2]), match[3], int(match[4]), int(match[5]), int(match[6]),
+                                                             match[7])
     # Variances are exact decimals in the JSON; keep them so.
     lines = [json.loads(line, parse_float=Decimal) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
     check(lines and lines[0].get('type') == 'provenance', path.name + ': provenance first')
     provenance = lines[0]
     check(isinstance(provenance.get('budgetMs'), int), path.name + ': provenance needs the budget')
+    check(provenance.get('windowMinutes') == hours * 60, path.name + ': the run did not use ' + str(hours) + '-hour windows')
     check(not any(line.get('type') == 'diagnostics-failure' for line in lines), path.name + ': diagnostics failure')
     # Each arm must have run what it claims: main predates the setting, off ran without it, on with the study's buffer.
     if arm == 'main':
@@ -64,23 +71,23 @@ def read_rows(path, buffer):
     results = [line for line in lines if line.get('type') == 'result']
     check(len(results) == 1, path.name + ': one result expected')
     row = results[0]
-    check(row['technicians'] == technicians and row['workload'] == workload and row['fixtureSeed'] == fixture and row['seed'] == seed,
-          path.name + ': row does not match its file')
+    check(row['technicians'] == technicians and row['workload'] == workload and row['fixtureSeed'] == fixture and row['seed'] == seed
+          and row.get('windowMinutes') == hours * 60, path.name + ': row does not match its file')
     check(row['variant'] == 'TABU_KOPT', path.name + ': every arm runs TABU_KOPT')
-    return {'arm': arm, 'budget': provenance['budgetMs'], 'rep': rep, 'case': (technicians, workload, fixture, seed), 'row': row,
+    return {'arm': arm, 'budget': provenance['budgetMs'], 'rep': rep, 'case': (technicians, workload, fixture, seed, hours), 'row': row,
             'revision': provenance['revision']}
 
 
 def split(values, keys, position):
-    """The same paired values, split by one part of the case (0 the fleet, 1 the workload)."""
+    """The same paired values, split by one part of the case (FLEET, WORKLOAD or WINDOW)."""
     return {str(group): spread([value for value, key in zip(values, keys) if key[position] == group]) for group in sorted({key[position] for key in keys})}
 
 
 def speed(by, pairs, arm, against):
     ratios = {phase: [rate(by[(arm, case, rep)], phase) / rate(by[(against, case, rep)], phase) for case, rep in pairs] for phase in PHASES}
     keys = [case for case, _ in pairs]
-    return {phase: {'overall': spread(ratios[phase]), 'byFleet': split(ratios[phase], keys, 0), 'byWorkload': split(ratios[phase], keys, 1)}
-            for phase in PHASES}
+    return {phase: {'overall': spread(ratios[phase]), 'byFleet': split(ratios[phase], keys, FLEET), 'byWorkload': split(ratios[phase], keys, WORKLOAD),
+                    'byWindowHours': split(ratios[phase], keys, WINDOW)} for phase in PHASES}
 
 
 def differences(by, pairs, arm, against, read):
@@ -116,6 +123,8 @@ def paired(rows):
         for rep in reps:
             for arm in ARMS:
                 check((arm, case, rep) in by, 'missing ' + arm + ' for ' + repr(case) + ' rep ' + str(rep))
+            # Tree m builds its fixtures with its own copy of the window code: every arm must have solved the same day.
+            check(len({by[(arm, case, rep)]['datasetFingerprint'] for arm in ARMS}) == 1, 'the arms solved different days for ' + repr(case))
     pairs = [(case, rep) for case in cases for rep in reps]
     violations = {arm: sum(by[(arm, case, rep)]['violations'] for case, rep in pairs) for arm in ARMS}
     speeds = {'off/main': speed(by, pairs, 'off', 'main'), 'on/main': speed(by, pairs, 'on', 'main'), 'on/off': speed(by, pairs, 'on', 'off')}
@@ -125,20 +134,27 @@ def paired(rows):
         medians = {phase: speeds[arm + '/main'][phase]['overall']['median'] for phase in PHASES}
         decision[arm] = {'promoted': all(value >= BARS[arm] for value in medians.values()) and violations[arm] == 0, 'medians': medians,
                          'bar': 'median paired moves per second against main at least ' + str(BARS[arm]) + 'x in both phases, zero violations'}
+    inside = lambda row: row['stopsInsideBufferAfter']
+    windows = {}
+    for hours in sorted({case[WINDOW] for case in cases}):
+        subset = [(case, rep) for case, rep in pairs if case[WINDOW] == hours]
+        windows[str(hours)] = {'quality': {arm: quality(by, subset, arm) for arm in ARMS}, 'costAgainstOff': differences(by, subset, 'on', 'off', cost),
+                               'stopsInsideBufferAgainstOff': differences(by, subset, 'on', 'off', inside)}
     return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'speed': speeds, 'decision': decision,
             'quality': {arm: quality(by, pairs, arm) for arm in ARMS},
             'costAgainstOff': differences(by, pairs, 'on', 'off', cost), 'costAgainstMain': differences(by, pairs, 'on', 'main', cost),
-            'stopsInsideBufferAgainstOff': differences(by, pairs, 'on', 'off', lambda row: row['stopsInsideBufferAfter'])}
+            'stopsInsideBufferAgainstOff': differences(by, pairs, 'on', 'off', inside), 'byWindowHours': windows}
 
 
 def profiles(directory, jfr):
-    """Per arm and phase: the merged attribution of every recording, each arm's recordings in its own folder."""
+    """Per arm, window length and phase: the merged attribution of every recording, in profiles/<arm>/<window>h/."""
     grouped = {}
-    for path in sorted(directory.glob('*/*.jfr')):
+    for path in sorted(directory.glob('*/*/*.jfr')):
         match = JFR_FILE.fullmatch(path.name)
-        check(match is not None and path.parent.name in ARMS, 'unexpected recording: ' + str(path))
-        grouped.setdefault((path.parent.name, match[6]), []).append(attribute(jfr_document(path, jfr)))
-    return {arm + ' ' + phase: merge(parts) for (arm, phase), parts in sorted(grouped.items())}
+        window = re.fullmatch(r'(\d+)h', path.parent.name)
+        check(match is not None and window is not None and path.parent.parent.name in ARMS, 'unexpected recording: ' + str(path))
+        grouped.setdefault((path.parent.parent.name, int(window[1]), match[6]), []).append(attribute(jfr_document(path, jfr)))
+    return {f'{arm} {hours}h {phase}': merge(parts) for (arm, hours, phase), parts in sorted(grouped.items())}
 
 
 def summarize(run, output, jfr):
