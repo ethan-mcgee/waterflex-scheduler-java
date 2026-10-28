@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.optimizer.DayPlan;
+import dev.waterflex.scheduler.optimizer.PlanFacts;
 import dev.waterflex.scheduler.optimizer.PlanVisit;
 import dev.waterflex.scheduler.optimizer.RouteEvaluator;
 import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
@@ -31,15 +32,21 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
     public record Rates(@JsonSerialize(using = DecimalStringSerializer.class) BigDecimal regularHourly,
                         @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal overtimeHourly,
                         @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal mileagePerMile,
-                        @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal travelBufferPct, long travelBufferMinutes) {
+                        @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal travelBufferPct, long travelBufferMinutes,
+                        PlanFacts.ArrivalBuffer arrivalBuffer) {
         public Rates(double regular, double overtime, double mileage, double pct, long minutes) {
-            this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes);
+            this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes, PlanFacts.ArrivalBuffer.NONE);
+        }
+        /** Rates without a late-arrival buffer ({@link PlanFacts.ArrivalBuffer#NONE}). */
+        public Rates(BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile, BigDecimal travelBufferPct, long travelBufferMinutes) {
+            this(regularHourly, overtimeHourly, mileagePerMile, travelBufferPct, travelBufferMinutes, PlanFacts.ArrivalBuffer.NONE);
         }
         public Rates {
             regularHourly = Monetary.hourly(regularHourly); overtimeHourly = Monetary.hourly(overtimeHourly);
             mileagePerMile = Monetary.mileage(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
             if (travelBufferMinutes < 0 || travelBufferMinutes > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Invalid operating cost or travel settings");
+            Objects.requireNonNull(arrivalBuffer, "arrivalBuffer");
         }
         public static Rates read(Map<String, BigDecimal> settings) {
             long minutes = Required.value(settings.get("travel_buffer_minutes_per_leg"), "travel buffer minutes").longValueExact();
@@ -246,8 +253,8 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
                 }
                 routes.add(route);
             }
-            return new DayPlan(routes, all, roads.legs(), rates.regularHourly(), rates.overtimeHourly(),
-                    rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
+            return new DayPlan(routes, all, roads.legs(), Required.value(Set.of()), rates.regularHourly(), rates.overtimeHourly(),
+                    rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes(), rates.arrivalBuffer());
         }
         public RouteEvaluator.Result evaluate(Arrangement arrangement, Map<String, Visit> facts, Rates rates) {
             return RouteEvaluator.evaluate(plan(arrangement, facts, rates, false));

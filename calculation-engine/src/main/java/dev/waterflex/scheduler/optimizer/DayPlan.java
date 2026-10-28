@@ -13,7 +13,7 @@ import java.util.*;
 public class DayPlan {
     @PlanningEntityCollectionProperty private @Nullable List<TechRoute> routes;
     @PlanningEntityCollectionProperty @ValueRangeProvider(id = "visits") private @Nullable List<PlanVisit> visits;
-    @PlanningScore(bendableHardLevelsSize = 5, bendableSoftLevelsSize = 2) private @Nullable BendableScore score;
+    @PlanningScore(bendableHardLevelsSize = DayScores.HARD_LEVELS, bendableSoftLevelsSize = DayScores.SOFT_LEVELS) private @Nullable BendableScore score;
     @ProblemFactProperty private @Nullable RouteScoringFacts scoringFacts;
     public enum Mode { ASSIGNED, COLD, PARTIAL, REPAIR }
     private Mode mode = Mode.ASSIGNED;
@@ -37,10 +37,15 @@ public class DayPlan {
             BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
         this(routes, visits, matrix, Required.value(Set.of()), regular, overtime, mileage, pct, minutes);
     }
+    /** A plan without a late-arrival buffer ({@link PlanFacts.ArrivalBuffer#NONE}). */
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
             BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
+        this(routes, visits, matrix, unreachable, regular, overtime, mileage, pct, minutes, PlanFacts.ArrivalBuffer.NONE);
+    }
+    public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
+            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes, PlanFacts.ArrivalBuffer buffer) {
         this.routes = Required.value(List.copyOf(routes)); this.visits = Required.value(List.copyOf(visits));
-        this.scoringFacts = new RouteScoringFacts(PlanFacts.capture(routes, visits, matrix, unreachable, regular, overtime, mileage, pct, minutes), null);
+        this.scoringFacts = new RouteScoringFacts(PlanFacts.capture(routes, visits, matrix, unreachable, regular, overtime, mileage, pct, minutes, buffer), null);
     }
     DayPlan(List<TechRoute> routes, List<PlanVisit> visits, RouteScoringFacts facts) {
         this.routes = Required.value(List.copyOf(routes)); this.visits = Required.value(List.copyOf(visits)); this.scoringFacts = facts;
@@ -54,6 +59,7 @@ public class DayPlan {
     public BigDecimal getMileagePerMile() { return getFacts().mileagePerMile(); }
     public BigDecimal getTravelBufferPct() { return getFacts().travelBufferPct(); }
     public long getTravelBufferMinutes() { return getFacts().travelBufferMinutes(); }
+    public PlanFacts.ArrivalBuffer getArrivalBuffer() { return getFacts().arrivalBuffer(); }
     public @Nullable BendableScore getScore() { return score; }
     public void setScore(@Nullable BendableScore score) { this.score = score; }
     public Mode getMode() { return mode; }

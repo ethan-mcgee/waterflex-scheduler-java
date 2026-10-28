@@ -12,11 +12,13 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
     }
     public static final class Target {
         private final PlanFacts facts;
-        private final long overtimeMinutes, costCeilingCents;
-        private Target(PlanFacts facts, long overtimeMinutes, long costCeilingCents) {
-            this.facts = facts; this.overtimeMinutes = overtimeMinutes; this.costCeilingCents = costCeilingCents;
+        private final long overtimeMinutes, bufferSeconds, costCeilingCents;
+        private Target(PlanFacts facts, long overtimeMinutes, long bufferSeconds, long costCeilingCents) {
+            this.facts = facts; this.overtimeMinutes = overtimeMinutes; this.bufferSeconds = bufferSeconds; this.costCeilingCents = costCeilingCents;
         }
         public long overtimeMinutes() { return overtimeMinutes; }
+        /** The reference's late-arrival buffer seconds, which a fairer plan may not exceed. */
+        public long bufferSeconds() { return bufferSeconds; }
         public long costCeilingCents() { return costCeilingCents; }
     }
     record ScoredRoute(String technicianId, long capacity, boolean eligible, RouteTimeline.Result metrics) { }
@@ -74,14 +76,22 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
     long costExcess(List<@NonNull ScoredRoute> routes) {
         Target fixed = target; return fixed == null ? 0 : Math.max(0, cost(routes) - fixed.costCeilingCents());
     }
+    long bufferExcess(List<@NonNull ScoredRoute> routes) {
+        Target fixed = target;
+        if (fixed == null) return 0;
+        long buffer = 0;
+        for (ScoredRoute route : routes) buffer = Math.addExact(buffer, route.metrics().bufferSeconds());
+        return Math.max(0, buffer - fixed.bufferSeconds());
+    }
     public RouteScoringFacts withTarget(DayPlan reference, long ceiling) {
         PlanFacts.check(reference.getFacts() == facts, "reference fact revision mismatch");
         facts.validateEntities(reference, true);
         var independent = RouteEvaluator.evaluate(reference);
         var scored = DayScoreCalculator.evaluate(reference);
         PlanFacts.check(independent.feasible() && scored.hardPenalty() == 0 && independent.costCents() == scored.costCents()
-                && independent.arrivals().equals(scored.arrivals()), "fairness reference must be complete and independently valid");
+                && independent.arrivals().equals(scored.arrivals()) && independent.bufferSeconds() == scored.bufferSeconds(),
+                "fairness reference must be complete and independently valid");
         PlanFacts.check(ceiling >= independent.costCents() && ceiling <= Monetary.MAX_CENTS, "invalid fairness ceiling");
-        return new RouteScoringFacts(facts, new Target(facts, independent.overtimeMinutes(), ceiling));
+        return new RouteScoringFacts(facts, new Target(facts, independent.overtimeMinutes(), independent.bufferSeconds(), ceiling));
     }
 }

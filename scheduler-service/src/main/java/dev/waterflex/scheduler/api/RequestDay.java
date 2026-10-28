@@ -87,7 +87,7 @@ public final class RequestDay {
         }
         PublicTypes.Rates rates = snapshot.rates();
         return new DayPlan(Required.value(List.copyOf(routes.values())), Required.value(List.copyOf(visits)), reachable, unreachable,
-                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
+                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes(), rates.arrival());
     }
 
     /** Technician-days in technician ID order, matching the database path's ORDER BY. The snapshot has one per technician. */

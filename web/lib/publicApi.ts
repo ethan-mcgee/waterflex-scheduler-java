@@ -23,7 +23,10 @@ export const publicSnapshot = z.object({
   metroId: id,
   timeZone: z.string().min(1),
   rates: z.object({ regularHourly: decimal, overtimeHourly: decimal, mileagePerMile: decimal, travelBufferPct: decimal,
-    travelBufferMinutes: z.int().min(0).max(120) }).strict(),
+    travelBufferMinutes: z.int().min(0).max(120),
+    // Optional since spec 1.9.0; the portal always sends the client's own.
+    arrivalBuffer: z.object({ percent: z.int().min(0).max(50), minMinutes: z.int().min(0).max(240), maxMinutes: z.int().min(0).max(240) }).strict()
+      .refine(value => value.minMinutes <= value.maxMinutes, "arrivalBuffer.minMinutes must be at most maxMinutes").optional() }).strict(),
   policy: z.object({ fairnessBudget: decimal, dailySearch: z.enum(["TABU", "TABU_KOPT", "TABU_KOPT_SIZE_3"]), costSearchSeconds: z.int().min(5).max(240),
     fairnessSearchSeconds: z.int().min(0).max(240), bookingDeadlineMs: z.int().min(1000).max(5000),
     regularWindowThreshold: z.int().min(0).max(1000),

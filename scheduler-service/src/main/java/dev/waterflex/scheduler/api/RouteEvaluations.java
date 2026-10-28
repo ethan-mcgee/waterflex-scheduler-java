@@ -70,17 +70,19 @@ public class RouteEvaluations {
         var plan = prepared.plan();
         var result = RouteEvaluator.evaluate(plan);
         // A day that does not hold cannot be timed as given: the evaluation stops at the first stop it cannot reach.
-        if (!result.feasible()) return new RouteEvaluation(false, Required.value(List.of()), prepared.skipped(), result.costCents(), Math.toIntExact(result.overtimeMinutes()));
+        // Untimed stops cannot be counted, so a day that does not hold reports no buffer count.
+        if (!result.feasible()) return new RouteEvaluation(false, Required.value(List.of()), prepared.skipped(), result.costCents(), Math.toIntExact(result.overtimeMinutes()), null);
         List<PlannedRoute> routes = new ArrayList<>();
         for (TechRoute route : plan.getRoutes()) {
             List<PlannedStop> stops = new ArrayList<>();
             for (int index = 0; index < route.getVisits().size(); index++) {
                 PlanVisit visit = Required.value(route.getVisits().get(index));
                 Instant start = Required.value(result.arrivals().get(visit.getId()), "arrival for " + visit.getId());
-                stops.add(new PlannedStop(visit.getId(), index, start, Required.value(start.plus(Duration.ofMinutes(visit.getDurationMinutes())))));
+                stops.add(PublicResponses.stop(plan, visit, index, start));
             }
             routes.add(new PlannedRoute(route.getId(), request.serviceDate(), Required.value(List.copyOf(stops))));
         }
-        return new RouteEvaluation(true, Required.value(List.copyOf(routes)), prepared.skipped(), result.costCents(), Math.toIntExact(result.overtimeMinutes()));
+        return new RouteEvaluation(true, Required.value(List.copyOf(routes)), prepared.skipped(), result.costCents(), Math.toIntExact(result.overtimeMinutes()),
+                PublicResponses.stopsInsideBuffer(plan, routes));
     }
 }

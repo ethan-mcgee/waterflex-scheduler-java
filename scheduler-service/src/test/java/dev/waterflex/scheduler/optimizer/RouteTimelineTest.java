@@ -302,6 +302,43 @@ class RouteTimelineTest {
         assertEquals(result.costCents(), full.costCents());
     }
 
+    private static DayPlan withBuffer(DayPlan day, PlanFacts.ArrivalBuffer buffer) {
+        return new DayPlan(day.getRoutes(), day.getVisits(), day.getMatrix(), Required.value(Set.of()), day.getRegularHourly(), day.getOvertimeHourly(),
+                day.getMileagePerMile(), day.getTravelBufferPct(), day.getTravelBufferMinutes(), buffer);
+    }
+
+    /** The case above with a 15-minute buffer (25 percent of the hour): the later departure stops before 14:45. */
+    @Test void laterDepartureStopsBeforeTheLateArrivalBuffer() {
+        DayPlan day = withBuffer(plan(600, at("22:00:00"), at("23:00:00")), new PlanFacts.ArrivalBuffer(25, 15, 60));
+        var result = RouteEvaluator.evaluate(day);
+        assertTrue(result.feasible());
+        assertEquals(at("14:44:00"), result.arrivals().get("first"));
+        assertEquals(at("19:00:00"), result.arrivals().get("second"));
+        assertEquals(at("14:34:00"), Required.value(result.segments().get("home")).getFirst().departure());
+        assertEquals(186, result.waitingMinutes());
+        assertEquals(336, result.paidMinutes());
+        assertEquals(0, result.bufferSeconds());
+        var full = DayScoreCalculator.evaluate(day);
+        assertEquals(result.arrivals(), full.arrivals());
+        assertEquals(result.costCents(), full.costCents());
+        assertEquals(0, full.bufferSeconds());
+    }
+
+    /** An arrival the shift allows only inside the buffer is still on time: scored, never infeasible, and not delayed further. */
+    @Test void anUnavoidableArrivalInsideTheBufferStaysFeasible() {
+        DayPlan day = withBuffer(plan(600, at("13:00:00"), at("14:40:00")), new PlanFacts.ArrivalBuffer(25, 15, 60));
+        var result = RouteEvaluator.evaluate(day);
+        assertTrue(result.feasible());
+        assertEquals(at("14:50:00"), result.arrivals().get("first"));
+        assertEquals(at("14:40:00"), Required.value(result.segments().get("home")).getFirst().departure());
+        assertEquals(5 * 60 + 1, result.bufferSeconds());
+        var full = DayScoreCalculator.evaluate(day);
+        assertEquals(0, full.hardPenalty());
+        assertEquals(result.arrivals(), full.arrivals());
+        assertEquals(result.bufferSeconds(), full.bufferSeconds());
+        assertTrue(DailyCalculation.valid(day));
+    }
+
     @Test void broadFirstWindowRemovesAllAvoidableWaiting() {
         DayPlan day = plan(600, at("22:00:00"), at("23:00:00"));
         PlanVisit first = new PlanVisit("first", "service", at("14:00:00"), at("19:00:00"), 60, "home", at("14:00:00"));

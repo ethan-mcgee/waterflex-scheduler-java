@@ -89,8 +89,7 @@ public final class DailyCalculation {
                 (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases).withPolicy(DailyPolicyDiagnostics.assess(baseline,solved,false,DailyPolicyDiagnostics.Fairness.SKIPPED_INVALID_REFERENCE)));
         var baselinePolicy = SchedulingPolicy.measure(baselineValid ? baseline : solved);
         var candidatePolicy = candidateValid ? SchedulingPolicy.measure(solved) : baselinePolicy;
-        var reference = candidatePolicy.overtimeMinutes() < baselinePolicy.overtimeMinutes()
-                || candidatePolicy.overtimeMinutes() == baselinePolicy.overtimeMinutes() && candidatePolicy.costCents() < baselinePolicy.costCents() ? candidatePolicy : baselinePolicy;
+        var reference = SchedulingPolicy.referenceOrder(candidatePolicy, baselinePolicy) < 0 ? candidatePolicy : baselinePolicy;
         DayPlan referencePlan = !baselineValid || reference == candidatePolicy ? solved : baseline;
         var fairnessStatus = reference.overtimeMinutes() > 0 ? DailyPolicyDiagnostics.Fairness.SKIPPED_REFERENCE_OVERTIME
                 : DailyPolicyDiagnostics.Fairness.SKIPPED_NO_SEARCH_ALLOWANCE;
@@ -109,7 +108,8 @@ public final class DailyCalculation {
                 fair.setMode(baseline.getMode());
                 if (valid(fair)) {
                     var fairMetrics = SchedulingPolicy.measure(fair);
-                    if (fairMetrics.overtimeMinutes() == reference.overtimeMinutes() && fairMetrics.costCents() <= policy.costCeiling(reference.costCents())
+                    if (fairMetrics.overtimeMinutes() == reference.overtimeMinutes() && fairMetrics.bufferSeconds() <= reference.bufferSeconds()
+                            && fairMetrics.costCents() <= policy.costCeiling(reference.costCents())
                             && (fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) < 0
                             || fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) == 0
                             && (fairMetrics.costCents() < reference.costCents() || fairMetrics.costCents() == reference.costCents()
@@ -130,7 +130,8 @@ public final class DailyCalculation {
     }
     public static boolean valid(DayPlan plan) {
         var score = DayScoreCalculator.evaluate(plan); var validation = RouteEvaluator.evaluate(plan);
-        return score.hardPenalty() == 0 && validation.feasible() && score.costCents() == validation.costCents() && score.arrivals().equals(validation.arrivals());
+        return score.hardPenalty() == 0 && validation.feasible() && score.costCents() == validation.costCents() && score.arrivals().equals(validation.arrivals())
+                && score.bufferSeconds() == validation.bufferSeconds();
     }
     /** Rebuild proposals exclusively from caller facts, with exact once coverage and unchanged pinning. */
     public static DayPlan restore(DayPlan input, Map<String,List<String>> routes, List<String> unassigned) {

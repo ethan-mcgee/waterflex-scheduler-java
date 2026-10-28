@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { canonicalDecimal, publicPolicy, publicRates, saveSolverSettings, solverSettingsInput, storedHorizon, toStored, toView } from "./clientSettings";
 
 const input = { regularHourly: "30", overtimeHourly: "45.50", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
+  travelBufferMinutes: 5, arrivalBufferPercent: 25, arrivalBufferMinMinutes: 15, arrivalBufferMaxMinutes: 60, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 function stored() {
   return { ...toStored(solverSettingsInput.parse(input)), version: 3, updatedAt: new Date("2026-10-08T12:00:00Z") };
@@ -12,7 +12,7 @@ function stored() {
 
 test("percentages become exact API fractions and money stays canonical", () => {
   assert.deepEqual(publicRates(stored()), { regularHourly: "30", overtimeHourly: "45.5", mileagePerMile: "0.67",
-    travelBufferPct: "0.2", travelBufferMinutes: 5 });
+    travelBufferPct: "0.2", travelBufferMinutes: 5, arrivalBuffer: { percent: 25, minMinutes: 15, maxMinutes: 60 } });
   assert.deepEqual(publicPolicy(stored()), { fairnessBudget: "0.025", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
 });
 
@@ -20,7 +20,8 @@ test("cost rates at their caps are accepted (spec 1.7.0)", () => {
   const atCaps = solverSettingsInput.parse({ ...input, regularHourly: "500", overtimeHourly: "500.0000", mileagePerMile: "25" });
   assert.equal(atCaps.overtimeHourly, "500.0000");
   assert.deepEqual(publicRates({ ...toStored(atCaps), version: 0, updatedAt: new Date("2026-10-20T12:00:00Z") }),
-    { regularHourly: "500", overtimeHourly: "500", mileagePerMile: "25", travelBufferPct: "0.2", travelBufferMinutes: input.travelBufferMinutes });
+    { regularHourly: "500", overtimeHourly: "500", mileagePerMile: "25", travelBufferPct: "0.2", travelBufferMinutes: input.travelBufferMinutes,
+      arrivalBuffer: { percent: 25, minMinutes: 15, maxMinutes: 60 } });
 });
 
 test("the view round-trips what was entered", () => {
@@ -90,6 +91,8 @@ test("out-of-range or malformed settings are rejected, never clamped or defaulte
     { horizonFullPercent: 49 }, { horizonFullPercent: 101 }, { horizonFullPercent: 85.5 }, { horizonFullPercent: "85" }, { horizonFullPercent: null },
     { unimprovedSearchSeconds: undefined }, { unimprovedSearchSeconds: 0 }, { unimprovedSearchSeconds: -1 }, { unimprovedSearchSeconds: 2.5 },
     { unimprovedSearchSeconds: "5" }, { unimprovedSearchSeconds: 11 },
+    { arrivalBufferPercent: 51 }, { arrivalBufferPercent: -1 }, { arrivalBufferPercent: 2.5 }, { arrivalBufferPercent: "25" }, { arrivalBufferPercent: null },
+    { arrivalBufferMinMinutes: 61 }, { arrivalBufferMinMinutes: undefined }, { arrivalBufferMaxMinutes: 241 }, { arrivalBufferMaxMinutes: null },
   ];
   for (const change of bad) assert.equal(solverSettingsInput.safeParse({ ...input, ...change }).success, false, JSON.stringify(change));
   assert.equal(solverSettingsInput.safeParse({ ...input, travelBufferPercent: "100", fairnessBudgetPercent: "0" }).success, true);
@@ -108,6 +111,15 @@ test("an unimproved limit is sent only when the client set one, and round-trips 
   assert.equal(toView(limited).unimprovedSearchSeconds, 6);
   assert.equal("unimprovedSearchSeconds" in publicPolicy(stored()), false, "no limit: the field is left out, so every search spends its whole time");
   assert.equal(toView(stored()).unimprovedSearchSeconds, null);
+});
+
+test("the late-arrival buffer round-trips and is always sent, a zero maximum being the client's own choice of none", () => {
+  assert.deepEqual(publicRates(stored()).arrivalBuffer, { percent: 25, minMinutes: 15, maxMinutes: 60 });
+  assert.equal(toView(stored()).arrivalBufferMaxMinutes, 60);
+  const off = { ...toStored(solverSettingsInput.parse({ ...input, arrivalBufferPercent: 0, arrivalBufferMinMinutes: 0, arrivalBufferMaxMinutes: 0 })),
+    version: 1, updatedAt: new Date("2026-10-27T12:00:00Z") };
+  assert.deepEqual(publicRates(off).arrivalBuffer, { percent: 0, minMinutes: 0, maxMinutes: 0 });
+  assert.equal(solverSettingsInput.safeParse({ ...input, arrivalBufferMinMinutes: 60, arrivalBufferMaxMinutes: 60 }).success, true, "min may equal max");
 });
 
 test("a save must say which version it edits, or null for a client without settings", () => {

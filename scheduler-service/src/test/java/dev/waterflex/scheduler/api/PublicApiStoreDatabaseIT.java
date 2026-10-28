@@ -46,7 +46,7 @@ class PublicApiStoreDatabaseIT {
         String id = PublicApiStore.newProposalId();
         var example = PublicRequests.read(PublicApiContractTest.example("DailyProposal"), PublicResponses.DailyProposal.class);
         var body = new PublicResponses.DailyProposal(id, example.inputRevision(), example.decision(), example.reason(), example.routes(),
-                example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes());
+                example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes(), example.stopsInsideBuffer());
         LocalDate day = Required.value(LocalDate.parse("2026-10-12"));
         return new StoredProposal(id, requestId, "omaha", "America/Chicago", day, example.inputRevision(), "omaha-map-v7", ProposalStatus.PROPOSED,
                 Required.value(List.of(new TechnicianDayVersion("tech-1", day, Required.value(Instant.parse("2026-10-11T21:04:17.123456789Z"))),

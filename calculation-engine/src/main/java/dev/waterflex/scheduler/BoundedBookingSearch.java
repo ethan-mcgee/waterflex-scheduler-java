@@ -330,7 +330,7 @@ public final class BoundedBookingSearch {
                     if (!evaluation.possibleInsertion(Required.value(tech), route, visit, position)) continue;
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
                     var result = evaluation.metrics(proposal, facts, false);
-                    if (!result.feasible() || !regularChanges(proposal, facts)) continue;
+                    if (!result.feasible() || addsBuffer(result) || !regularChanges(proposal, facts)) continue;
                     if (evaluation.hasReservations() && !evaluation.metrics(proposal, facts, true).feasible()) continue;
                     BigDecimal fairness = evaluation.fairness(proposal, facts);
                     var merit = new Merit(Math.subtractExact(result.costCents(), baseline.costCents()), Required.value(fairness.subtract(baselineFairness)),
@@ -339,6 +339,13 @@ public final class BoundedBookingSearch {
                 }
             }
         }
+
+        /**
+         * A booking promises a new window, so it is offered only where it adds no late-arrival buffer use over the day
+         * as it stands: the customer is offered another window rather than one the day can keep only by cutting it
+         * close. Without a buffer no arrangement uses any, and nothing is filtered.
+         */
+        boolean addsBuffer(BookingEvaluation.Metrics result) { return result.bufferSeconds() > baseline.bufferSeconds(); }
 
         boolean regularChanges(Arrangement arrangement, Map<String, Visit> facts) {
             for (var entry : arrangement.routes().entrySet()) {
@@ -614,7 +621,7 @@ public final class BoundedBookingSearch {
                 }
                 if (failed || facts.size() != day.visits().size() + 1) continue;
                 var result = evaluation.metrics(arrangement, facts, false);
-                if (!result.feasible() || !regularChanges(arrangement, facts)
+                if (!result.feasible() || addsBuffer(result) || !regularChanges(arrangement, facts)
                         || (evaluation.hasReservations() && !evaluation.metrics(arrangement, facts, true).feasible())) continue;
                 String assigned = arrangement.routes().entrySet().stream().filter(route -> route.getValue().contains(request.jobId()))
                         .map(route -> route.getKey()).findFirst().orElseThrow();

@@ -60,7 +60,7 @@ class RouteEvaluationsTest {
         assertFalse(evaluation.feasible());
         assertEquals(List.of(), evaluation.routes(), "A day that does not hold has no timings to report");
         assertThrows(IllegalArgumentException.class, () -> new PublicResponses.RouteEvaluation(false,
-                List.of(new PublicResponses.PlannedRoute("tech-1", Required.value(java.time.LocalDate.parse("2026-10-12")), Required.value(List.of()))), Required.value(List.of()), 0L, 0));
+                List.of(new PublicResponses.PlannedRoute("tech-1", Required.value(java.time.LocalDate.parse("2026-10-12")), Required.value(List.of()))), Required.value(List.of()), 0L, 0, null));
     }
 
     @Test void unknownFieldsAnUnknownMetroAndAnUnlocatableDayAreReported() {

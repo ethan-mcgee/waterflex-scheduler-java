@@ -1,0 +1,105 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import arrival_buffer_study as abs_
+
+CASES = [(10, 'CLUSTERED', 7001, 17), (30, 'ABSENCE', 7001, 17), (50, 'TIGHT_WINDOW', 7002, 17)]
+BUFFER = {'percent': 25, 'minMinutes': 15, 'maxMinutes': 60}
+
+
+def result(case, moves, cost, inside, buffer_seconds=None):
+    technicians, workload, fixture, seed = case
+    after = {'costCents': cost, 'overtimeMinutes': 0}
+    line = {'type': 'result', 'variant': 'TABU_KOPT', 'technicians': technicians, 'workload': workload, 'fixtureSeed': fixture, 'seed': seed,
+            'violations': 0, 'appointments': 40, 'acceptanceReason': 'FAIRNESS_IMPROVEMENT',
+            'referencePhase': {'moveEvaluations': moves, 'solveMs': 1000}, 'fairnessPhase': {'moveEvaluations': moves, 'solveMs': 1000}, 'after': after}
+    if buffer_seconds is not None:
+        after['bufferSeconds'] = buffer_seconds
+        line['stopsInsideBufferBefore'] = 6
+        line['stopsInsideBufferAfter'] = inside
+    return line
+
+
+def write_run(root, off_speed=99, on_speed=93, absence_on_speed=None):
+    """Main runs 100 moves per second in each phase; off and on run their own speeds, ABSENCE optionally slower for on."""
+    (root / 'rows').mkdir()
+    (root / 'manifest.json').write_text('﻿' + json.dumps({'study': 'test', 'arrivalBuffer': '25,15,60'}), encoding='utf-8')
+    for rep in (1, 2):
+        for case in CASES:
+            on = absence_on_speed if absence_on_speed is not None and case[1] == 'ABSENCE' else on_speed
+            arms = {'main': ({}, result(case, 100, 1000, 0)),
+                    'off': ({'arrivalBuffer': {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}, 'reportArrivalBuffer': BUFFER}, result(case, off_speed, 1000, 5, 0)),
+                    'on': ({'arrivalBuffer': BUFFER}, result(case, on, 1010, 0, 0))}
+            for arm, (extra, line) in arms.items():
+                provenance = {'type': 'provenance', 'revision': 'arrival-buffer-study arm=' + arm, 'budgetMs': 15000, **extra}
+                name = f'rep{rep}-{case[0]}-{case[1]}-{case[2]}-{case[3]}-{arm}.jsonl'
+                (root / 'rows' / name).write_text('\n'.join(json.dumps(item) for item in [provenance, line]) + '\n', encoding='utf-8')
+    return root
+
+
+def rewrite(path, change):
+    lines = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
+    change(lines)
+    path.write_text('\n'.join(json.dumps(line) for line in lines) + '\n', encoding='utf-8')
+
+
+class ArrivalBufferStudyTest(unittest.TestCase):
+    def summarize(self, **options):
+        with tempfile.TemporaryDirectory() as temporary:
+            run = write_run(Path(temporary), **options)
+            return abs_.summarize(run, run / 'out.json', 'jfr')
+
+    def test_both_arms_pass_their_bars_against_main(self):
+        paired = self.summarize()['paired']
+        self.assertEqual(paired['speed']['off/main']['referencePhase']['overall']['median'], 0.99)
+        self.assertEqual(paired['speed']['on/main']['fairnessPhase']['overall']['median'], 0.93)
+        self.assertEqual(sorted(paired['speed']['on/main']['referencePhase']['byWorkload']), ['ABSENCE', 'CLUSTERED', 'TIGHT_WINDOW'])
+        self.assertEqual(paired['speed']['on/main']['referencePhase']['byFleet']['30']['pairs'], 2)
+        self.assertTrue(paired['decision']['off']['promoted'] and paired['decision']['on']['promoted'])
+
+    def test_each_arm_is_held_to_its_own_bar(self):
+        self.assertFalse(self.summarize(off_speed=97)['paired']['decision']['off']['promoted'])
+        self.assertTrue(self.summarize(off_speed=97)['paired']['decision']['on']['promoted'])
+        self.assertFalse(self.summarize(on_speed=89)['paired']['decision']['on']['promoted'])
+
+    def test_a_slow_absence_workload_shows_on_its_own(self):
+        speed = self.summarize(absence_on_speed=70)['paired']['speed']['on/main']['referencePhase']
+        self.assertEqual(speed['byWorkload']['ABSENCE']['median'], 0.7)
+        self.assertEqual(speed['overall']['median'], 0.93)
+
+    def test_quality_reports_what_the_buffer_buys_and_costs(self):
+        paired = self.summarize()['paired']
+        self.assertEqual((paired['quality']['off']['stopsInsideBufferAfter'], paired['quality']['on']['stopsInsideBufferAfter']), (30, 0))
+        self.assertNotIn('stopsInsideBufferAfter', paired['quality']['main'])
+        self.assertEqual((paired['costAgainstOff']['median'], paired['costAgainstOff']['higher']), (10, 6))
+        self.assertEqual(paired['stopsInsideBufferAgainstOff']['lower'], 6)
+
+    def test_an_arm_that_ran_the_wrong_buffer_or_tree_is_refused(self):
+        for suffix, change, message in [
+                ('-on.jsonl', lambda lines: lines[0].update(arrivalBuffer={'percent': 30, 'minMinutes': 15, 'maxMinutes': 60}), 'wrong buffer'),
+                ('-off.jsonl', lambda lines: lines[0].pop('reportArrivalBuffer'), 'count stops'),
+                ('-main.jsonl', lambda lines: lines[0].update(arrivalBuffer=BUFFER), 'before the buffer'),
+                ('-on.jsonl', lambda lines: lines[1].update(variant='TABU'), 'TABU_KOPT')]:
+            with tempfile.TemporaryDirectory() as temporary:
+                run = write_run(Path(temporary))
+                rewrite(next((run / 'rows').glob('rep1-10-*' + suffix)), change)
+                with self.assertRaisesRegex(ValueError, message):
+                    abs_.summarize(run, run / 'out.json', 'jfr')
+
+    def test_an_incomplete_or_mixed_run_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            run = write_run(Path(temporary))
+            next((run / 'rows').glob('rep2-50-*-main.jsonl')).unlink()
+            with self.assertRaisesRegex(ValueError, 'missing'):
+                abs_.summarize(run, run / 'out.json', 'jfr')
+        with tempfile.TemporaryDirectory() as temporary:
+            run = write_run(Path(temporary))
+            rewrite(next((run / 'rows').glob('rep1-10-*-on.jsonl')), lambda lines: lines[0].update(budgetMs=30000))
+            with self.assertRaisesRegex(ValueError, 'one budget'):
+                abs_.summarize(run, run / 'out.json', 'jfr')
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -45,17 +45,18 @@ export const commitReceipt = z.object({ receiptId: id,
   assignments: z.array(z.object({ appointmentId: id, technicianId: id, serviceDate, sequence: z.int().min(0), plannedStart: instant, plannedEnd: instant }).strict()),
   technicianDays: z.array(technicianDayVersion),
 }).strict();
+// arrivalBufferStart and stopsInsideBuffer (spec 1.9.0) come only when the snapshot carried a late-arrival buffer.
 const plannedRoute = z.object({ technicianId: id, serviceDate, stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0),
-  plannedStart: instant, plannedEnd: instant }).strict()) }).strict();
+  plannedStart: instant, plannedEnd: instant, arrivalBufferStart: instant.optional() }).strict()) }).strict();
 export const dailyProposal = z.object({ proposalId: id, inputRevision: z.string().regex(/^[0-9a-f]{64}$/),
   decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: z.string().min(1),
   routes: z.array(plannedRoute),
   unresolvedAppointmentIds: z.array(id), skippedTechnicianDays: z.array(skippedTechnicianDay),
-  costCents: z.int().min(0), overtimeMinutes: z.literal(0),
+  costCents: z.int().min(0), overtimeMinutes: z.literal(0), stopsInsideBuffer: z.int().min(0).optional(),
 }).strict();
 /** A day's routes timed in their given order; a day that does not hold has no routes. */
 export const routeEvaluation = z.object({ feasible: z.boolean(), routes: z.array(plannedRoute), skippedTechnicianDays: z.array(skippedTechnicianDay),
-  costCents: z.int().min(0), overtimeMinutes: z.int().min(0).max(1440),
+  costCents: z.int().min(0), overtimeMinutes: z.int().min(0).max(1440), stopsInsideBuffer: z.int().min(0).optional(),
 }).strict().refine(value => value.feasible || value.routes.length === 0, "A day that does not hold has no timed routes");
 const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
 const geometryRoute = z.object({ technicianId: id, serviceDate,

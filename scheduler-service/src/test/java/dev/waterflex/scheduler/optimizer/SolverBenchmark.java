@@ -33,6 +33,14 @@ public final class SolverBenchmark {
         var seeds = values("benchmark.seeds", "17").stream().mapToLong(Long::parseLong).toArray();
         var fixtureSeeds = values("benchmark.fixtureSeeds", "0").stream().mapToLong(Long::parseLong).toArray();
         Phases phases = Phases.valueOf(Required.value(System.getProperty("benchmark.phases", Phases.COST_AND_FAIRNESS.name())));
+        // Optional: the late-arrival buffer as percent,minMinutes,maxMinutes (for example 25,15,60); without it the
+        // fixtures have none (PlanFacts.ArrivalBuffer.NONE), as every study before the buffer measured them.
+        var buffer = arrivalBuffer(System.getProperty("benchmark.arrivalBuffer"));
+        // Optional, reporting only: count stops inside this buffer instead of the plan's own, so a run without a buffer
+        // shows how many arrivals today's timing puts where a buffer would be.
+        @Nullable String reported = System.getProperty("benchmark.reportArrivalBuffer");
+        PlanFacts.@Nullable ArrivalBuffer reportedBuffer = reported == null ? null : arrivalBuffer(reported);
+        reportBuffer = reportedBuffer;
         // Optional: a directory that receives one JFR recording per measured solve (the solve alone: no warmup, no
         // validation, no report), named <technicians>-<workload>-<fixtureSeed>-<variant>-<seed>-<phase>.jfr.
         @Nullable String jfr = System.getProperty("benchmark.jfr");
@@ -46,7 +54,8 @@ public final class SolverBenchmark {
             provenance.put("os", Required.value(System.getProperty("os.name")) + " " + Required.value(System.getProperty("os.version")));
             provenance.put("processors", Runtime.getRuntime().availableProcessors()); provenance.put("maxHeapBytes", Runtime.getRuntime().maxMemory());
             provenance.put("budgetMs", budget); provenance.put("routingIdentity", "deterministic-directed-fixtures-v1");
-            provenance.put("phases", phases.name());
+            provenance.put("phases", phases.name()); provenance.put("arrivalBuffer", buffer);
+            if (reportedBuffer != null) provenance.put("reportArrivalBuffer", reportedBuffer);
             provenance.put("jfr", jfr == null ? "disabled" : "profile settings, one recording per measured solve in " + jfr);
             provenance.put("engine", EngineProvenance.loaded());
             provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", SolverEngine.INSTRUMENTATION);
@@ -67,7 +76,7 @@ public final class SolverBenchmark {
             }
             writer.flush(); int round = 0;
             for (int size : sizes) for (var workload : workloads) for (long fixtureSeed : fixtureSeeds) for (long seed : seeds) {
-                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload), fixtureSeed);
+                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload), fixtureSeed, buffer);
                 String fingerprint = fingerprint(fixture);
                 var ordered = new ArrayList<>(variants); Collections.rotate(ordered, round++ % ordered.size());
                 for (var variant : ordered) {
@@ -132,8 +141,7 @@ public final class SolverBenchmark {
         var cost = recorded("cost", () -> SolverExperiment.solve(definition, fixture, Required.value(Duration.ofMillis(costBudget))));
         validate(cost.plan());
         var costMetrics = SchedulingPolicy.measure(cost.plan());
-        DayPlan reference = costMetrics.overtimeMinutes() < before.overtimeMinutes()
-                || costMetrics.overtimeMinutes() == before.overtimeMinutes() && costMetrics.costCents() < before.costCents() ? cost.plan() : fixture;
+        DayPlan reference = SchedulingPolicy.referenceOrder(costMetrics, before) < 0 ? cost.plan() : fixture;
         var referenceMetrics = SchedulingPolicy.measure(reference);
         long ceiling = rules.costCeiling(referenceMetrics.costCents());
         DayPlan chosen = reference;
@@ -145,7 +153,8 @@ public final class SolverBenchmark {
             var fair = recorded("fairness", () -> SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining))));
             validate(fair.plan()); fairStatistics = fair.statistics();
             var metrics = SchedulingPolicy.measure(fair.plan());
-            if (metrics.overtimeMinutes() == referenceMetrics.overtimeMinutes() && metrics.costCents() <= ceiling
+            if (metrics.overtimeMinutes() == referenceMetrics.overtimeMinutes() && metrics.bufferSeconds() <= referenceMetrics.bufferSeconds()
+                    && metrics.costCents() <= ceiling
                     && (metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) < 0
                     || metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) == 0
                     && (metrics.costCents() < referenceMetrics.costCents() || metrics.costCents() == referenceMetrics.costCents()
@@ -172,6 +181,8 @@ public final class SolverBenchmark {
         row.put("costCeilingCents", rules.costCeiling(referenceMetrics.costCents())); row.put("acceptanceReason", decision.reason());
         row.put("paidWaitingBefore", beforeValidation.waitingMinutes()); row.put("paidWaitingAfter", afterValidation.waitingMinutes());
         row.put("changedAssignments", changed); row.put("retimedAppointments", retimed);
+        row.put("arrivalBuffer", fixture.getArrivalBuffer()); row.put("countedArrivalBuffer", counted(fixture));
+        row.put("stopsInsideBufferBefore", stopsInsideBuffer(fixture, beforeValidation)); row.put("stopsInsideBufferAfter", stopsInsideBuffer(chosen, afterValidation));
         row.put("elapsedMs", (System.nanoTime() - started) / 1_000_000); row.put("cpuNanos", cpuNanos() - cpuBefore);
         row.put("peakHeapBytes", ManagementFactory.getMemoryPoolMXBeans().stream().filter(pool -> pool.getType() == java.lang.management.MemoryType.HEAP)
                 .mapToLong(pool -> Required.value(pool.getPeakUsage()).getUsed()).sum());
@@ -183,14 +194,40 @@ public final class SolverBenchmark {
         row.put("violations", 0);
         return row;
     }
+    /** Absent is the explicit no-buffer value; anything present must be three whole numbers the engine accepts. */
+    static PlanFacts.ArrivalBuffer arrivalBuffer(@Nullable String value) {
+        if (value == null) return PlanFacts.ArrivalBuffer.NONE;
+        String[] parts = value.split(",");
+        if (parts.length != 3) throw new IllegalArgumentException("benchmark.arrivalBuffer must be percent,minMinutes,maxMinutes: " + value);
+        return new PlanFacts.ArrivalBuffer(Integer.parseInt(Required.value(parts[0].trim())), Integer.parseInt(Required.value(parts[1].trim())),
+                Integer.parseInt(Required.value(parts[2].trim())));
+    }
     static void validateBudget(long budgetMs) {
         if (budgetMs < 100 || budgetMs > 900000) throw new IllegalArgumentException("Benchmark budget must be 100..900000 ms");
     }
     private static RouteEvaluator.Result validate(DayPlan plan) {
         var independent = RouteEvaluator.evaluate(plan); var scored = DayScoreCalculator.evaluate(plan);
         if (!independent.feasible() || scored.hardPenalty() != 0 || independent.costCents() != scored.costCents()
+                || independent.bufferSeconds() != scored.bufferSeconds()
                 || !independent.arrivals().equals(scored.arrivals())) throw new IllegalStateException("Benchmark independent validation mismatch");
         return independent;
+    }
+    private static PlanFacts.@Nullable ArrivalBuffer reportBuffer;
+    /** The buffer stops are counted against: {@code benchmark.reportArrivalBuffer} when given, else the plan's own. */
+    private static PlanFacts.ArrivalBuffer counted(DayPlan plan) {
+        PlanFacts.@Nullable ArrivalBuffer reported = reportBuffer;
+        return reported == null ? plan.getArrivalBuffer() : reported;
+    }
+    /** Planned stops that arrive at or after their buffer start; 0 when the counted buffer is none. */
+    private static long stopsInsideBuffer(DayPlan plan, RouteEvaluator.Result evaluation) {
+        var buffer = counted(plan);
+        if (buffer.none()) return 0;
+        long inside = 0;
+        for (PlanVisit visit : plan.getVisits()) {
+            @Nullable Instant arrival = evaluation.arrivals().get(visit.getId());
+            if (arrival != null && !arrival.isBefore(buffer.deadline(visit.getWindowStart(), visit.getWindowEnd()))) inside++;
+        }
+        return inside;
     }
     private static long cpuNanos() {
         var bean = ManagementFactory.getOperatingSystemMXBean();

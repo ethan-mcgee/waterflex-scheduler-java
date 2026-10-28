@@ -15,11 +15,14 @@ import org.jspecify.annotations.Nullable;
 final class RouteTimingSearch {
     /** A working interval as offsets from the route's origin. */
     record Block(long start, long end) { }
-    /** {@code departures} are offsets from the route's origin, one per working interval used. */
-    record Timing(long paid, long overtime, long drive, long waiting, long meters,
+    /**
+     * {@code departures} are offsets from the route's origin, one per working interval used. {@code buffer} is the
+     * whole seconds of late-arrival buffer the visits' arrivals use ({@link PlanFacts.ArrivalBuffer}).
+     */
+    record Timing(long paid, long overtime, long drive, long waiting, long meters, long buffer,
             Map<String, Instant> arrivals, long[] departures) { }
     private static final long[] NONE = {};
-    private static final Timing EMPTY = new Timing(0, 0, 0, 0, 0, Required.value(Map.of()), NONE);
+    private static final Timing EMPTY = new Timing(0, 0, 0, 0, 0, 0, Required.value(Map.of()), NONE);
     private RouteTimingSearch() { }
 
     static @Nullable Timing solve(PlanFacts facts, TechRoute route, Instant origin, TechRoute.Clock clock, boolean withArrivals) {
@@ -80,9 +83,11 @@ final class RouteTimingSearch {
         long shiftEnd = clock.shiftEnd();
         // Window offsets are the visit's epoch nanoseconds less the shift start's: the same exact difference offset takes.
         @Nullable Long epoch = clock.origin();
+        PlanFacts.ArrivalBuffer reserve = facts.arrivalBuffer();
+        boolean buffered = !reserve.none();
         long departure = block.start(), cursor = departure;
         int technician = route.roadNumber(facts), previous = technician;
-        long drive = 0, waiting = 0, meters = 0, slack = Long.MAX_VALUE;
+        long drive = 0, waiting = 0, meters = 0, buffer = 0, slack = Long.MAX_VALUE;
         for (int index = first; index < route.getVisits().size(); index++) {
             PlanVisit visit = Required.value(route.getVisits().get(index));
             int here = visit.roadNumber(facts);
@@ -107,8 +112,14 @@ final class RouteTimingSearch {
             cursor = Math.addExact(arrival, duration);
             if (cursor > block.end()) break;
             waiting += RouteTimeline.minutes(arrival - reached);
-            // The latest start inside the window is its end less one nanosecond.
-            slack = Math.min(slack, RouteTimeline.minutes(windowEnd - 1 - arrival) + waiting);
+            // The latest start the delay below may reach is the deadline less one nanosecond: the window end without a
+            // buffer. An arrival already at or past its deadline holds the delay to the waiting before it, so a later
+            // departure never adds buffer seconds; this arrival's own are the least any departure of this group gives.
+            long deadline = buffered ? windowEnd - reserve.nanos(windowEnd - windowStart) : windowEnd;
+            if (arrival >= deadline) {
+                buffer = Math.addExact(buffer, Math.addExact(RouteTimeline.seconds(arrival - deadline), 1));
+                slack = Math.min(slack, waiting);
+            } else slack = Math.min(slack, RouteTimeline.minutes(deadline - 1 - arrival) + waiting);
             if (withArrivals) { arrivals.put(visit.getId(), arrival); cumulativeWaiting.put(visit.getId(), waiting); }
             drive += travel; meters += leg.meters(); previous = here;
             if (!everyEnd && index + 1 != route.getVisits().size()) continue;
@@ -127,7 +138,7 @@ final class RouteTimingSearch {
                 }
             } else shifted = Required.value(Map.of());
             Timing timing = new Timing(RouteTimeline.minutes(returned - actualDeparture), Math.max(0, RouteTimeline.minutes(returned - Math.max(actualDeparture, shiftEnd))),
-                    drive + home.bufferedMinutes(), waiting - delay, meters + home.meters(), shifted, new long[]{actualDeparture});
+                    drive + home.bufferedMinutes(), waiting - delay, meters + home.meters(), buffer, shifted, new long[]{actualDeparture});
             if (options != null) options[index + 1] = timing;
             else complete = timing;
         }
@@ -139,7 +150,7 @@ final class RouteTimingSearch {
         long[] departures = Required.value(Arrays.copyOf(first.departures(), first.departures().length + second.departures().length));
         System.arraycopy(second.departures(), 0, departures, first.departures().length, second.departures().length);
         return new Timing(first.paid() + second.paid(), first.overtime() + second.overtime(), first.drive() + second.drive(),
-                first.waiting() + second.waiting(), first.meters() + second.meters(), arrivals, departures);
+                first.waiting() + second.waiting(), first.meters() + second.meters(), Math.addExact(first.buffer(), second.buffer()), arrivals, departures);
     }
     private static boolean within(TechRoute route, Timing timing) { return timing.paid() <= route.getMaxDailyMinutes() && timing.overtime() <= route.getMaxOvertimeMinutes(); }
     private static void retain(List<List<Timing>> states, int visits, Timing proposed, PlanFacts facts) {
@@ -149,11 +160,13 @@ final class RouteTimingSearch {
     }
     private static boolean dominates(Timing first, Timing second, PlanFacts facts) {
         return first.paid() <= second.paid() && first.overtime() <= second.overtime() && first.waiting() <= second.waiting()
-                && cost(first, second, facts) <= 0 && first.departures().length == second.departures().length
+                && first.buffer() <= second.buffer() && cost(first, second, facts) <= 0 && first.departures().length == second.departures().length
                 && departures(first.departures(), second.departures()) <= 0;
     }
+    /** The score's order (DayScores): overtime, then buffer seconds, then cost, then the tie breaks. */
     private static int compare(Timing first, Timing second, PlanFacts facts) {
         int order = Long.compare(first.overtime(), second.overtime());
+        if (order == 0) order = Long.compare(first.buffer(), second.buffer());
         if (order == 0) order = cost(first, second, facts);
         if (order == 0) order = Long.compare(first.waiting(), second.waiting());
         if (order == 0) order = Long.compare(first.paid(), second.paid());

@@ -35,9 +35,13 @@ final class RouteTimeline {
                 Math.addExact(Math.addExact(latenessSeconds, availabilitySeconds), capacityMinutes)); }
     }
     /** {@code arrivals} is empty when the evaluation was asked for the score alone. */
-    /** A route's resources; only the fleet's summed resources are priced, rounded once (RouteScoringFacts.cost). */
+    /**
+     * A route's resources; only the fleet's summed resources are priced, rounded once (RouteScoringFacts.cost).
+     * {@code bufferSeconds} is the late-arrival buffer the arrivals use ({@link PlanFacts.ArrivalBuffer}): scored, but
+     * no violation, since the window end alone decides whether an arrival is on time.
+     */
     record Result(Violations violations, Map<String, Instant> arrivals,
-                  long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) {
+                  long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds) {
         long hardPenalty() { return violations.total(); }
     }
     private RouteTimeline() { }
@@ -53,7 +57,7 @@ final class RouteTimeline {
         for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) qualifications++;
         if (canonical != null) {
             return result(new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
-                    canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
+                    canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters(), canonical.buffer());
         }
         // This trajectory is a direction of improvement, never an independent feasible-placement proof.
         // A categorical road failure has no known travel duration. Do not invent one for timing.
@@ -65,23 +69,27 @@ final class RouteTimeline {
             previous = here;
         }
         if (!route.getVisits().isEmpty() && roads.home(previous, technician) == null) unavailableRoads++;
-        if (unavailableRoads > 0) return result(new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
-        if (route.getVisits().isEmpty()) return result(new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (unavailableRoads > 0) return result(new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0, 0);
+        if (route.getVisits().isEmpty()) return result(new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0, 0);
+        PlanFacts.ArrivalBuffer reserve = facts.arrivalBuffer();
         PlanVisit first = Required.value(route.getVisits().getFirst());
         long initialTravel = Required.value(roads.leg(technician, first.roadNumber(facts))).bufferedMinutes();
         // The shift starts at offset 0.
         long departure = Math.max(0, Math.subtractExact(offset(origin, first.getWindowStart()), nanos(initialTravel)));
         long cursor = departure;
         previous = technician;
-        long drive = 0, waiting = 0, meters = 0, lateness = 0;
+        long drive = 0, waiting = 0, meters = 0, lateness = 0, buffer = 0;
         Map<String, Instant> arrivals = withArrivals ? new LinkedHashMap<>() : Required.value(Map.of());
         for (PlanVisit visit : route.getVisits()) {
             int here = visit.roadNumber(facts);
             RoadMatrix.Leg road = Required.value(roads.leg(previous, here));
             long travel = road.bufferedMinutes();
             long earliest = Math.addExact(cursor, nanos(travel));
-            long arrival = Math.max(earliest, offset(origin, visit.getWindowStart())), windowEnd = offset(origin, visit.getWindowEnd());
+            long windowStart = offset(origin, visit.getWindowStart());
+            long arrival = Math.max(earliest, windowStart), windowEnd = offset(origin, visit.getWindowEnd());
             if (arrival >= windowEnd) lateness = Math.addExact(lateness, Math.addExact(seconds(arrival - windowEnd), 1));
+            long deadline = windowEnd - reserve.nanos(windowEnd - windowStart);
+            if (arrival >= deadline) buffer = Math.addExact(buffer, Math.addExact(seconds(arrival - deadline), 1));
             waiting = Math.addExact(waiting, minutes(arrival - earliest));
             drive = Math.addExact(drive, travel); meters = Math.addExact(meters, road.meters());
             if (withArrivals) arrivals.put(visit.getId(), instant(origin, arrival));
@@ -101,11 +109,11 @@ final class RouteTimeline {
         long unavailable = returned - departure - permitted;
         long unavailableSeconds = unavailable == 0 ? 0 : Math.addExact(seconds(unavailable), Math.floorMod(unavailable, NANOS_PER_SECOND) == 0 ? 0 : 1);
         long capacity = Math.addExact(Math.max(0, paid - route.getMaxDailyMinutes()), Math.max(0, overtime - route.getMaxOvertimeMinutes()));
-        return result(new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
+        return result(new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters, buffer);
     }
     private static Result result(Violations violations, Map<String, Instant> arrivals,
-            long paid, long overtime, long drive, long waiting, long meters) {
-        return new Result(violations, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
+            long paid, long overtime, long drive, long waiting, long meters, long buffer) {
+        return new Result(violations, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters, buffer);
     }
     /** The working intervals from the shift start (offset 0) to the overtime limit, absences removed, as offsets from {@code origin}. */
     static List<RouteTimingSearch.Block> available(TechRoute route, Instant origin) {

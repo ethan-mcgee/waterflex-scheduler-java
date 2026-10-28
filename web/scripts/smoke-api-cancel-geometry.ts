@@ -76,7 +76,7 @@ async function client(clientId: string) {
       dayOfWeek, available: true, shiftStartMin: 480, shiftEndMin: 1020 })) } } } } });
   await prisma.customer.create({ data: { id: of(clientId, "customer"), clientId, firstName: "Cancel", lastName: "Smoke", email: "cancel@example.invalid", phone: "0000000000" } });
   const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-    travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
+    travelBufferPercent: "0", travelBufferMinutes: 0, arrivalBufferPercent: 25, arrivalBufferMinMinutes: 15, arrivalBufferMaxMinutes: 60, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
   assert.ok("saved" in saved);
   const { token } = await issueToken(clientId, clientId, "API cancel smoke");
   process.env[tokenVariable(clientId)] = token;

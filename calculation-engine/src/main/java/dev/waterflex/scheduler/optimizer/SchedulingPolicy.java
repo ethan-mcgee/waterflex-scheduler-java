@@ -50,7 +50,8 @@ public final class SchedulingPolicy {
     public record Workload(String technicianId, long paidMinutes, long regularCapacityMinutes,
                            BigDecimal utilization) { }
     public record Fairness(BigDecimal variance, BigDecimal maximumUtilization, List<Workload> workloads) { }
-    public record Metrics(long overtimeMinutes, long costCents, Fairness fairness) { }
+    /** {@code bufferSeconds} is the late-arrival buffer the plan's arrivals use ({@link PlanFacts.ArrivalBuffer}). */
+    public record Metrics(long overtimeMinutes, long bufferSeconds, long costCents, Fairness fairness) { }
     public record Decision(boolean accepted, String reason, long referenceCostCents,
                            long overtimeTargetMinutes, long costCeilingCents) { }
 
@@ -105,28 +106,43 @@ public final class SchedulingPolicy {
         for (TechRoute route : plan.getRoutes()) {
             long capacity = regularCapacity(Required.value(route));
             if (capacity == 0 || Collections.disjoint(services, route.getQualifiedServiceIds())) continue;
-            var result = RouteEvaluator.evaluate(new DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(),
-                    plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes()));
+            var result = RouteEvaluator.evaluate(new DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(), Required.value(Set.of()),
+                    plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes(), plan.getArrivalBuffer()));
             workloads.add(new Workload(route.getId(), result.paidMinutes(), capacity, Required.value(BigDecimal.ZERO)));
         }
-        return new Metrics(total.overtimeMinutes(), total.costCents(), fairness(workloads));
+        return new Metrics(total.overtimeMinutes(), total.bufferSeconds(), total.costCents(), fairness(workloads));
     }
 
-    /** The same reference and rules must be persisted at preview and checked again at apply. */
+    /**
+     * The same reference and rules must be persisted at preview and checked again at apply. Late-arrival buffer use
+     * ranks below overtime and above fairness and cost: a candidate may not use more than the reference, and one that
+     * uses less than the baseline is an improvement on its own. Without a buffer every plan uses none, and the order of
+     * the other rules is the order before the buffer.
+     */
     public static Decision compare(Metrics baseline, Metrics candidate, Metrics reference, Rules rules) {
         long ceiling = rules.costCeiling(reference.costCents());
         String reason;
         if (candidate.overtimeMinutes() != 0) reason = "OVERTIME_PROHIBITED";
         else if (candidate.overtimeMinutes() != reference.overtimeMinutes()) reason = "OVERTIME_TARGET_MISMATCH";
+        else if (candidate.bufferSeconds() > reference.bufferSeconds()) reason = "BUFFER_REGRESSION";
         else if (candidate.costCents() > ceiling) reason = "COST_CEILING_EXCEEDED";
         else if (candidate.overtimeMinutes() < baseline.overtimeMinutes()) reason = "OVERTIME_REDUCTION";
+        else if (candidate.bufferSeconds() < baseline.bufferSeconds()) reason = "BUFFER_IMPROVEMENT";
+        else if (candidate.bufferSeconds() > baseline.bufferSeconds()) reason = "BUFFER_REGRESSION";
         else if (baseline.costCents() <= ceiling && candidate.fairness().variance().compareTo(baseline.fairness().variance()) > 0)
             reason = "FAIRNESS_REGRESSION_WITHIN_ALLOWANCE";
         else if (candidate.fairness().variance().compareTo(baseline.fairness().variance()) < 0) reason = "FAIRNESS_IMPROVEMENT";
         else if (candidate.costCents() < baseline.costCents()) reason = "COST_REDUCTION";
         else reason = "NO_POLICY_IMPROVEMENT";
-        return new Decision(Set.of("OVERTIME_REDUCTION", "FAIRNESS_IMPROVEMENT", "COST_REDUCTION").contains(reason), reason,
+        return new Decision(Set.of("OVERTIME_REDUCTION", "BUFFER_IMPROVEMENT", "FAIRNESS_IMPROVEMENT", "COST_REDUCTION").contains(reason), reason,
                 reference.costCents(), reference.overtimeMinutes(), ceiling);
+    }
+
+    /** The order a reference is chosen in, the score's own: less overtime, then less buffer use, then less cost. */
+    public static int referenceOrder(Metrics first, Metrics second) {
+        int order = Long.compare(first.overtimeMinutes(), second.overtimeMinutes());
+        if (order == 0) order = Long.compare(first.bufferSeconds(), second.bufferSeconds());
+        return order == 0 ? Long.compare(first.costCents(), second.costCents()) : order;
     }
 
     /** Final ties between independently validated, policy-equivalent daily candidates. */

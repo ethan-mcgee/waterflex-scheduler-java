@@ -60,22 +60,22 @@ class ScoringExactnessTest {
     }
 
     @Test void aSingleBlockDayScoresExactlyAsBefore() {
-        assertEquals("score=[0/0/0/0/0]hard/[0/-168659]soft moves=3000 steps=30 feasible=true cents=168659 arrivals=997203392 arrangement=665513981", solve(20, SolverBenchmarkData.Workload.CLUSTERED, 7001, 30));
+        assertEquals("score=[0/0/0/0/0/0]hard/[0/0/-168659]soft moves=3000 steps=30 feasible=true cents=168659 arrivals=997203392 arrangement=665513981", solve(20, SolverBenchmarkData.Workload.CLUSTERED, 7001, 30));
     }
 
     @Test void aDayWithAbsencesScoresExactlyAsBefore() {
-        assertEquals("score=[0/0/0/0/0]hard/[0/-170875]soft moves=3000 steps=30 feasible=true cents=170875 arrivals=997337048 arrangement=-307532887", solve(20, SolverBenchmarkData.Workload.ABSENCE, 7002, 30));
+        assertEquals("score=[0/0/0/0/0/0]hard/[0/0/-170875]soft moves=3000 steps=30 feasible=true cents=170875 arrivals=997337048 arrangement=-307532887", solve(20, SolverBenchmarkData.Workload.ABSENCE, 7002, 30));
     }
 
     @Test void aLargeDispersedDayScoresExactlyAsBefore() {
-        assertEquals("score=[0/0/0/0/0]hard/[0/-497848]soft moves=2000 steps=20 feasible=true cents=497848 arrivals=2094978950 arrangement=1569652034", solve(50, SolverBenchmarkData.Workload.DISPERSED, 7003, 20));
+        assertEquals("score=[0/0/0/0/0/0]hard/[0/0/-497848]soft moves=2000 steps=20 feasible=true cents=497848 arrivals=2094978950 arrangement=1569652034", solve(50, SolverBenchmarkData.Workload.DISPERSED, 7003, 20));
     }
 
     @Test void aFairnessPhaseOverClusteredRoutesScoresExactlyAsBefore() {
-        assertEquals("score=[0/0/0/0/0]hard/[-0.010622599/-173608]soft moves=2000 steps=20 feasible=true cents=173608 arrivals=-1196828960 arrangement=1008159967", fairness(20, SolverBenchmarkData.Workload.CLUSTERED, 7004, 20));
+        assertEquals("score=[0/0/0/0/0/0]hard/[-0.010622599/0/-173608]soft moves=2000 steps=20 feasible=true cents=173608 arrivals=-1196828960 arrangement=1008159967", fairness(20, SolverBenchmarkData.Workload.CLUSTERED, 7004, 20));
     }
 
     @Test void aFairnessPhaseWithAbsencesScoresExactlyAsBefore() {
-        assertEquals("score=[0/0/0/0/0]hard/[-0.013611233/-266719]soft moves=2000 steps=20 feasible=true cents=266719 arrivals=-1561050366 arrangement=-564114250", fairness(30, SolverBenchmarkData.Workload.ABSENCE, 7005, 20));
+        assertEquals("score=[0/0/0/0/0/0]hard/[-0.013611233/0/-266719]soft moves=2000 steps=20 feasible=true cents=266719 arrivals=-1561050366 arrangement=-564114250", fairness(30, SolverBenchmarkData.Workload.ABSENCE, 7005, 20));
     }
 }

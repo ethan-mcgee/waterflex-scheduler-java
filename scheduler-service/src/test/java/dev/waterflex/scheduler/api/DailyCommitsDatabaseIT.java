@@ -63,7 +63,7 @@ class DailyCommitsDatabaseIT {
         String id = PublicApiStore.newProposalId();
         var example = PublicRequests.read(PublicApiContractTest.example("DailyProposal"), DailyProposal.class);
         var body = new DailyProposal(id, example.inputRevision(), decision, example.reason(), example.routes(),
-                example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes());
+                example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes(), example.stopsInsideBuffer());
         var proposal = new StoredProposal(id, requestId, "omaha", "America/Chicago", DAY, example.inputRevision(), "omaha-map-v7", ProposalStatus.PROPOSED,
                 Required.value(List.of(new TechnicianDayVersion("tech-1", DAY, TECH_1), new TechnicianDayVersion("tech-2", DAY, TECH_2))), body);
         Started started = assertInstanceOf(Started.class, store.claim(owner, requestId, Operation.DAILY_PROPOSAL, Required.value("a".repeat(64))));

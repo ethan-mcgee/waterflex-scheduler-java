@@ -4,11 +4,11 @@
   "mode": "ASSIGNED",
   "snapshotId": "fixture-only",
   "contentHash": null,
-  "versions": {"policy": "zero-overtime-four-hour-v2", "cost": "exact-fleet-half-up-v3", "score": "bendable-decimal-repair-v3"},
+  "versions": {"policy": "zero-overtime-four-hour-v2", "cost": "exact-fleet-half-up-v3", "score": "bendable-decimal-repair-v4"},
   "routing": {"provider": "fixture", "profile": "car", "identity": "asymmetric-v1"},
   "revisions": {"schedule": ["s0", "s1"], "configuration": "c0", "reservation": "r0"},
   "search": {"variant": "TABU", "seed": 17, "remainingMillis": 20000},
-  "rates": {"regularHourly": "20.0200", "overtimeHourly": "30.03", "mileagePerMile": "0.67", "travelBufferPct": "0", "travelBufferMinutes": 0},
+  "rates": {"regularHourly": "20.0200", "overtimeHourly": "30.03", "mileagePerMile": "0.67", "travelBufferPct": "0", "travelBufferMinutes": 0, "arrivalBuffer": {"percent": 0, "minMinutes": 0, "maxMinutes": 0}},
   "locations": [
     {"id": "departure0", "latitude": 41, "longitude": -96},
     {"id": "return0", "latitude": 41.01, "longitude": -96},

@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.Required;
 import java.time.Instant;
 import java.util.*;
@@ -17,7 +18,9 @@ final class SolverBenchmarkData {
     static int shiftMinutes(int rank) { return switch (rank % 3) { case 0 -> 240; case 1 -> 360; default -> 540; }; }
     private SolverBenchmarkData() { }
     static DayPlan create(int count, Workload workload) { return create(count, workload, 0); }
-    static DayPlan create(int count, Workload workload, long fixtureSeed) {
+    static DayPlan create(int count, Workload workload, long fixtureSeed) { return create(count, workload, fixtureSeed, PlanFacts.ArrivalBuffer.NONE); }
+    /** The same fixture with a late-arrival buffer: every route, visit and leg is identical, only the buffer differs. */
+    static DayPlan create(int count, Workload workload, long fixtureSeed, PlanFacts.ArrivalBuffer buffer) {
         if (count != 5 && count != 10 && count != 20 && count != 30 && count != 50) throw new IllegalArgumentException("Benchmark fleet must be 5, 10, 20, 30 or 50");
         if (fixtureSeed < 0) throw new IllegalArgumentException("Benchmark fixture seed must not be negative");
         Random random = new Random(fixtureSeed);
@@ -60,7 +63,8 @@ final class SolverBenchmarkData {
                     : 90 + Math.floorMod(a * 31 - b * 13, 210);
             matrix.put(from + ">" + to, new DayPlan.RoadLeg(seconds, seconds * 12));
         }
-        DayPlan plan = new DayPlan(routes, visits, matrix, 30, 45, .67, .2, 5);
+        DayPlan plan = new DayPlan(routes, visits, matrix, Required.value(Set.of()), Monetary.legacy(30), Monetary.legacy(45), Monetary.legacy(.67),
+                Monetary.legacy(.2), 5, buffer);
         if (!RouteEvaluator.evaluate(plan).feasible()) throw new IllegalStateException("Invalid benchmark seed: " + count + "/" + workload + "/" + fixtureSeed);
         return plan;
     }
