@@ -21,7 +21,9 @@ export const StaleProblem = z.strictObject({ error: z.literal("STALE"), message:
 export const SkippedTechnicianDay = z.strictObject({ technicianId: Id, serviceDate: ServiceDate, reason: z.enum(["LOCATION_UNRESOLVED"]),
   message: z.string().min(1) });
 
-export const PlannedStop = z.strictObject({ appointmentId: Id, sequence: z.int().min(0), plannedStart: Instant, plannedEnd: Instant });
+// arrivalBufferStart and stopsInsideBuffer (1.9.0) are present only when the snapshot carries Rates.arrivalBuffer.
+export const PlannedStop = z.strictObject({ appointmentId: Id, sequence: z.int().min(0), plannedStart: Instant, plannedEnd: Instant,
+  arrivalBufferStart: Instant.optional() });
 
 export const PlannedRoute = z.strictObject({ technicianId: Id, serviceDate: ServiceDate, stops: z.array(PlannedStop) });
 
@@ -35,6 +37,7 @@ export const DailyProposal = z.strictObject({
   skippedTechnicianDays: z.array(SkippedTechnicianDay),
   costCents: z.int().min(0),
   overtimeMinutes: z.literal(0),
+  stopsInsideBuffer: z.int().min(0).optional(),
 });
 
 export const RouteEvaluation = z.strictObject({
@@ -43,6 +46,7 @@ export const RouteEvaluation = z.strictObject({
   skippedTechnicianDays: z.array(SkippedTechnicianDay),
   costCents: z.int().min(0),
   overtimeMinutes: z.int().min(0).max(1440),
+  stopsInsideBuffer: z.int().min(0).optional(),
 });
 
 export const LocatedStop = z.strictObject({ appointmentId: Id, sequence: z.int().min(0), lat: z.number().min(-90).max(90),

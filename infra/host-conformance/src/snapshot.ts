@@ -18,9 +18,13 @@ export interface Appointment {
   location: Location; sequence: number; plannedStart: string;
 }
 
+/** Rates.arrivalBuffer (1.9.0): the end of each window planning avoids. Absent means no buffer. */
+export interface ArrivalBuffer { percent: number; minMinutes: number; maxMinutes: number }
+
 export interface Snapshot {
   metroId: string; timeZone: string;
-  rates: { regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPct: string; travelBufferMinutes: number };
+  rates: { regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPct: string; travelBufferMinutes: number;
+    arrivalBuffer?: ArrivalBuffer };
   policy: { fairnessBudget: string; dailySearch: "TABU" | "TABU_KOPT" | "TABU_KOPT_SIZE_3"; costSearchSeconds: number; fairnessSearchSeconds: number;
     bookingDeadlineMs: number; regularWindowThreshold: number; bookingRefinementMs?: number; unimprovedSearchSeconds?: number };
   technicians: { id: string; qualifications: string[] }[];
