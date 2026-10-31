@@ -24,19 +24,30 @@ def result(case, hours, moves, cost, inside, buffer_seconds=None):
     return line
 
 
-def write_run(root, off_speed=99, on_speed=93, absence_on_speed=None, wide_on_cost=1010):
+def write_run(root, off_speed=99, on_speed=93, absence_on_speed=None, wide_on_cost=1010, designs=None):
     """Main runs 100 moves per second in each phase; off and on run their own speeds, ABSENCE optionally slower for on.
-    On costs 10 cents more than off on 2-hour windows and {@code wide_on_cost} - 1000 on 6-hour ones."""
+    On costs 10 cents more than off on 2-hour windows and {@code wide_on_cost} - 1000 on 6-hour ones. {@code designs}
+    maps a treatment name to its (off speed, on speed, put back) for a run of several designs; without it the run is
+    the one branch's off and on."""
     (root / 'rows').mkdir()
-    (root / 'manifest.json').write_text('﻿' + json.dumps({'study': 'test', 'arrivalBuffer': '25,15,60'}), encoding='utf-8')
+    designs = designs or {'': (off_speed, on_speed, None)}
+    names = ['main'] + [prefix + kind for prefix in (name + '-' if name else '' for name in designs) for kind in ('off', 'on')]
+    (root / 'manifest.json').write_text('﻿' + json.dumps({'study': 'test', 'arrivalBuffer': '25,15,60', 'arms': {name: '' for name in names}}),
+                                        encoding='utf-8')
     for rep in (1, 2):
         for hours in WINDOWS:
             for case in CASES:
-                on = absence_on_speed if absence_on_speed is not None and case[1] == 'ABSENCE' else on_speed
-                arms = {'main': ({}, result(case, hours, 100, 1000, 0)),
-                        'off': ({'arrivalBuffer': {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}, 'reportArrivalBuffer': BUFFER},
-                                result(case, hours, off_speed, 1000, 5, 0)),
-                        'on': ({'arrivalBuffer': BUFFER}, result(case, hours, on, 1010 if hours == 2 else wide_on_cost, 0, 0))}
+                arms = {'main': ({}, result(case, hours, 100, 1000, 0))}
+                for name, (off, on, put_back) in designs.items():
+                    prefix = name + '-' if name else ''
+                    if absence_on_speed is not None and case[1] == 'ABSENCE':
+                        on = absence_on_speed
+                    arms[prefix + 'off'] = ({'arrivalBuffer': {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}, 'reportArrivalBuffer': BUFFER},
+                                            result(case, hours, off, 1000, 5, 0))
+                    arms[prefix + 'on'] = ({'arrivalBuffer': BUFFER}, result(case, hours, on, 1010 if hours == 2 else wide_on_cost, 0, 0))
+                    if put_back is not None:
+                        for arm in (prefix + 'off', prefix + 'on'):
+                            arms[arm][1].update(putBack=put_back if arm.endswith('on') else 0, unassignedAfterPutBack=0)
                 for arm, (extra, line) in arms.items():
                     provenance = {'type': 'provenance', 'revision': 'arrival-buffer-study arm=' + arm, 'budgetMs': 15000, 'windowMinutes': hours * 60, **extra}
                     name = f'rep{rep}-{case[0]}-{case[1]}-{case[2]}-{case[3]}-{hours}h-{arm}.jsonl'
@@ -103,6 +114,20 @@ class ArrivalBufferStudyTest(unittest.TestCase):
                 rewrite(next((run / 'rows').glob('rep1-10-*' + suffix)), change)
                 with self.assertRaisesRegex(ValueError, message):
                     abs_.summarize(run, run / 'out.json', 'jfr')
+
+    def test_several_designs_are_each_held_to_the_bars_against_the_same_main(self):
+        paired = self.summarize(designs={'shrink7': (100, 99, 1), 'soft8': (97, 95, None)})['paired']
+        self.assertEqual(sorted(paired['speed']), ['shrink7-off/main', 'shrink7-on/main', 'shrink7-on/shrink7-off',
+                                                   'soft8-off/main', 'soft8-on/main', 'soft8-on/soft8-off'])
+        self.assertEqual(paired['speed']['shrink7-on/shrink7-off']['referencePhase']['overall']['median'], 0.99)
+        self.assertTrue(paired['decision']['shrink7-off']['promoted'] and paired['decision']['soft8-on']['promoted'])
+        self.assertFalse(paired['decision']['soft8-off']['promoted'])
+        self.assertEqual(sorted(paired['treatments']), ['shrink7', 'soft8'])
+        self.assertEqual(paired['treatments']['soft8']['costAgainstOff']['median'], 10)
+        self.assertNotIn('costAgainstOff', paired)
+        # Put back is summed where the rows report it, and left out where they do not.
+        self.assertEqual(paired['quality']['shrink7-on']['putBack'], 12)
+        self.assertNotIn('putBack', paired['quality']['soft8-on'])
 
     def test_an_incomplete_or_mixed_run_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:

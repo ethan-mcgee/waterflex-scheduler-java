@@ -16,7 +16,11 @@
 param(
     # bench/arrival-buffer-main: main fed9565 plus the test-only window option.
     [ValidatePattern('^[0-9a-f]{40}$')][string]$MainRevision = '170ab77001214d6b23d4e8c7ae43b76e5d14541d',
-    [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$BranchRevision,
+    # The buffer branch: arms off and on (tree b). Or -Treatments instead.
+    [ValidatePattern('^([0-9a-f]{40})?$')][string]$BranchRevision = '',
+    # Several buffer designs side by side, as name=commit pairs (for example soft8=<commit>,shrink7=<commit>): each gets
+    # arms <name>-off and <name>-on on its own tree, against the same main.
+    [ValidatePattern('^([a-z0-9]+=[0-9a-f]{40})?(,[a-z0-9]+=[0-9a-f]{40})*$')][string]$Treatments = '',
     [string]$TreeRoot = 'C:\Projects\waterflex-worktrees',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
     # 15000 is the production default (10 s cost, 5 s fairness).
@@ -73,12 +77,21 @@ if (-not $AllowContainers -and (Get-Command docker -ErrorAction SilentlyContinue
 $ErrorActionPreference = 'Stop'
 if ($version -notmatch '"25') { throw "Java 25 is required, found: $version" }
 if ($running.Count -gt 0) { throw "$($running.Count) containers are running; stop them (docker compose stop) or pass -AllowContainers" }
-# Tree m must be the branch's production base with test-only changes, so the main arm runs production code unchanged.
-$base = (& git -C $main merge-base $MainRevision $BranchRevision).Trim()
-if ($LASTEXITCODE -ne 0) { throw "$MainRevision and $BranchRevision share no history" }
-$changed = @(& git -C $main diff --name-only $base $MainRevision)
-$production = @($changed | Where-Object { $_ -notmatch '/src/test/' })
-if ($production.Count -gt 0) { throw "$MainRevision changes production code over $base ($($production -join ', ')); tree m must differ from it only in tests" }
+if (($BranchRevision -eq '') -eq ($Treatments -eq '')) { throw 'Give either -BranchRevision or -Treatments' }
+# Each buffer tree and its arms: tree b with off and on, or one tree per treatment with <name>-off and <name>-on.
+$bufferTrees = [ordered]@{}
+if ($BranchRevision) { $bufferTrees['b'] = @{ revision = $BranchRevision; prefix = '' } }
+else { foreach ($pair in $Treatments -split ',') { $name, $revision = $pair -split '='; $bufferTrees[$name] = @{ revision = $revision; prefix = "$name-" } } }
+if ($bufferTrees.Contains('m')) { throw 'A treatment may not be named m (the main tree)' }
+# Tree m must be each branch's production base with test-only changes, so the main arm runs production code unchanged.
+foreach ($tree in $bufferTrees.Keys) {
+    $revision = $bufferTrees[$tree].revision
+    $base = (& git -C $main merge-base $MainRevision $revision).Trim()
+    if ($LASTEXITCODE -ne 0) { throw "$MainRevision and $revision share no history" }
+    $changed = @(& git -C $main diff --name-only $base $MainRevision)
+    $production = @($changed | Where-Object { $_ -notmatch '/src/test/' })
+    if ($production.Count -gt 0) { throw "$MainRevision changes production code over $base ($($production -join ', ')); tree m must differ from it only in tests" }
+}
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
 $evidence = if ($Smoke) { $null } else { Join-Path $main "research/evidence/arrival-buffer-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
@@ -90,7 +103,8 @@ Add-Type -Name Power -Namespace Study -MemberDefinition '[DllImport("kernel32.dl
 [Study.Power]::SetThreadExecutionState([uint32]'0x80000001') | Out-Null
 
 # Freeze each tree as a detached worktree of its commit and build it once; a tree already built from it is reused.
-$trees = [ordered]@{ m = $MainRevision; b = $BranchRevision }
+$trees = [ordered]@{ m = $MainRevision }
+foreach ($tree in $bufferTrees.Keys) { $trees[$tree] = $bufferTrees[$tree].revision }
 $classpaths = @{}
 foreach ($tree in $trees.Keys) {
     $revision = $trees[$tree]
@@ -122,8 +136,14 @@ foreach ($tree in $trees.Keys) {
 
 $jvm = @('-Xmx1536m', '-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC')
 # Each arm: its tree and the property that sets its buffer. Main predates both properties and gets none.
-$arms = [ordered]@{ main = @{ tree = 'm'; property = '' }; off = @{ tree = 'b'; property = "-Dbenchmark.reportArrivalBuffer=$Buffer" }
-                    on = @{ tree = 'b'; property = "-Dbenchmark.arrivalBuffer=$Buffer" } }
+$arms = [ordered]@{ main = @{ tree = 'm'; property = '' } }
+$armDescriptions = [ordered]@{ main = 'tree m, no buffer' }
+foreach ($tree in $bufferTrees.Keys) {
+    $prefix = $bufferTrees[$tree].prefix
+    $arms["$($prefix)off"] = @{ tree = $tree; property = "-Dbenchmark.reportArrivalBuffer=$Buffer" }
+    $arms["$($prefix)on"] = @{ tree = $tree; property = "-Dbenchmark.arrivalBuffer=$Buffer" }
+    $armDescriptions["$($prefix)off"] = "tree $tree, no buffer"; $armDescriptions["$($prefix)on"] = "tree $tree, buffer $Buffer"
+}
 $armNames = @($arms.Keys)
 $sizeList = @($Sizes -split ',' | ForEach-Object { $_.Trim() })
 $workloadList = @($Workloads -split ',' | ForEach-Object { $_.Trim() })
@@ -140,7 +160,7 @@ $perSolve = $BudgetMs / 1000 + 5
 $seconds = $cases.Count * $Repetitions * $armNames.Count * $perSolve +
     $sizeList.Count * $workloadList.Count * $profileFixtureList.Count * $seedList.Count * $profileWindowList.Count * $armNames.Count * $perSolve
 @{ study = 'late-arrival buffer'; startedAt = [DateTime]::UtcNow.ToString('o'); smoke = [bool]$Smoke
-   revisions = @{ m = $MainRevision; b = $BranchRevision }; arms = @{ main = 'tree m, no buffer'; off = 'tree b, no buffer'; on = "tree b, buffer $Buffer" }
+   revisions = $trees; arms = $armDescriptions
    arrivalBuffer = $Buffer; jvm = $jvm; java = $version; processors = [Environment]::ProcessorCount; budgetMs = $BudgetMs
    sizes = $sizeList; windowHours = $windowList; workloads = $workloadList; fixtureSeeds = $fixtureList; seeds = $seedList; repetitions = $Repetitions
    profileFixtureSeeds = $profileFixtureList; profileWindowHours = $profileWindowList; order = 'per case: each arm its own JVM, arm order rotating' } |
@@ -192,4 +212,4 @@ $out = if ($Smoke) { Join-Path $runs 'smoke-summary.json' } else { $evidence }
 & python (Join-Path $repository 'infra/arrival_buffer_study.py') summarize --run $runs --out $out --jfr $jfr
 if ($LASTEXITCODE -ne 0) { throw 'The summary failed; the raw runs are kept in ' + $runs }
 Write-Output "Done. Evidence: $out"
-Write-Output "The trees stay in $TreeRoot for a rerun; remove them with: git -C $main worktree remove $(Join-Path $TreeRoot 'arrival-buffer-m') and the same for arrival-buffer-b"
+Write-Output "The trees stay in $TreeRoot for a rerun; remove each with: git -C $main worktree remove $(Join-Path $TreeRoot 'arrival-buffer-<tree>') for trees $($trees.Keys -join ', ')"

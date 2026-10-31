@@ -20,7 +20,10 @@ off against on shows what the buffer buys. A buffer that costs more than the own
   python infra/arrival_buffer_study.py summarize --run <run directory> --out <evidence json>
 
 The run directory is what infra/run-arrival-buffer-study.ps1 writes: rows/rep<r>-<technicians>-<workload>-<fixture>-
-<seed>-<window>h-<arm>.jsonl, manifest.json and profiles/<arm>/<window>h/*.jfr.
+<seed>-<window>h-<arm>.jsonl, manifest.json and profiles/<arm>/<window>h/*.jfr. A run with -Treatments compares several
+buffer designs at once: each treatment <name> has arms <name>-off and <name>-on, held to the same bars against main, and
+its quality comparisons appear under treatments.<name>; a run of the one branch keeps the arms off and on and the
+top-level comparisons.
 """
 import argparse
 import json
@@ -33,14 +36,18 @@ from pathlib import Path
 
 from representation_study import attribute, check, jfr_document, merge, rate, spread
 
-ARMS = ('main', 'off', 'on')
 PHASES = ('referencePhase', 'fairnessPhase')
 BARS = {'off': 0.98, 'on': 0.90}
 NONE = {'percent': 0, 'minMinutes': 0, 'maxMinutes': 0}
-ROW_FILE = re.compile(r'rep(\d+)-(\d+)-([A-Z_]+)-(\d+)-(\d+)-(\d+)h-(main|off|on)\.jsonl')
+ROW_FILE = re.compile(r'rep(\d+)-(\d+)-([A-Z_]+)-(\d+)-(\d+)-(\d+)h-(main|(?:[a-z0-9]+-)?(?:off|on))\.jsonl')
 # Positions in a case: (technicians, workload, fixture seed, solver seed, window hours).
 FLEET, WORKLOAD, WINDOW = 0, 1, 4
 JFR_FILE = re.compile(r'(\d+)-([A-Z_]+)-(\d+)-([A-Z_0-9]+)-(\d+)-(cost|fairness)\.jfr')
+
+
+def kind(arm):
+    """main, off or on: what an arm ran, whatever design it belongs to."""
+    return arm if arm == 'main' else arm.rsplit('-', 1)[-1]
 
 
 def buffer_of(text):
@@ -65,8 +72,8 @@ def read_rows(path, buffer):
     if arm == 'main':
         check('arrivalBuffer' not in provenance, path.name + ': main must be the tree before the buffer')
     else:
-        check(provenance.get('arrivalBuffer') == (buffer if arm == 'on' else NONE), path.name + ': wrong buffer for ' + arm)
-    if arm == 'off':
+        check(provenance.get('arrivalBuffer') == (buffer if kind(arm) == 'on' else NONE), path.name + ': wrong buffer for ' + arm)
+    if kind(arm) == 'off':
         check(provenance.get('reportArrivalBuffer') == buffer, path.name + ': off must count stops against the study buffer')
     results = [line for line in lines if line.get('type') == 'result']
     check(len(results) == 1, path.name + ': one result expected')
@@ -103,6 +110,9 @@ def quality(by, pairs, arm):
         reasons[row['acceptanceReason']] = reasons.get(row['acceptanceReason'], 0) + 1
     summary = {'medianCostCents': statistics.median(row['after']['costCents'] for row in rows),
                'overtimeMinutes': sum(row['after']['overtimeMinutes'] for row in rows), 'reasons': dict(sorted(reasons.items()))}
+    if arm != 'main' and all('putBack' in row for row in rows):
+        summary['putBack'] = sum(row['putBack'] for row in rows)
+        summary['unassignedAfterPutBack'] = sum(row['unassignedAfterPutBack'] for row in rows)
     if arm != 'main':
         summary['stopsInsideBufferBefore'] = sum(row['stopsInsideBufferBefore'] for row in rows)
         summary['stopsInsideBufferAfter'] = sum(row['stopsInsideBufferAfter'] for row in rows)
@@ -111,48 +121,65 @@ def quality(by, pairs, arm):
     return summary
 
 
-def paired(rows):
+def comparisons(by, pairs, cases, prefix):
+    """One buffer design's quality against its own off arm and against main, overall and by window length."""
+    on, off = prefix + 'on', prefix + 'off'
+    cost = lambda row: row['after']['costCents']
+    inside = lambda row: row['stopsInsideBufferAfter']
+    windows = {}
+    for hours in sorted({case[WINDOW] for case in cases}):
+        subset = [(case, rep) for case, rep in pairs if case[WINDOW] == hours]
+        windows[str(hours)] = {'quality': {arm: quality(by, subset, arm) for arm in ('main', off, on)}, 'costAgainstOff': differences(by, subset, on, off, cost),
+                               'stopsInsideBufferAgainstOff': differences(by, subset, on, off, inside)}
+    return {'costAgainstOff': differences(by, pairs, on, off, cost), 'costAgainstMain': differences(by, pairs, on, 'main', cost),
+            'stopsInsideBufferAgainstOff': differences(by, pairs, on, off, inside), 'byWindowHours': windows}
+
+
+def paired(rows, arms=('main', 'off', 'on')):
     by = {}
     for item in rows:
         key = (item['arm'], item['case'], item['rep'])
         check(key not in by, 'duplicate row: ' + repr(key))
+        check(item['arm'] in arms, 'a row of an arm the manifest does not name: ' + item['arm'])
         by[key] = item['row']
     cases = sorted({item['case'] for item in rows})
     reps = sorted({item['rep'] for item in rows})
     for case in cases:
         for rep in reps:
-            for arm in ARMS:
+            for arm in arms:
                 check((arm, case, rep) in by, 'missing ' + arm + ' for ' + repr(case) + ' rep ' + str(rep))
             # Tree m builds its fixtures with its own copy of the window code: every arm must have solved the same day.
-            check(len({by[(arm, case, rep)]['datasetFingerprint'] for arm in ARMS}) == 1, 'the arms solved different days for ' + repr(case))
+            check(len({by[(arm, case, rep)]['datasetFingerprint'] for arm in arms}) == 1, 'the arms solved different days for ' + repr(case))
     pairs = [(case, rep) for case in cases for rep in reps]
-    violations = {arm: sum(by[(arm, case, rep)]['violations'] for case, rep in pairs) for arm in ARMS}
-    speeds = {'off/main': speed(by, pairs, 'off', 'main'), 'on/main': speed(by, pairs, 'on', 'main'), 'on/off': speed(by, pairs, 'on', 'off')}
-    cost = lambda row: row['after']['costCents']
+    violations = {arm: sum(by[(arm, case, rep)]['violations'] for case, rep in pairs) for arm in arms}
+    prefixes = sorted({arm[:-len('off')] for arm in arms if kind(arm) == 'off'})
+    check(all(prefix + 'on' in arms for prefix in prefixes) and len(prefixes) * 2 + 1 == len(arms), 'every design needs an off and an on arm')
+    speeds = {arm + '/main': speed(by, pairs, arm, 'main') for arm in arms if arm != 'main'}
+    for prefix in prefixes:
+        speeds[prefix + 'on/' + prefix + 'off'] = speed(by, pairs, prefix + 'on', prefix + 'off')
     decision = {}
-    for arm in ('off', 'on'):
+    for arm in arms:
+        if arm == 'main':
+            continue
         medians = {phase: speeds[arm + '/main'][phase]['overall']['median'] for phase in PHASES}
-        decision[arm] = {'promoted': all(value >= BARS[arm] for value in medians.values()) and violations[arm] == 0, 'medians': medians,
-                         'bar': 'median paired moves per second against main at least ' + str(BARS[arm]) + 'x in both phases, zero violations'}
-    inside = lambda row: row['stopsInsideBufferAfter']
-    windows = {}
-    for hours in sorted({case[WINDOW] for case in cases}):
-        subset = [(case, rep) for case, rep in pairs if case[WINDOW] == hours]
-        windows[str(hours)] = {'quality': {arm: quality(by, subset, arm) for arm in ARMS}, 'costAgainstOff': differences(by, subset, 'on', 'off', cost),
-                               'stopsInsideBufferAgainstOff': differences(by, subset, 'on', 'off', inside)}
-    return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'speed': speeds, 'decision': decision,
-            'quality': {arm: quality(by, pairs, arm) for arm in ARMS},
-            'costAgainstOff': differences(by, pairs, 'on', 'off', cost), 'costAgainstMain': differences(by, pairs, 'on', 'main', cost),
-            'stopsInsideBufferAgainstOff': differences(by, pairs, 'on', 'off', inside), 'byWindowHours': windows}
+        decision[arm] = {'promoted': all(value >= BARS[kind(arm)] for value in medians.values()) and violations[arm] == 0, 'medians': medians,
+                         'bar': 'median paired moves per second against main at least ' + str(BARS[kind(arm)]) + 'x in both phases, zero violations'}
+    document = {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'speed': speeds, 'decision': decision,
+                'quality': {arm: quality(by, pairs, arm) for arm in arms}}
+    if prefixes == ['']:
+        document.update(comparisons(by, pairs, cases, ''))
+    else:
+        document['treatments'] = {prefix[:-1]: comparisons(by, pairs, cases, prefix) for prefix in prefixes}
+    return document
 
 
-def profiles(directory, jfr):
+def profiles(directory, jfr, arms):
     """Per arm, window length and phase: the merged attribution of every recording, in profiles/<arm>/<window>h/."""
     grouped = {}
     for path in sorted(directory.glob('*/*/*.jfr')):
         match = JFR_FILE.fullmatch(path.name)
         window = re.fullmatch(r'(\d+)h', path.parent.name)
-        check(match is not None and window is not None and path.parent.parent.name in ARMS, 'unexpected recording: ' + str(path))
+        check(match is not None and window is not None and path.parent.parent.name in arms, 'unexpected recording: ' + str(path))
         grouped.setdefault((path.parent.parent.name, int(window[1]), match[6]), []).append(attribute(jfr_document(path, jfr)))
     return {f'{arm} {hours}h {phase}': merge(parts) for (arm, hours, phase), parts in sorted(grouped.items())}
 
@@ -165,12 +192,15 @@ def summarize(run, output, jfr):
     row_files = sorted((run / 'rows').glob('*.jsonl'))
     check(row_files, 'no row files under ' + str(run / 'rows'))
     rows = [read_rows(path, buffer) for path in row_files]
+    # Main first, then the buffer arms in a fixed order (an older manifest's arms are an unordered map).
+    check('main' in manifest['arms'], 'the manifest must name the main arm')
+    arms = ('main',) + tuple(sorted(arm for arm in manifest['arms'] if arm != 'main'))
     budgets = sorted({row['budget'] for row in rows})
     check(len(budgets) == 1, 'one budget expected, found ' + repr(budgets))
     document = {'study': 'Late-arrival buffer', 'manifest': manifest, 'budgetMs': budgets[0], 'arrivalBuffer': buffer,
-                'revisions': sorted({item['revision'] for item in rows}), 'paired': paired(rows)}
+                'revisions': sorted({item['revision'] for item in rows}), 'paired': paired(rows, arms)}
     if (run / 'profiles').is_dir():
-        document['profiles'] = profiles(run / 'profiles', jfr)
+        document['profiles'] = profiles(run / 'profiles', jfr, arms)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(document, indent=1, default=str) + '\n', encoding='utf-8')
     return document
@@ -186,7 +216,7 @@ def main(arguments):
     options = parser.parse_args(arguments)
     document = summarize(options.run, options.out, options.jfr)
     paired_ = document['paired']
-    print(json.dumps({'decision': paired_['decision'], 'quality': paired_['quality'], 'costAgainstOff': paired_['costAgainstOff']}, indent=1, default=str))
+    print(json.dumps({'decision': paired_['decision'], 'quality': paired_['quality']}, indent=1, default=str))
 
 
 if __name__ == '__main__':
