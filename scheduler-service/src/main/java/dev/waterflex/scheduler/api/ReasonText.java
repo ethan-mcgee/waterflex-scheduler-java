@@ -22,6 +22,8 @@ final class ReasonText {
             case "COST_REDUCTION" -> "lower fleet cost within policy";
             case "FAIRNESS_IMPROVEMENT" -> "work spread more evenly within the fairness budget";
             case "OVERTIME_REDUCTION" -> "less overtime";
+            case "BUFFER_IMPROVEMENT" -> "fewer arrivals planned close to the end of their windows";
+            case "BUFFER_REGRESSION" -> "the plan found plans more arrivals close to the end of their windows than the current routes";
             case "COMPLETE_ZERO_OVERTIME_DEMAND" -> "every appointment placed without overtime where the current routes could not be scored";
             default -> null;
         };

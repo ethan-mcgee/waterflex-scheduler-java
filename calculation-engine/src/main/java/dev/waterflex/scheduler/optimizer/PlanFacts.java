@@ -15,15 +15,49 @@ import org.jspecify.annotations.Nullable;
 public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
         BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
-        BigDecimal travelBufferPct, long travelBufferMinutes, Set<String> demandServices,
+        BigDecimal travelBufferPct, long travelBufferMinutes, ArrivalBuffer arrivalBuffer, Set<String> demandServices,
         // Derived from the three rates, so it is no part of the revision's serialized form or its hash.
         @com.fasterxml.jackson.annotation.JsonIgnore Monetary.Rates rates) {
     /** A revision with its cost rates in both forms ({@link Monetary.Rates}), derived from the three decimal rates. */
     public PlanFacts(List<Technician> technicians, List<Visit> demand, Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
             BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile, BigDecimal travelBufferPct, long travelBufferMinutes,
-            Set<String> demandServices) {
-        this(technicians, demand, matrix, unreachable, regularHourly, overtimeHourly, mileagePerMile, travelBufferPct, travelBufferMinutes, demandServices,
-                Monetary.rates(regularHourly, overtimeHourly, mileagePerMile));
+            ArrivalBuffer arrivalBuffer, Set<String> demandServices) {
+        this(technicians, demand, matrix, unreachable, regularHourly, overtimeHourly, mileagePerMile, travelBufferPct, travelBufferMinutes, arrivalBuffer,
+                demandServices, Monetary.rates(regularHourly, overtimeHourly, mileagePerMile));
+    }
+    /**
+     * The late-arrival buffer: the end of each customer window that planning avoids, so a long repair, a break or a fuel
+     * stop does not make the technician late. A visit's buffer is {@code percent} of its window in whole minutes, held between
+     * {@code minMinutes} and {@code maxMinutes} and never more than half the window; its deadline is the window end less
+     * the buffer. An arrival at or after the deadline is still on time (the window end alone decides feasibility), but
+     * each second of it is scored ({@link RouteTimeline.Result#bufferSeconds}). {@link #NONE} is the explicit "no buffer"
+     * a client without the setting gets: every deadline is the window end, which is the behavior before the buffer.
+     * The bounds are kept in nanoseconds so the scoring timing reads two longs per visit.
+     */
+    public record ArrivalBuffer(int percent, int minMinutes, int maxMinutes) {
+        public static final int MAX_PERCENT = 50, MAX_MINUTES = 240;
+        public static final ArrivalBuffer NONE = new ArrivalBuffer(0, 0, 0);
+        public ArrivalBuffer {
+            check(percent >= 0 && percent <= MAX_PERCENT, "arrivalBuffer.percent must be in [0, " + MAX_PERCENT + "]");
+            check(minMinutes >= 0 && maxMinutes <= MAX_MINUTES && minMinutes <= maxMinutes, "arrivalBuffer minutes must satisfy 0 <= min <= max <= " + MAX_MINUTES);
+        }
+        /** True when every visit's buffer is zero: the cap is zero, whatever the percentage. */
+        public boolean none() { return maxMinutes == 0; }
+        /**
+         * The buffer of a window this many nanoseconds long (positive), in nanoseconds: whole minutes, each step rounded
+         * down, so a minute-aligned window keeps a minute-aligned deadline ("arrive by 14:45") and the validator's
+         * whole-minute departure bounds read it exactly as the scoring timing does. Integer arithmetic only.
+         */
+        long nanos(long window) {
+            if (none()) return 0;
+            long minutes = window / RouteTimeline.NANOS_PER_MINUTE;
+            long held = Math.min(Math.max(minutes * percent / 100, minMinutes), maxMinutes);
+            return RouteTimeline.nanos(Math.min(held, minutes / 2));
+        }
+        /** This window's deadline: its end less its buffer. */
+        public java.time.Instant deadline(java.time.Instant start, java.time.Instant end) {
+            return none() ? end : Required.value(end.minusNanos(nanos(java.time.Duration.between(start, end).toNanos())));
+        }
     }
     public record Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
             Set<String> qualifications, List<TechRoute.Unavailable> absences, List<String> pinnedVisits) {
@@ -59,6 +93,7 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         mileagePerMile = Monetary.mileage(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
         check(rates.equals(Monetary.rates(regularHourly, overtimeHourly, mileagePerMile)), "rates must be the revision's own");
         check(travelBufferMinutes >= 0 && travelBufferMinutes <= Integer.MAX_VALUE, "travelBufferMinutes out of range");
+        Objects.requireNonNull(arrivalBuffer, "arrivalBuffer");
         matrix = RoadMatrix.of(matrix, travelBufferPct, travelBufferMinutes);
         Set<String> locations = new HashSet<>(); Set<String> ids = new HashSet<>();
         for (Technician tech : technicians) {
@@ -78,11 +113,11 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
     /** The roads indexed by endpoint for scoring. */
     RoadMatrix roads() { return (RoadMatrix) matrix; }
     public static PlanFacts capture(List<TechRoute> routes, List<PlanVisit> visits, Map<String, DayPlan.RoadLeg> roads,
-            Set<String> unreachable, BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
+            Set<String> unreachable, BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes, ArrivalBuffer buffer) {
         List<Technician> technicians = new ArrayList<>(); List<Visit> demand = new ArrayList<>(); Set<String> services = new HashSet<>();
         for (TechRoute route : routes) technicians.add(route.facts());
         for (PlanVisit visit : visits) { demand.add(visit.facts()); services.add(visit.getServiceId()); }
-        PlanFacts facts = new PlanFacts(technicians, demand, roads, unreachable, regular, overtime, mileage, pct, minutes, services);
+        PlanFacts facts = new PlanFacts(technicians, demand, roads, unreachable, regular, overtime, mileage, pct, minutes, buffer, services);
         validateAssignments(routes, visits, false); routes.forEach(route -> Required.value(route).freeze()); return facts;
     }
     public void validateEntities(DayPlan plan, boolean complete) {

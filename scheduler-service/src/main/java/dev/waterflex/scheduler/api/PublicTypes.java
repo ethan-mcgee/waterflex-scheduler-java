@@ -3,6 +3,7 @@ package dev.waterflex.scheduler.api;
 import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.optimizer.DailyCalculation;
 import dev.waterflex.scheduler.optimizer.DailySearch;
+import dev.waterflex.scheduler.optimizer.PlanFacts;
 import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -63,8 +64,12 @@ public final class PublicTypes {
         }
     }
 
+    /**
+     * {@code arrivalBuffer} is optional (spec 1.9.0): the end of each customer window that planning avoids, so a long
+     * repair, a break or a fuel stop does not make the technician late. Null or absent means no buffer, as before 1.9.0.
+     */
     public record Rates(BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
-                        BigDecimal travelBufferPct, Integer travelBufferMinutes) {
+                        BigDecimal travelBufferPct, Integer travelBufferMinutes, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable ArrivalBuffer arrivalBuffer) {
         public Rates {
             Input.costRate(regularHourly, "regularHourly", Monetary.MAX_HOURLY);
             Input.costRate(overtimeHourly, "overtimeHourly", Monetary.MAX_HOURLY);
@@ -72,6 +77,26 @@ public final class PublicTypes {
             Input.nonNegative(travelBufferPct, "travelBufferPct");
             Input.integer(travelBufferMinutes, "travelBufferMinutes", 0, 120);
         }
+        /** The engine's buffer: the client's, or the explicit no-buffer value when the client sent none. */
+        public PlanFacts.ArrivalBuffer arrival() {
+            ArrivalBuffer buffer = arrivalBuffer;
+            return buffer == null ? PlanFacts.ArrivalBuffer.NONE : buffer.engine();
+        }
+    }
+
+    /**
+     * A visit's buffer is {@code percent} of its window in whole minutes, held between {@code minMinutes} and
+     * {@code maxMinutes} and never more than half the window. An arrival inside the buffer is still on time; the
+     * scheduler only avoids it, never leaving a visit unplanned for it.
+     */
+    public record ArrivalBuffer(Integer percent, Integer minMinutes, Integer maxMinutes) {
+        public ArrivalBuffer {
+            Input.integer(percent, "rates.arrivalBuffer.percent", 0, PlanFacts.ArrivalBuffer.MAX_PERCENT);
+            int min = Input.integer(minMinutes, "rates.arrivalBuffer.minMinutes", 0, PlanFacts.ArrivalBuffer.MAX_MINUTES);
+            int max = Input.integer(maxMinutes, "rates.arrivalBuffer.maxMinutes", 0, PlanFacts.ArrivalBuffer.MAX_MINUTES);
+            if (min > max) throw new IllegalArgumentException("rates.arrivalBuffer.minMinutes must be at most rates.arrivalBuffer.maxMinutes");
+        }
+        PlanFacts.ArrivalBuffer engine() { return new PlanFacts.ArrivalBuffer(percent, minMinutes, maxMinutes); }
     }
 
     /**

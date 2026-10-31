@@ -49,8 +49,53 @@ class ConstraintRulesTest {
     @Test void unassignedDemandIsCountedAndTargetLevelsDominateObjectives() {
         penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,1,0,DayPlan.Mode.PARTIAL), 2);
         penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,3,0,DayPlan.Mode.ASSIGNED), 0);
-        for (int level=0; level<4; level++) assertTrue(DayScores.hard(level).negate().compareTo(DayScores.hard(level+1).multiply(-1000000)) < 0);
-        assertTrue(DayScores.hard(4).negate().compareTo(DayScores.soft(0).multiply(-1000000)) < 0);
+        for (int level=0; level<DayScores.HARD_LEVELS-1; level++) assertTrue(DayScores.hard(level).negate().compareTo(DayScores.hard(level+1).multiply(-1000000)) < 0);
+        assertTrue(DayScores.hard(DayScores.HARD_LEVELS-1).negate().compareTo(DayScores.soft(0).multiply(-1000000)) < 0);
+        for (int level=0; level<DayScores.SOFT_LEVELS-1; level++) assertTrue(DayScores.soft(level).negate().compareTo(DayScores.soft(level+1).multiply(-1000000)) < 0);
+    }
+    private static final PlanFacts.ArrivalBuffer QUARTER = new PlanFacts.ArrivalBuffer(25, 15, 60);
+    private static DayPlan buffered(List<TechRoute> routes, List<PlanVisit> visits, Map<String, DayPlan.RoadLeg> roads, PlanFacts.ArrivalBuffer buffer) {
+        return new DayPlan(routes, visits, roads, Required.value(Set.of()), dev.waterflex.scheduler.Monetary.legacy(30), dev.waterflex.scheduler.Monetary.legacy(45),
+                dev.waterflex.scheduler.Monetary.legacy(0), dev.waterflex.scheduler.Monetary.legacy(0), 0, buffer);
+    }
+    /** One visit, window 8:00 to 9:00, no travel: the technician arrives when the shift starts, this many seconds after 8:00. */
+    private static DayPlan arriving(long seconds, PlanFacts.ArrivalBuffer buffer) {
+        var route = new TechRoute("t", Required.value(at(8).plusSeconds(seconds)), at(18), 600, 0, Required.value(Set.of("s")));
+        var visit = new PlanVisit("v", "s", at(8), at(9), 30, null, null);
+        route.getVisits().add(visit);
+        return buffered(Required.value(List.of(route)), Required.value(List.of(visit)),
+                Required.value(Map.of("t>v", new DayPlan.RoadLeg(0, 0), "v>t:return", new DayPlan.RoadLeg(0, 0))), buffer);
+    }
+    @Test void bufferSecondsCountFromTheDeadlineInclusive() {
+        // 25 percent of an hour is 15 minutes, inside 15 to 60: the deadline is 8:45.
+        penalty("Late-arrival buffer seconds", arriving(44 * 60 + 59, QUARTER), 0);
+        penalty("Late-arrival buffer seconds", arriving(45 * 60, QUARTER), 1);
+        penalty("Late-arrival buffer seconds", arriving(45 * 60 + 30, QUARTER), 31);
+        penalty("Late-arrival buffer seconds", arriving(59 * 60 + 59, QUARTER), 900);
+        penalty("Exclusive customer window lateness seconds", arriving(59 * 60 + 59, QUARTER), 0);
+        // At the window end the arrival is late, and the repair gradient still counts the buffer it crossed.
+        penalty("Exclusive customer window lateness seconds", arriving(60 * 60, QUARTER), 1);
+        penalty("Late-arrival buffer seconds", arriving(60 * 60, QUARTER), 901);
+        // No buffer: nothing is counted, however close to the end.
+        penalty("Late-arrival buffer seconds", arriving(59 * 60 + 59, PlanFacts.ArrivalBuffer.NONE), 0);
+        penalty("Late-arrival buffer ceiling excess", arriving(59 * 60 + 59, QUARTER), 0);
+    }
+    @Test void aFairerPlanMayNotUseMoreBufferThanTheReference() {
+        var early = new TechRoute("a", at(8), at(18), 600, 0, Required.value(Set.of("s")));
+        var late = new TechRoute("b", Required.value(at(8).plusSeconds(50 * 60)), at(18), 600, 0, Required.value(Set.of("s")));
+        var visit = new PlanVisit("v", "s", at(8), at(9), 30, null, null);
+        early.getVisits().add(visit);
+        var roads = Required.value(Map.<String, DayPlan.RoadLeg>of("a>v", new DayPlan.RoadLeg(0, 0), "b>v", new DayPlan.RoadLeg(0, 0),
+                "v>a:return", new DayPlan.RoadLeg(0, 0), "v>b:return", new DayPlan.RoadLeg(0, 0)));
+        var reference = buffered(Required.value(List.of(early, late)), Required.value(List.of(visit)), roads, QUARTER);
+        reference.setScoringFacts(reference.getScoringFacts().withTarget(reference, 1_000_000));
+        penalty("Late-arrival buffer ceiling excess", reference, 0);
+        penalty("Late-arrival buffer seconds", reference, 0);
+        var changed = PlanCopies.copy(reference); var moved = changed.getRoutes().getFirst().getVisits().removeFirst();
+        changed.getRoutes().get(1).getVisits().add(moved); moved.setTechnician(changed.getRoutes().get(1));
+        // Arriving at 8:50 against an 8:45 deadline: five minutes and one second, above a reference that used none.
+        penalty("Late-arrival buffer ceiling excess", changed, 301);
+        penalty("Late-arrival buffer seconds", changed, 301);
     }
     @Test void weightedFairnessAndReferenceTargetsUseFrozenFacts() {
         var a = new TechRoute("a", at(8), at(9),120,60,Required.value(Set.of("s")));

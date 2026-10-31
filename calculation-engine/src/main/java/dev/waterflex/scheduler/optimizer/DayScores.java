@@ -12,11 +12,19 @@ import java.math.RoundingMode;
  * level loses a place it had (12.1.10, 15.2.1).
  */
 public final class DayScores {
-    public static final int CATEGORICAL = 0, QUANTITATIVE = 1, UNASSIGNED = 2, OVERTIME_TARGET = 3, COST_CEILING = 4;
-    public static final int PHASE_OBJECTIVE = 0, COST = 1;
+    /**
+     * The fairness phase holds the reference plan's overtime, buffer use and cost as targets, in that order; the
+     * reference and repair phases leave the three at zero. The late-arrival buffer ({@link PlanFacts.ArrivalBuffer})
+     * ranks below overtime because the policy refuses any plan with overtime ({@link SchedulingPolicy#compare}), so
+     * buying buffer with overtime would only make a plan the policy throws away.
+     */
+    public static final int CATEGORICAL = 0, QUANTITATIVE = 1, UNASSIGNED = 2, OVERTIME_TARGET = 3, BUFFER_CEILING = 4, COST_CEILING = 5;
+    /** Reference and repair: overtime, then buffer seconds, then cost. Fairness: the objective, then buffer seconds, then cost. */
+    public static final int PHASE_OBJECTIVE = 0, BUFFER = 1, COST = 2;
+    public static final int HARD_LEVELS = 6, SOFT_LEVELS = 3;
     private DayScores() { }
-    static BendableScore hard(int level) { return Required.value(BendableScore.ofHard(5, 2, level, 1)); }
-    static BendableScore soft(int level) { return Required.value(BendableScore.ofSoft(5, 2, level, 1)); }
+    static BendableScore hard(int level) { return Required.value(BendableScore.ofHard(HARD_LEVELS, SOFT_LEVELS, level, 1)); }
+    static BendableScore soft(int level) { return Required.value(BendableScore.ofSoft(HARD_LEVELS, SOFT_LEVELS, level, 1)); }
     /** Load balance's unfairness keeps six decimal places (Timefold docs 15.2.1); the objective counts them as units of 1e-6. */
     static final int UNFAIRNESS_SCALE = 6;
     /**

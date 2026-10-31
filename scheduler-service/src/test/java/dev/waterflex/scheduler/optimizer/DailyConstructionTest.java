@@ -32,6 +32,24 @@ class DailyConstructionTest {
         for (String id : result.outcome().unassignedVisitIds()) assertTrue(identities.add(id));
         assertEquals(demand, identities.size()); assertEquals(demand, result.plan().getVisits().size());
     }
+    /** The owner's rule: the buffer is avoided, never bought with demand. The one arrival the shift allows is inside it. */
+    @Test void aVisitReachableOnlyInsideItsBufferIsStillPlanned() {
+        TechRoute route = new TechRoute("t0", Required.value(at(8).plusSeconds(50 * 60)), at(16), 480, 0, Required.value(Set.of("s")));
+        PlanVisit visit = new PlanVisit("v0", "s", at(8), at(9), 30, null, null);
+        var roads = Required.value(Map.of("t0>v0", new DayPlan.RoadLeg(0, 0), "v0>t0:return", new DayPlan.RoadLeg(0, 0)));
+        DayPlan plan = new DayPlan(Required.value(List.of(route)), Required.value(List.of(visit)), roads, Required.value(Set.of()),
+                dev.waterflex.scheduler.Monetary.legacy(30), dev.waterflex.scheduler.Monetary.legacy(45), dev.waterflex.scheduler.Monetary.legacy(0),
+                dev.waterflex.scheduler.Monetary.legacy(0), 0, new PlanFacts.ArrivalBuffer(25, 15, 60));
+        plan.setMode(DayPlan.Mode.COLD);
+        var result = solve(plan);
+        assertEquals(List.of("v0"), result.outcome().assignedVisitIds());
+        var evaluation = RouteEvaluator.evaluate(result.plan());
+        assertTrue(evaluation.feasible());
+        // Arriving at 8:50 against an 8:45 deadline.
+        assertEquals(5 * 60 + 1, evaluation.bufferSeconds());
+        assertEquals(-(5 * 60 + 1), Required.value(result.plan().getScore()).softScore(DayScores.BUFFER));
+        assertEquals(0, Required.value(result.plan().getScore()).hardScore(DayScores.UNASSIGNED));
+    }
     @Test void emptyDemandAndZeroTechniciansHaveExplicitIndependentOutcomes() {
         var empty = solve(fixture(0, 0, 0, 0, DayPlan.Mode.COLD));
         assertTrue(empty.outcome().complete()); assertTrue(empty.outcome().policyEligible());

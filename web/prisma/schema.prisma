@@ -121,6 +121,11 @@ model ClientSolverSettings {
   bookingDeadlineMs      Int
   // 0 to 1000 (CHECK constraint): regular windows above which the booking refinement is kept short.
   regularWindowThreshold Int
+  // The late-arrival buffer (spec 1.9.0): percent of each window, 0 to 50, held between the two minute bounds, 0 to 240
+  // with min <= max (CHECK constraints). A max of 0 is no buffer. Every client starts at 25 percent, 15 to 60 minutes.
+  arrivalBufferPercent    Int      @default(25)
+  arrivalBufferMinMinutes Int      @default(15)
+  arrivalBufferMaxMinutes Int      @default(60)
   version                Int      @default(0)
   updatedAt              DateTime @default(now()) @db.Timestamptz(6)
 

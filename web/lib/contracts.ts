@@ -147,7 +147,7 @@ export const apiProposal = z.object({ proposalId: text, serviceDate: date, creat
   decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: text, costCents: z.int().nonnegative(),
   state: z.enum(["OPEN", "COMMITTED", "REFUSED", "NOT_COMMITTABLE"]), committedAt: instant.nullable(), refusal: text.nullable(),
   routes: z.array(z.object({ technicianId: text, serviceDate: date, stops: z.array(z.object({ appointmentId: text, sequence: z.int().nonnegative(),
-    plannedStart: instant, plannedEnd: instant }).strict()) }).strict()),
+    plannedStart: instant, plannedEnd: instant, arrivalBufferStart: instant.optional() }).strict()) }).strict()),
   unresolvedAppointmentIds: z.array(text),
   skippedTechnicianDays: z.array(z.object({ technicianId: text, serviceDate: date, reason: z.literal("LOCATION_UNRESOLVED"), message: text }).strict()),
   changes: z.array(z.object({ appointmentId: text, fromTechnicianId: text, toTechnicianId: text, fromSequence: z.int().nonnegative(),

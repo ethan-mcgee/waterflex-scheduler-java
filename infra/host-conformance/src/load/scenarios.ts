@@ -66,6 +66,8 @@ export interface DailyTally {
   decisions: Record<string, number>;
   /** Queued proposals only: milliseconds from queuing to the start of the calculation, from the request's status. */
   queueWaitsMs: number[];
+  /** Each answered proposal's stopsInsideBuffer, present only when the snapshot carried an arrival buffer. */
+  stopsInsideBuffer: number[];
 }
 
 export interface Run {
@@ -86,7 +88,7 @@ export function newTallies(): { booking: BookingTally; daily: DailyTally } {
   return {
     booking: { searches: 0, searchIncomplete: 0, offers: 0, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
       released: 0, failedSearches: 0, stale: 0, refinements: {}, refinementStops: {}, windowsFound: {}, byHorizon: {} },
-    daily: { proposals: 0, decisions: {}, queueWaitsMs: [] },
+    daily: { proposals: 0, decisions: {}, queueWaitsMs: [], stopsInsideBuffer: [] },
   };
 }
 
@@ -256,6 +258,7 @@ export async function dailyLoop(run: Run, settings: DailySettings, timeoutMs: nu
       continue;
     }
     run.daily.decisions[proposal.decision] = (run.daily.decisions[proposal.decision] ?? 0) + 1;
+    if (proposal.stopsInsideBuffer !== undefined) run.daily.stopsInsideBuffer.push(proposal.stopsInsideBuffer);
   }
 }
 

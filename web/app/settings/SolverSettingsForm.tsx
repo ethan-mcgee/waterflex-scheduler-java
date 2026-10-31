@@ -13,7 +13,7 @@ const savedView = z.object({ version: z.int().nonnegative(), updatedAt: z.iso.da
 
 type Draft = {
   regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPercent: string;
-  travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
+  travelBufferMinutes: string; arrivalBufferPercent: string; arrivalBufferMinMinutes: string; arrivalBufferMaxMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
   horizonMode: string; horizonLeadWeekdays: string; horizonFullPercent: string;
   dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string; unimprovedSearchSeconds: string; bookingDeadlineMs: string; regularWindowThreshold: string;
 };
@@ -23,7 +23,8 @@ const SEARCH_LABELS: Record<DailySearch, string> = { TABU_KOPT: "Tabu + K opt (r
 const HORIZON_LABELS: Record<HorizonMode, string> = { FIXED: "Fixed number of weekdays", DYNAMIC: "Follows the schedule" };
 
 const EMPTY: Draft = { regularHourly: "", overtimeHourly: "", mileagePerMile: "", travelBufferPercent: "",
-  travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "",
+  // A client without settings starts from the owner's buffer default, the same one existing clients were given.
+  travelBufferMinutes: "", arrivalBufferPercent: "25", arrivalBufferMinMinutes: "15", arrivalBufferMaxMinutes: "60", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "",
   horizonMode: "", horizonLeadWeekdays: "", horizonFullPercent: "",
   dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "", unimprovedSearchSeconds: "", bookingDeadlineMs: "", regularWindowThreshold: "" };
 
@@ -31,6 +32,8 @@ function draftOf(view: SolverSettingsView | null): Draft {
   if (view === null) return EMPTY;
   return { regularHourly: view.regularHourly, overtimeHourly: view.overtimeHourly, mileagePerMile: view.mileagePerMile,
     travelBufferPercent: view.travelBufferPercent, travelBufferMinutes: String(view.travelBufferMinutes),
+    arrivalBufferPercent: String(view.arrivalBufferPercent), arrivalBufferMinMinutes: String(view.arrivalBufferMinMinutes),
+    arrivalBufferMaxMinutes: String(view.arrivalBufferMaxMinutes),
     fairnessBudgetPercent: view.fairnessBudgetPercent, offerLimit: String(view.offerLimit), windowHours: String(view.windowHours),
     bookingHorizonWeekdays: String(view.bookingHorizonWeekdays), horizonMode: view.horizonMode,
     horizonLeadWeekdays: String(view.horizonLeadWeekdays), horizonFullPercent: String(view.horizonFullPercent), dailySearch: view.dailySearch,
@@ -69,6 +72,8 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
         body: JSON.stringify({ expectedVersion: version, settings: {
           regularHourly: draft.regularHourly, overtimeHourly: draft.overtimeHourly, mileagePerMile: draft.mileagePerMile,
           travelBufferPercent: draft.travelBufferPercent, travelBufferMinutes: whole(draft.travelBufferMinutes),
+          arrivalBufferPercent: whole(draft.arrivalBufferPercent), arrivalBufferMinMinutes: whole(draft.arrivalBufferMinMinutes),
+          arrivalBufferMaxMinutes: whole(draft.arrivalBufferMaxMinutes),
           fairnessBudgetPercent: draft.fairnessBudgetPercent, offerLimit: whole(draft.offerLimit), windowHours: whole(draft.windowHours),
           bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays), horizonMode: draft.horizonMode,
           horizonLeadWeekdays: whole(draft.horizonLeadWeekdays), horizonFullPercent: whole(draft.horizonFullPercent), dailySearch: draft.dailySearch,
@@ -147,6 +152,13 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           </Row>
           <Row label="Travel buffer per drive" hint="Fixed extra minutes added to each drive, 0 to 120.">
             <input inputMode="numeric" {...field("travelBufferMinutes")} required /> <span>minutes</span>
+          </Row>
+          <Row label="Arrival buffer" hint="The end of each arrival window the plan avoids, so a long job or a stop does not make the technician late. A share of the window, 0 to 50. Jobs are never left unplanned to keep it.">
+            <input inputMode="numeric" {...field("arrivalBufferPercent")} required /> <span>% of the window</span>
+          </Row>
+          <Row label="Arrival buffer limits" hint="The buffer is at least the first and at most the second number of minutes, 0 to 240, and never more than half the window. A maximum of 0 turns it off.">
+            <input inputMode="numeric" {...field("arrivalBufferMinMinutes")} required /> <span>to</span>{" "}
+            <input inputMode="numeric" {...field("arrivalBufferMaxMinutes")} required /> <span>minutes</span>
           </Row>
           <Row label="Fairness budget" hint="How much a daily plan's cost may rise to spread work more evenly. 0 means fairness only breaks ties.">
             <input inputMode="decimal" {...field("fairnessBudgetPercent")} required /> <span>%</span>

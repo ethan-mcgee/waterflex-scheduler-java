@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.8.0
+  version: 1.9.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -36,6 +36,13 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.9.0 (2026-10-27): the optional late-arrival buffer, Rates.arrivalBuffer. The scheduler avoids planning an
+      arrival in the last part of its window (a share of the window, held between a floor and a cap), so a long repair,
+      a break or a fuel stop does not make the technician late. It never leaves an appointment unplanned to keep a
+      buffer, and a booking offers only windows that add no buffer use. PlannedStop gains arrivalBufferStart and
+      DailyProposal and RouteEvaluation gain stopsInsideBuffer, each present only when the snapshot carries a buffer.
+      The reason codes gain BUFFER_IMPROVEMENT and BUFFER_REGRESSION. Without Rates.arrivalBuffer every result is the
+      result before 1.9.0.
     - 1.8.0 (2026-10-26): the error code SERVICE_UNAVAILABLE. Any operation answers 503 SERVICE_UNAVAILABLE with
       Retry-After when the scheduler cannot check the token (its token store does not answer in time); nothing was
       decided or stored, so the same call may be sent again after Retry-After. Every operation now lists 503 (whoami,
@@ -758,6 +765,26 @@ components:
         mileagePerMile: { $ref: '#/components/schemas/MileageRate' }
         travelBufferPct: { $ref: '#/components/schemas/Decimal' }
         travelBufferMinutes: { type: integer, minimum: 0, maximum: 120 }
+        arrivalBuffer: { $ref: '#/components/schemas/ArrivalBuffer' }
+    ArrivalBuffer:
+      type: object
+      additionalProperties: false
+      required: [percent, minMinutes, maxMinutes]
+      description: >-
+        Since 1.9.0. The end of each appointment's window that planning avoids. An appointment's buffer is percent of
+        its window in whole minutes (rounded down), held between minMinutes and maxMinutes and never more than half the
+        window; the buffer starts that long before the window ends. An arrival inside the buffer is still on time: the
+        scheduler only avoids it, after placing every appointment and avoiding overtime, and never leaves an appointment
+        unplanned to keep a buffer. Absent means no buffer. For example 25, 15 and 60 give a 2-hour window a 30-minute
+        buffer, a 1-hour window 15 minutes and a 4-hour window 60 minutes.
+      properties:
+        percent: { type: integer, minimum: 0, maximum: 50 }
+        minMinutes: { type: integer, minimum: 0, maximum: 240 }
+        maxMinutes:
+          type: integer
+          minimum: 0
+          maximum: 240
+          description: At least minMinutes. 0 means no buffer.
     Policy:
       type: object
       additionalProperties: false
@@ -924,6 +951,11 @@ components:
         sequence: { type: integer, minimum: 0 }
         plannedStart: { $ref: '#/components/schemas/Instant' }
         plannedEnd: { $ref: '#/components/schemas/Instant' }
+        arrivalBufferStart:
+          $ref: '#/components/schemas/Instant'
+          description: >-
+            Since 1.9.0. Where the appointment's late-arrival buffer starts; a plannedStart at or after it is on time
+            but close to the window end. Present only when the snapshot carries Rates.arrivalBuffer.
     PlannedRoute:
       type: object
       additionalProperties: false
@@ -953,9 +985,10 @@ components:
           minLength: 1
           description: >-
             Why the scheduler reached this decision. When the policy judged a valid plan it begins with the policy's code
-            (COST_REDUCTION, FAIRNESS_IMPROVEMENT, OVERTIME_REDUCTION, NO_POLICY_IMPROVEMENT, COST_CEILING_EXCEEDED,
-            FAIRNESS_REGRESSION_WITHIN_ALLOWANCE, OVERTIME_PROHIBITED, OVERTIME_TARGET_MISMATCH, NO_VALID_CANDIDATE,
-            INCOMPLETE_OR_INFEASIBLE_DEMAND or COMPLETE_ZERO_OVERTIME_DEMAND) followed by a colon and a sentence for operators;
+            (COST_REDUCTION, FAIRNESS_IMPROVEMENT, OVERTIME_REDUCTION, BUFFER_IMPROVEMENT, NO_POLICY_IMPROVEMENT,
+            COST_CEILING_EXCEEDED, FAIRNESS_REGRESSION_WITHIN_ALLOWANCE, BUFFER_REGRESSION, OVERTIME_PROHIBITED,
+            OVERTIME_TARGET_MISMATCH, NO_VALID_CANDIDATE, INCOMPLETE_OR_INFEASIBLE_DEMAND or COMPLETE_ZERO_OVERTIME_DEMAND;
+            BUFFER_IMPROVEMENT and BUFFER_REGRESSION since 1.9.0) followed by a colon and a sentence for operators;
             a host that wants the code takes the text before the first colon. Other decisions are a sentence only.
         routes:
           type: array
@@ -969,6 +1002,12 @@ components:
           items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
         costCents: { type: integer, minimum: 0 }
         overtimeMinutes: { type: integer, const: 0 }
+        stopsInsideBuffer:
+          type: integer
+          minimum: 0
+          description: >-
+            Since 1.9.0. Stops planned inside their late-arrival buffer. Present only when the snapshot carries
+            Rates.arrivalBuffer.
     RouteEvaluationRequest:
       type: object
       additionalProperties: false
@@ -999,6 +1038,12 @@ components:
           type: integer
           minimum: 0
           maximum: 1440
+        stopsInsideBuffer:
+          type: integer
+          minimum: 0
+          description: >-
+            Since 1.9.0. Timed stops inside their late-arrival buffer. Present only when the snapshot carries
+            Rates.arrivalBuffer and feasible is true.
     LocatedStop:
       type: object
       additionalProperties: false

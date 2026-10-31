@@ -38,7 +38,7 @@ public final class PlanCopies {
             replacement.getVisits().forEach(visit -> visit.setTechnician(replacement)); routes.add(replacement);
         }
         PlanFacts.check(found, "absence technician not in plan: " + technician);
-        DayPlan repair = new DayPlan(routes, isolated.getVisits(), source.getMatrix(), source.getFacts().unreachable(), source.getRegularHourly(), source.getOvertimeHourly(), source.getMileagePerMile(), source.getTravelBufferPct(), source.getTravelBufferMinutes());
+        DayPlan repair = new DayPlan(routes, isolated.getVisits(), source.getMatrix(), source.getFacts().unreachable(), source.getRegularHourly(), source.getOvertimeHourly(), source.getMileagePerMile(), source.getTravelBufferPct(), source.getTravelBufferMinutes(), source.getArrivalBuffer());
         repair.setMode(DayPlan.Mode.REPAIR); return repair;
     }
 }

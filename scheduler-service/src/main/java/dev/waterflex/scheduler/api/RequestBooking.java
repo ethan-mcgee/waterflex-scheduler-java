@@ -111,7 +111,7 @@ public final class RequestBooking {
         }
         PublicTypes.Rates rates = snapshot.rates();
         var bookingRates = new BookingSnapshot.Rates(rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(),
-                rates.travelBufferMinutes());
+                rates.travelBufferMinutes(), rates.arrival());
         String configuration = DailyProposals.sha256(dev.waterflex.scheduler.CalculationJson.write(snapshot));
         var built = new BookingSnapshot(snapshot.metroId(), capturedAt, configuration, routingIdentity,
                 snapshot.policy().rules(), bookingRates, days, Required.value(days.keySet()));

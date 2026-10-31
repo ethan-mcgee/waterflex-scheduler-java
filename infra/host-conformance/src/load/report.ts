@@ -107,6 +107,9 @@ export function loadMarkdown(report: LoadReport): string {
   }
   if (report.daily !== null) {
     lines.push("", "## Daily outcomes", "", `- Proposals requested ${report.daily.proposals}; decisions: ${entries(report.daily.decisions)}`);
+    const inside = report.daily.stopsInsideBuffer;
+    if (inside.length > 0)
+      lines.push(`- Stops inside the arrival buffer: ${inside.reduce((sum, value) => sum + value, 0)} over ${inside.length} answered proposals (max ${Math.max(...inside)} in one)`);
     const waits = [...report.daily.queueWaitsMs].sort((a, b) => a - b);
     if (waits.length > 0)
       lines.push(`- Queued proposals: ${waits.length}; wait before the calculation started p50 ${percentile(waits, 0.5)} ms, max ${waits[waits.length - 1] ?? 0} ms`);

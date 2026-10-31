@@ -41,7 +41,7 @@ class DayConstraintProviderTest {
         assertEquals(independent.arrivals(), full.arrivals());
         assertEquals(independent.costCents(), full.costCents());
         assertEquals(originalMetrics, RouteEvaluator.evaluate(original), "Solver must not mutate the original");
-        assertEquals(BendableScore.of(new long[]{0, 0, 0, 0, 0}, new long[]{-independent.overtimeMinutes(), -independent.costCents()}), solved.getScore());
+        assertEquals(BendableScore.of(new long[]{0, 0, 0, 0, 0, 0}, new long[]{-independent.overtimeMinutes(), -independent.bufferSeconds(), -independent.costCents()}), solved.getScore());
     }
     @Test void fairnessPhaseRespectsReferenceTargetAndCeiling() {
         DayPlan reference = solve(fixture());

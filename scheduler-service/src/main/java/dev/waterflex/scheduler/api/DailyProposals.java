@@ -458,12 +458,12 @@ public class DailyProposals {
             for (int index = 0; index < route.getVisits().size(); index++) {
                 PlanVisit visit = Required.value(route.getVisits().get(index));
                 Instant start = Required.value(evaluation.arrivals().get(visit.getId()), "arrival for " + visit.getId());
-                stops.add(new PlannedStop(visit.getId(), index, start, Required.value(start.plus(Duration.ofMinutes(visit.getDurationMinutes())))));
+                stops.add(PublicResponses.stop(plan, visit, index, start));
             }
             routes.add(new PlannedRoute(route.getId(), request.serviceDate(), Required.value(List.copyOf(stops))));
         }
         return new DailyProposal(proposalId, revision, outcome.decision(), outcome.reason(), Required.value(List.copyOf(routes)),
-                plan.getUnassignedVisitIds(), outcome.prepared().skipped(), evaluation.costCents(), 0);
+                plan.getUnassignedVisitIds(), outcome.prepared().skipped(), evaluation.costCents(), 0, PublicResponses.stopsInsideBuffer(plan, routes));
     }
 
     /** The phase budgets of the client's chosen search times, with its unimproved limit when it set one. */

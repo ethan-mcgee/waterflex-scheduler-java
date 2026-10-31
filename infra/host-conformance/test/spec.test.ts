@@ -41,6 +41,17 @@ test("strict schemas refuse a field the spec does not define", () => {
   assert.equal(SPEC_SCHEMAS.WhoAmI.safeParse({ tenantId: "acme" }).success, true);
 });
 
+test("the arrival buffer's fields are optional, and present ones are checked", () => {
+  const stop = { appointmentId: "a", sequence: 0, plannedStart: "2026-10-12T14:00:00-05:00", plannedEnd: "2026-10-12T14:45:00-05:00" };
+  assert.equal(SPEC_SCHEMAS.PlannedStop.safeParse(stop).success, true);
+  assert.equal(SPEC_SCHEMAS.PlannedStop.safeParse({ ...stop, arrivalBufferStart: "2026-10-12T14:45:00-05:00" }).success, true);
+  assert.equal(SPEC_SCHEMAS.PlannedStop.safeParse({ ...stop, arrivalBufferStart: "2026-10-12T14:45:00" }).success, false);
+  const evaluation = { feasible: true, routes: [], skippedTechnicianDays: [], costCents: 0, overtimeMinutes: 0 };
+  assert.equal(SPEC_SCHEMAS.RouteEvaluation.safeParse(evaluation).success, true);
+  assert.equal(SPEC_SCHEMAS.RouteEvaluation.safeParse({ ...evaluation, stopsInsideBuffer: 2 }).success, true);
+  assert.equal(SPEC_SCHEMAS.RouteEvaluation.safeParse({ ...evaluation, stopsInsideBuffer: -1 }).success, false);
+});
+
 test("instants must carry an offset", () => {
   assert.equal(SPEC_SCHEMAS.Hold.safeParse({ holdId: "h", offerId: "o", expiresAt: "2026-10-12T15:10:00" }).success, false);
   assert.equal(SPEC_SCHEMAS.Hold.safeParse({ holdId: "h", offerId: "o", expiresAt: "2026-10-12T15:10:00-05:00" }).success, true);

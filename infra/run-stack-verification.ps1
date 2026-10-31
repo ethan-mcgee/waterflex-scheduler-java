@@ -18,6 +18,9 @@
 # -Interleave runs step 1 as pairs, before and after for each fleet and seed, the pair's order alternating, so a change in
 # the machine during the run falls on both images; -SyncOnly leaves out step 2. Each run keeps the daily replica's log
 # from its start (scheduler-daily.log), whose Daily operation lines time the stack's own steps.
+# -BeforeArrivalBuffer and -AfterArrivalBuffer send Rates.arrivalBuffer (percent,minMinutes,maxMinutes, API 1.9.0) to that
+# image only, since a scheduler before 1.9.0 refuses the field: main against the branch with the portal default is
+# -AfterArrivalBuffer 25,15,60. The setting is part of each run's name and of the evidence's images block.
 # About 45 minutes with the defaults (-DryRun prints the runs); the owner starts it. Needs jfr (JAVA_HOME) and python.
 #   powershell -ExecutionPolicy Bypass -File infra/run-stack-verification.ps1 -Before <commit> -After <commit> [-DryRun]
 param(
@@ -51,6 +54,9 @@ param(
     # The development routing service's cap for the run (the VM's partition).
     [ValidateRange(1, 16)][int]$RoutingCpus = 2,
     [string]$RunsDirectory = 'experiments/runs/stack-verification',
+    # Rates.arrivalBuffer for that image's snapshots, percent,minMinutes,maxMinutes; empty sends none.
+    [ValidatePattern('^(\d+,\d+,\d+)?$')][string]$BeforeArrivalBuffer = '',
+    [ValidatePattern('^(\d+,\d+,\d+)?$')][string]$AfterArrivalBuffer = '',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'binary-variance',
     # Run without flight recordings (no profiles block in the evidence), for example to measure the recording's own cost.
@@ -91,9 +97,10 @@ $resolve = { param($revision)
     if ($LASTEXITCODE -ne 0 -or -not $sha) { throw "Not a commit: $revision" }
     $sha.Trim() }
 $images = [ordered]@{}
-foreach ($pair in @(@('before', $Before), @('after', $After))) {
+foreach ($pair in @(@('before', $Before, $BeforeArrivalBuffer), @('after', $After, $AfterArrivalBuffer))) {
     $sha = & $resolve $pair[1]
-    $images[$pair[0]] = [ordered]@{ name = $pair[0]; revision = $pair[1]; commit = $sha; tag = "waterflex-scheduler-engine:study-$($pair[0])-$($sha.Substring(0, 12))" }
+    $images[$pair[0]] = [ordered]@{ name = $pair[0]; revision = $pair[1]; commit = $sha; tag = "waterflex-scheduler-engine:study-$($pair[0])-$($sha.Substring(0, 12))"
+        arrivalBuffer = $(if ($pair[2]) { $pair[2] } else { $null }) }
 }
 if ($images.before.commit -eq $images.after.commit) { throw '-Before and -After are the same commit' }
 
@@ -113,7 +120,9 @@ if (-not $SyncOnly) {
     foreach ($image in @('after', 'before')) {
         $cells += [ordered]@{ step = 2; image = $image; fleet = $AsyncFleet; seed = $AsyncSeed; planners = $AsyncPlanners; mode = 'async'; proposals = $AsyncProposals } } }
 # The image's commit names the run, so a resumed run never takes a report another pair of commits wrote.
-$slugOf = { param($cell) "step$($cell.step)-$($cell.image)-$($images[$cell.image].commit.Substring(0, 12))-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)" }
+$slugOf = { param($cell)
+    $buffer = $images[$cell.image].arrivalBuffer
+    "step$($cell.step)-$($cell.image)-$($images[$cell.image].commit.Substring(0, 12))-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)$(if ($buffer) { '-buffer' + ($buffer -replace ',', '-') } else { '' })" }
 $reportOf = { param($cell)
     $directory = Join-Path $runs (& $slugOf $cell)
     if (-not (Test-Path -LiteralPath $directory)) { return $null }
@@ -265,7 +274,7 @@ try {
         $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $token, '--concurrency', "$($cell.planners)", '--daily-mode', $cell.mode,
             '--daily-proposals', "$($cell.proposals)", '--daily-technicians', "$($cell.fleet)", '--seed', "$($cell.seed)",
             '--scheduler-log', ($daily -join ','), '--docker', ((@($daily) + @($routingName)) -join ','), '--metrics-url', $MetricsUrl,
-            '--label', $slug, '--out', $directory)
+            '--label', $slug, '--out', $directory) + $(if ($images[$cell.image].arrivalBuffer) { @('--arrival-buffer', $images[$cell.image].arrivalBuffer) } else { @() })
         Write-Output "[$index/$($cells.Count)] $slug"
         $since = [DateTime]::UtcNow.AddSeconds(-1).ToString('yyyy-MM-ddTHH:mm:ssZ')
         $process = Start-Process -FilePath 'npx.cmd' -ArgumentList (& $quoted $arguments) -NoNewWindow -PassThru `

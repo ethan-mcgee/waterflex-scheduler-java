@@ -34,6 +34,9 @@ export const MIN_BOOKING_DEADLINE_MS = 1000;
 export const MAX_BOOKING_DEADLINE_MS = 5000;
 /** The scheduler's bound on the regular window threshold. */
 export const MAX_REGULAR_WINDOW_THRESHOLD = 1000;
+/** The scheduler's bounds on the late-arrival buffer (spec 1.9.0): a share of each window, held between two minute bounds. */
+export const MAX_ARRIVAL_BUFFER_PERCENT = 50;
+export const MAX_ARRIVAL_BUFFER_MINUTES = 240;
 
 export const solverSettingsInput = z.object({
   regularHourly: hourly,
@@ -41,6 +44,9 @@ export const solverSettingsInput = z.object({
   mileagePerMile: perMile,
   travelBufferPercent: percent,
   travelBufferMinutes: z.int().min(0).max(120),
+  arrivalBufferPercent: z.int().min(0).max(MAX_ARRIVAL_BUFFER_PERCENT),
+  arrivalBufferMinMinutes: z.int().min(0).max(MAX_ARRIVAL_BUFFER_MINUTES),
+  arrivalBufferMaxMinutes: z.int().min(0).max(MAX_ARRIVAL_BUFFER_MINUTES),
   fairnessBudgetPercent: percent,
   offerLimit: z.int().min(1).max(4),
   windowHours: z.int().min(1).max(8),
@@ -58,7 +64,9 @@ export const solverSettingsInput = z.object({
 }).strict().refine(settings => settings.costSearchSeconds + settings.fairnessSearchSeconds <= MAX_SEARCH_SECONDS,
   { message: `Cost and fairness search time together must be at most ${MAX_SEARCH_SECONDS} seconds`, path: ["fairnessSearchSeconds"] })
   .refine(settings => settings.unimprovedSearchSeconds === null || settings.unimprovedSearchSeconds <= settings.costSearchSeconds,
-    { message: "Stop when unimproved must be at most the cost search time", path: ["unimprovedSearchSeconds"] });
+    { message: "Stop when unimproved must be at most the cost search time", path: ["unimprovedSearchSeconds"] })
+  .refine(settings => settings.arrivalBufferMinMinutes <= settings.arrivalBufferMaxMinutes,
+    { message: "The buffer's minimum must be at most its maximum", path: ["arrivalBufferMinMinutes"] });
 export type SolverSettingsInput = z.infer<typeof solverSettingsInput>;
 
 /** A save carries the version it was edited from; null means the client has no settings yet. */
@@ -68,6 +76,8 @@ export const saveSolverSettings = z.object({ expectedVersion: z.int().nonnegativ
 export interface StoredSolverSettings {
   regularHourly: Prisma.Decimal; overtimeHourly: Prisma.Decimal; mileagePerMile: Prisma.Decimal;
   travelBufferPct: Prisma.Decimal; travelBufferMinutes: number; fairnessBudget: Prisma.Decimal;
+  /** The late-arrival buffer; a maximum of 0 is no buffer. */
+  arrivalBufferPercent: number; arrivalBufferMinMinutes: number; arrivalBufferMaxMinutes: number;
   offerLimit: number; windowHours: number; bookingHorizonWeekdays: number;
   /** Stored as text under a CHECK constraint; validated with `horizonMode` before use. */
   horizonMode: string; horizonLeadWeekdays: number; horizonFullPercent: number;
@@ -94,6 +104,9 @@ export function toStored(input: SolverSettingsInput) {
     mileagePerMile: new Prisma.Decimal(input.mileagePerMile),
     travelBufferPct: new Prisma.Decimal(input.travelBufferPercent).div(100),
     travelBufferMinutes: input.travelBufferMinutes,
+    arrivalBufferPercent: input.arrivalBufferPercent,
+    arrivalBufferMinMinutes: input.arrivalBufferMinMinutes,
+    arrivalBufferMaxMinutes: input.arrivalBufferMaxMinutes,
     fairnessBudget: new Prisma.Decimal(input.fairnessBudgetPercent).div(100),
     offerLimit: input.offerLimit,
     windowHours: input.windowHours,
@@ -128,6 +141,9 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     mileagePerMile: canonicalDecimal(stored.mileagePerMile),
     travelBufferPercent: canonicalDecimal(stored.travelBufferPct.mul(100)),
     travelBufferMinutes: stored.travelBufferMinutes,
+    arrivalBufferPercent: stored.arrivalBufferPercent,
+    arrivalBufferMinMinutes: stored.arrivalBufferMinMinutes,
+    arrivalBufferMaxMinutes: stored.arrivalBufferMaxMinutes,
     fairnessBudgetPercent: canonicalDecimal(stored.fairnessBudget.mul(100)),
     offerLimit: stored.offerLimit,
     windowHours: stored.windowHours,
@@ -154,6 +170,8 @@ export function publicRates(stored: StoredSolverSettings) {
     mileagePerMile: canonicalDecimal(stored.mileagePerMile),
     travelBufferPct: canonicalDecimal(stored.travelBufferPct),
     travelBufferMinutes: stored.travelBufferMinutes,
+    // Always sent: every client has a buffer setting, and a maximum of 0 is the client's own choice of none.
+    arrivalBuffer: { percent: stored.arrivalBufferPercent, minMinutes: stored.arrivalBufferMinMinutes, maxMinutes: stored.arrivalBufferMaxMinutes },
   };
 }
 

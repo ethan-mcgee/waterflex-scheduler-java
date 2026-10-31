@@ -14,7 +14,7 @@ class PlanFactsTest {
         Set<String> fields = new TreeSet<>();
         json.fieldNames().forEachRemaining(fields::add);
         assertEquals(new TreeSet<>(List.of("technicians", "demand", "matrix", "unreachable", "regularHourly", "overtimeHourly", "mileagePerMile",
-                "travelBufferPct", "travelBufferMinutes", "demandServices")), fields);
+                "travelBufferPct", "travelBufferMinutes", "arrivalBuffer", "demandServices")), fields);
         assertEquals(dev.waterflex.scheduler.Monetary.rates(facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile()), facts.rates());
     }
     /** A revision is held to the cost rate contract wherever it is built: four places, 500 an hour, 25 a mile. */

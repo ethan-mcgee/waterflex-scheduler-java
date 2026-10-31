@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Request-local reuse of independently evaluated immutable route arrangements. No I/O. */
 final class BookingEvaluation {
-    record Metrics(boolean feasible, long costCents, long overtimeMinutes) { }
+    record Metrics(boolean feasible, long costCents, long overtimeMinutes, long bufferSeconds) { }
     private record Key(String technician, List<Visit> visits) { }
     private final Day day;
     private final Rates rates;
@@ -78,8 +78,8 @@ final class BookingEvaluation {
             day.roads().require(visit.id(), technician + ":return");
             route.getVisits().add(visit.planned()); previous = visit.id();
         }
-        var plan = new DayPlan(Required.value(List.<TechRoute>of(route)), route.getVisits(), day.roads().legs(),
-                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
+        var plan = new DayPlan(Required.value(List.<TechRoute>of(route)), route.getVisits(), day.roads().legs(), Required.value(Set.of()),
+                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes(), rates.arrivalBuffer());
         RouteEvaluator.Result result = RouteEvaluator.evaluate(plan);
         if (order.isEmpty()) emptyRoutes.put(technician, result);
         evaluations++; routes.put(key, result); return result;
@@ -92,7 +92,7 @@ final class BookingEvaluation {
     /** Ranking needs scalar resources only. Timeline maps are materialized for retained candidates. */
     Metrics metrics(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly) {
         var measured = aggregate(arrangement, facts, confirmedOnly, false);
-        return new Metrics(measured.feasible(), measured.costCents(), measured.overtimeMinutes());
+        return new Metrics(measured.feasible(), measured.costCents(), measured.overtimeMinutes(), measured.bufferSeconds());
     }
 
     boolean hasReservations() { return reservations; }
@@ -104,7 +104,7 @@ final class BookingEvaluation {
         if (arrangement.equals(day.baseline()) && facts.equals(day.visits())) return baseline.total();
         var total = baseline.total();
         long paid = total.paidMinutes(), overtime = total.overtimeMinutes(), driving = total.driveMinutes();
-        long waiting = total.waitingMinutes(), meters = total.meters();
+        long waiting = total.waitingMinutes(), meters = total.meters(), buffer = total.bufferSeconds();
         int infeasible = baseline.infeasibleRoutes();
         Map<String, Instant> arrivals = timeline ? new HashMap<>(total.arrivals()) : new HashMap<>();
         Map<String, List<RouteEvaluator.WorkingSegment>> segments = timeline ? new TreeMap<>(total.segments()) : new TreeMap<>();
@@ -126,7 +126,7 @@ final class BookingEvaluation {
             changed.add(after);
             paid = Math.addExact(paid, after.paidMinutes() - before.paidMinutes()); overtime = Math.addExact(overtime, after.overtimeMinutes() - before.overtimeMinutes());
             driving += after.driveMinutes() - before.driveMinutes(); waiting += after.waitingMinutes() - before.waitingMinutes();
-            meters = Math.addExact(meters, after.meters() - before.meters());
+            meters = Math.addExact(meters, after.meters() - before.meters()); buffer = Math.addExact(buffer, after.bufferSeconds() - before.bufferSeconds());
             infeasible += (after.feasible() ? 0 : 1) - (before.feasible() ? 0 : 1);
             if (timeline) {
                 before.arrivals().keySet().forEach(arrivals::remove);
@@ -136,14 +136,14 @@ final class BookingEvaluation {
         // Add arrivals after every changed route's old visits have been removed; reassignment may
         // move a visit from a route that sorts later to one that sorts earlier.
         if (timeline) changed.forEach(route -> arrivals.putAll(route.arrivals()));
-        return result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments);
+        return result(infeasible == 0, paid, overtime, driving, waiting, meters, buffer, arrivals, segments);
     }
 
     private Baseline baseline(boolean confirmedOnly) {
         Baseline cached = baselines.get(confirmedOnly);
         if (cached != null) return cached;
         Map<String, RouteEvaluator.Result> parts = new TreeMap<>();
-        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0; int infeasible = 0;
+        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0, buffer = 0; int infeasible = 0;
         Map<String, Instant> arrivals = new HashMap<>();
         Map<String, List<RouteEvaluator.WorkingSegment>> segments = new TreeMap<>();
         for (var entry : day.baseline().routes().entrySet()) {
@@ -151,9 +151,10 @@ final class BookingEvaluation {
             parts.put(entry.getKey(), measured);
             if (!measured.feasible()) infeasible++;
             paid = Math.addExact(paid, measured.paidMinutes()); overtime = Math.addExact(overtime, measured.overtimeMinutes()); driving += measured.driveMinutes();
-            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); arrivals.putAll(measured.arrivals()); segments.putAll(measured.segments());
+            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); buffer = Math.addExact(buffer, measured.bufferSeconds());
+            arrivals.putAll(measured.arrivals()); segments.putAll(measured.segments());
         }
-        var baseline = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments), Required.value(Map.copyOf(parts)), infeasible);
+        var baseline = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, buffer, arrivals, segments), Required.value(Map.copyOf(parts)), infeasible);
         baselines.put(confirmedOnly, baseline); return baseline;
     }
 
@@ -189,24 +190,25 @@ final class BookingEvaluation {
             known = new HashMap<>(); insertionBaselines.put(parent, known);
         }
         Map<String, RouteEvaluator.Result> parts = new TreeMap<>();
-        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0; int infeasible = 0;
+        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0, buffer = 0; int infeasible = 0;
         for (var entry : parent.routes().entrySet()) {
             var measured = route(Required.value(entry.getKey()), Required.value(entry.getValue()), day.visits(), confirmedOnly);
             parts.put(entry.getKey(), measured);
             paid = Math.addExact(paid, measured.paidMinutes()); overtime = Math.addExact(overtime, measured.overtimeMinutes()); driving += measured.driveMinutes();
-            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); if (!measured.feasible()) infeasible++;
+            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); buffer = Math.addExact(buffer, measured.bufferSeconds());
+            if (!measured.feasible()) infeasible++;
         }
-        var cached = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, Required.value(Map.of()), Required.value(Map.of())),
+        var cached = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, buffer, Required.value(Map.of()), Required.value(Map.of())),
                 Required.value(Map.copyOf(parts)), infeasible);
         known.put(confirmedOnly, cached);
         if (!reservations) known.put(!confirmedOnly, cached);
         return cached;
     }
 
-    private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters,
+    private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters, long buffer,
             Map<String, Instant> arrivals, Map<String, List<RouteEvaluator.WorkingSegment>> segments) {
         long cents = Monetary.cents(paid, overtime, meters, rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile());
-        return new RouteEvaluator.Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, driving, waiting, meters,
+        return new RouteEvaluator.Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, driving, waiting, meters, buffer,
                 Required.value(Map.copyOf(segments)));
     }
 

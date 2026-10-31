@@ -21,8 +21,10 @@ public final class DailyDataset {
      * v3: every level carries the same integer it carried as a decimal, so every pair of plans compares the same way and
      * no score value crosses the wire (only this string does, in datasets, the calculation protocol and outcomes). A
      * bump would mark every stored preview stale for no change in meaning.
+     * v4 adds the late-arrival buffer ({@link PlanFacts.ArrivalBuffer}): a soft level between the phase objective and
+     * cost, and a fairness-phase ceiling between the overtime target and the cost ceiling, so plans compare differently.
      */
-    public static final String SCORE_MODEL = "bendable-decimal-repair-v3";
+    public static final String SCORE_MODEL = "bendable-decimal-repair-v4";
     public enum Encoding { DENSE, SPARSE }
     private static final ObjectMapper JSON = mapper();
     private static ObjectMapper mapper() {
@@ -67,6 +69,8 @@ public final class DailyDataset {
         var rates = root.putObject("rates"); rates.put("regularHourly",Monetary.canonical(plan.getRegularHourly()))
                 .put("overtimeHourly",Monetary.canonical(plan.getOvertimeHourly())).put("mileagePerMile",Monetary.canonical(plan.getMileagePerMile()))
                 .put("travelBufferPct",Monetary.canonical(plan.getTravelBufferPct())).put("travelBufferMinutes",plan.getTravelBufferMinutes());
+        PlanFacts.ArrivalBuffer arrival = plan.getArrivalBuffer();
+        rates.putObject("arrivalBuffer").put("percent",arrival.percent()).put("minMinutes",arrival.minMinutes()).put("maxMinutes",arrival.maxMinutes());
         var locations = root.putArray("locations"); Map<String,Integer> locationIndices = new LinkedHashMap<>();
         for (var point : new TreeMap<>(points).entrySet()) {
             locationIndices.put(point.getKey(),locationIndices.size());
@@ -128,11 +132,15 @@ public final class DailyDataset {
             ObjectNode search = object(required(root, "search"), "search", "variant", "seed", "remainingMillis");
             SolverEngine.Variant.valueOf(string(search, "variant")); integer(search, "seed", Long.MIN_VALUE, Long.MAX_VALUE);
             integer(search, "remainingMillis", 1, DailyOperation.Allowance.MAXIMUM.toMillis());
-            ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes");
+            ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes", "arrivalBuffer");
             BigDecimal regular = Monetary.hourly(money(rates, "regularHourly")), overtime = Monetary.hourly(money(rates, "overtimeHourly")),
                     mileage = Monetary.mileage(money(rates, "mileagePerMile"));
             BigDecimal pct = money(rates, "travelBufferPct");
             long minutes = integer(rates, "travelBufferMinutes", 0, Integer.MAX_VALUE);
+            // Always an object: no buffer is written as all zeros, never left out or null.
+            ObjectNode reserve = object(required(rates, "arrivalBuffer"), "arrivalBuffer", "percent", "minMinutes", "maxMinutes");
+            PlanFacts.ArrivalBuffer arrivalBuffer = new PlanFacts.ArrivalBuffer((int) integer(reserve, "percent", 0, PlanFacts.ArrivalBuffer.MAX_PERCENT),
+                    (int) integer(reserve, "minMinutes", 0, PlanFacts.ArrivalBuffer.MAX_MINUTES), (int) integer(reserve, "maxMinutes", 0, PlanFacts.ArrivalBuffer.MAX_MINUTES));
             ArrayNode locations = array(root, "locations"), services = array(root, "services"), technicians = array(root, "technicians"), visits = array(root, "visits");
             Set<String> locationIds = new HashSet<>(), serviceIds = new HashSet<>(), technicianIds = new HashSet<>(), visitIds = new HashSet<>();
             for (JsonNode node : locations) {
@@ -214,7 +222,7 @@ public final class DailyDataset {
             }
             for (int v = 0; v < visitFacts.size(); v++) for (int next = 0; next < visitFacts.size(); next++) if (v != next)
                 transfer(roadStates, visitLocations.get(v), visitLocations.get(next), visitFacts.get(v).id() + ">" + visitFacts.get(next).id(), matrix, unreachable);
-            PlanFacts facts = new PlanFacts(techFacts, visitFacts, matrix, unreachable, regular, overtime, mileage, pct, minutes, demandServices);
+            PlanFacts facts = new PlanFacts(techFacts, visitFacts, matrix, unreachable, regular, overtime, mileage, pct, minutes, arrivalBuffer, demandServices);
             ObjectNode canonicalRoads = root.putObject("roads"); canonicalRoads.put("encoding", "SPARSE"); canonicalRoads.put("size", locations.size());
             ArrayNode entries = canonicalRoads.putArray("entries");
             roadStates.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {

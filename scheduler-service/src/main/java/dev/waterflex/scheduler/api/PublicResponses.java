@@ -2,6 +2,11 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDayVersion;
 import dev.waterflex.scheduler.api.PublicTypes.Window;
+import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.optimizer.DayPlan;
+import dev.waterflex.scheduler.optimizer.PlanFacts;
+import dev.waterflex.scheduler.optimizer.PlanVisit;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -19,7 +24,11 @@ public final class PublicResponses {
         public WhoAmI { Input.present(tenantId, "tenantId"); }
     }
 
-    public record PlannedStop(String appointmentId, Integer sequence, Instant plannedStart, Instant plannedEnd) {
+    /**
+     * {@code arrivalBufferStart} (spec 1.9.0) is where the appointment's late-arrival buffer begins: an arrival at or
+     * after it is still on time but cuts it close. Null when the snapshot carried no {@code rates.arrivalBuffer}.
+     */
+    public record PlannedStop(String appointmentId, Integer sequence, Instant plannedStart, Instant plannedEnd, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Instant arrivalBufferStart) {
         public PlannedStop {
             Input.id(appointmentId, "appointmentId");
             Input.integer(sequence, "sequence", 0, Integer.MAX_VALUE);
@@ -27,6 +36,8 @@ public final class PublicResponses {
             Input.present(plannedEnd, "plannedEnd");
             if (!plannedStart.isBefore(plannedEnd)) throw new IllegalArgumentException("plannedStart must be before plannedEnd");
         }
+        /** True when the planned arrival is inside the late-arrival buffer. */
+        boolean insideBuffer() { Instant start = arrivalBufferStart; return start != null && !plannedStart.isBefore(start); }
     }
 
     public record PlannedRoute(String technicianId, LocalDate serviceDate, List<PlannedStop> stops) {
@@ -51,10 +62,13 @@ public final class PublicResponses {
         }
     }
 
-    /** A proposal never carries overtime: the scheduler never assigns it. */
+    /**
+     * A proposal never carries overtime: the scheduler never assigns it. {@code stopsInsideBuffer} (spec 1.9.0) counts
+     * the stops planned inside their late-arrival buffer; null when the snapshot carried no {@code rates.arrivalBuffer}.
+     */
     public record DailyProposal(String proposalId, String inputRevision, Decision decision, String reason, List<PlannedRoute> routes,
                                 List<String> unresolvedAppointmentIds, List<SkippedTechnicianDay> skippedTechnicianDays,
-                                Long costCents, Integer overtimeMinutes) {
+                                Long costCents, Integer overtimeMinutes, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Integer stopsInsideBuffer) {
         public DailyProposal {
             Input.id(proposalId, "proposalId");
             if (!SHA256.matcher(Input.present(inputRevision, "inputRevision")).matches()) throw new IllegalArgumentException("inputRevision must be a SHA-256 hex digest");
@@ -69,7 +83,22 @@ public final class PublicResponses {
                 if (!routed.add(skipped.technicianId())) throw new IllegalArgumentException("Technician " + skipped.technicianId() + " is both routed and skipped");
             if (Input.present(costCents, "costCents") < 0) throw new IllegalArgumentException("costCents must not be negative");
             Input.integer(overtimeMinutes, "overtimeMinutes", 0, 0);
+            if (stopsInsideBuffer != null) Input.integer(stopsInsideBuffer, "stopsInsideBuffer", 0, Integer.MAX_VALUE);
         }
+    }
+
+    /** A planned stop, with its late-arrival buffer start when the plan has a buffer. */
+    static PlannedStop stop(DayPlan plan, PlanVisit visit, int sequence, Instant start) {
+        PlanFacts.ArrivalBuffer buffer = plan.getArrivalBuffer();
+        return new PlannedStop(visit.getId(), sequence, start, Required.value(start.plus(Duration.ofMinutes(visit.getDurationMinutes()))),
+                buffer.none() ? null : buffer.deadline(visit.getWindowStart(), visit.getWindowEnd()));
+    }
+    /** The stops planned inside their late-arrival buffer, or null when the plan has no buffer. */
+    static @Nullable Integer stopsInsideBuffer(DayPlan plan, List<PlannedRoute> routes) {
+        if (plan.getArrivalBuffer().none()) return null;
+        int inside = 0;
+        for (PlannedRoute route : routes) for (PlannedStop stop : route.stops()) if (stop.insideBuffer()) inside++;
+        return inside;
     }
 
     /**
@@ -78,7 +107,7 @@ public final class PublicResponses {
      * given. Technician-days that could not be located are skipped, not timed.
      */
     public record RouteEvaluation(Boolean feasible, List<PlannedRoute> routes, List<SkippedTechnicianDay> skippedTechnicianDays,
-                                  Long costCents, Integer overtimeMinutes) {
+                                  Long costCents, Integer overtimeMinutes, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Integer stopsInsideBuffer) {
         public RouteEvaluation {
             Input.present(feasible, "feasible");
             routes = Input.list(routes, "routes");
@@ -90,6 +119,7 @@ public final class PublicResponses {
                 if (!routed.add(skipped.technicianId())) throw new IllegalArgumentException("Technician " + skipped.technicianId() + " is both routed and skipped");
             if (Input.present(costCents, "costCents") < 0) throw new IllegalArgumentException("costCents must not be negative");
             Input.integer(overtimeMinutes, "overtimeMinutes", 0, 1440);
+            if (stopsInsideBuffer != null) Input.integer(stopsInsideBuffer, "stopsInsideBuffer", 0, Integer.MAX_VALUE);
         }
     }
 

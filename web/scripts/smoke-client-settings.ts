@@ -9,7 +9,7 @@ import { loadSolverSettings, storeSolverSettings } from "../lib/clientSettingsSt
 
 const clientId = `settings-it-${randomUUID()}`;
 const input = { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED" as const, horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
+  travelBufferMinutes: 5, arrivalBufferPercent: 25, arrivalBufferMinMinutes: 15, arrivalBufferMaxMinutes: 60, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED" as const, horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 async function main() {
   await prisma.client.create({ data: { id: clientId, name: "Settings smoke" } });
@@ -20,7 +20,7 @@ async function main() {
     assert.ok("saved" in created);
     assert.equal(created.saved.version, 0);
     assert.deepEqual(publicRates(created.saved), { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-      travelBufferPct: "0.2", travelBufferMinutes: 5 });
+      travelBufferPct: "0.2", travelBufferMinutes: 5, arrivalBuffer: { percent: 25, minMinutes: 15, maxMinutes: 60 } });
     assert.deepEqual(publicPolicy(created.saved), { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
     assert.deepEqual(await storeSolverSettings(clientId, null, input), { stale: true }, "A second first save is stale");
 
@@ -40,7 +40,8 @@ async function main() {
       ["costSearchSeconds", 4], ["costSearchSeconds", 241], ["fairnessSearchSeconds", -1], ["fairnessSearchSeconds", 241],
       ["bookingDeadlineMs", 999], ["bookingDeadlineMs", 5001], ["regularWindowThreshold", -1], ["regularWindowThreshold", 1001],
       ["horizonMode", "ROLLING"], ["horizonMode", "dynamic"], ["horizonLeadWeekdays", 0], ["horizonLeadWeekdays", 6],
-      ["horizonFullPercent", 49], ["horizonFullPercent", 101], ["unimprovedSearchSeconds", 0], ["unimprovedSearchSeconds", 241]] as const) {
+      ["horizonFullPercent", 49], ["horizonFullPercent", 101], ["unimprovedSearchSeconds", 0], ["unimprovedSearchSeconds", 241],
+      ["arrivalBufferPercent", 51], ["arrivalBufferPercent", -1], ["arrivalBufferMinMinutes", 61], ["arrivalBufferMaxMinutes", 241]] as const) {
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = ${value} WHERE "clientId" = ${clientId}`,
         `The database rejects ${column} = ${value}`);
     }

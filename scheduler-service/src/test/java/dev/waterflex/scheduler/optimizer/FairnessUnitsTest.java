@@ -187,7 +187,7 @@ class FairnessUnitsTest {
         for (List<Scored> family : FAMILIES) for (Scored scored : family) {
             DayPlan plan = PlanCopies.copy(scored.plan());
             BendableScore score = Required.value(SolutionManager.<DayPlan, BendableScore>create(PRODUCTION.factory()).update(plan));
-            long categorical = 0, quantitative = 0, overtime = 0;
+            long categorical = 0, quantitative = 0, overtime = 0, buffer = 0;
             Set<String> parts = new TreeSet<>();
             for (TechRoute route : plan.getRoutes()) {
                 var evaluation = RouteTimeline.evaluate(plan.getFacts(), Required.value(route));
@@ -199,12 +199,13 @@ class FairnessUnitsTest {
                 if (violations.capacityMinutes() > 0) parts.add("hard 1 capacity");
                 categorical += violations.qualifications() + violations.unavailableRoads();
                 quantitative += violations.latenessSeconds() + violations.availabilitySeconds() + violations.capacityMinutes() * 60;
-                overtime += evaluation.overtimeMinutes();
+                overtime += evaluation.overtimeMinutes(); buffer += evaluation.bufferSeconds();
             }
             long cents = DayScoreCalculator.evaluate(plan).costCents();
             var target = plan.getScoringFacts().target();
             long[] hard = {categorical, quantitative, plan.getUnassignedVisitIds().size(),
-                    target == null ? 0 : Math.abs(overtime - target.overtimeMinutes()), target == null ? 0 : Math.max(0, cents - target.costCeilingCents())};
+                    target == null ? 0 : Math.abs(overtime - target.overtimeMinutes()), target == null ? 0 : Math.max(0, buffer - target.bufferSeconds()),
+                    target == null ? 0 : Math.max(0, cents - target.costCeilingCents())};
             for (int level = 0; level < hard.length; level++) {
                 assertEquals(-hard[level], score.hardScore(level), scored.label() + " hard " + level);
                 if (hard[level] != 0) parts.add("hard " + level);
@@ -213,16 +214,18 @@ class FairnessUnitsTest {
             if (target != null) parts.add("soft 0 variance");
             for (String part : parts) reached.merge(part, 1, (known, one) -> Required.value(known) + Required.value(one));
             assertEquals(-cents, score.softScore(DayScores.COST), scored.label() + " cost");
+            assertEquals(-buffer, score.softScore(DayScores.BUFFER), scored.label() + " buffer");
             long objective = -score.softScore(DayScores.PHASE_OBJECTIVE);
             if (target == null) assertEquals(overtime, objective, scored.label() + " overtime");
             else assertTrue(BigDecimal.valueOf(objective).subtract(objective(scored.decimal()).multiply(UNITS)).abs().compareTo(BigDecimal.ONE) <= 0,
                     scored.label() + ": " + objective + " units against " + objective(scored.decimal()));
         }
         // At least five plans each (the fewest today is nine, for the unreachable road): a floor, not a pin, so a new fixture
-        // need not recount, but a part that no plan reaches any longer fails.
+        // need not recount, but a part that no plan reaches any longer fails. These families carry no late-arrival buffer, so
+        // its levels (hard 4, soft 1) are checked for value here and reached in ConstraintRulesTest.
         List<String> unreached = new ArrayList<>();
         for (String part : List.of("hard 0", "hard 0 qualifications", "hard 0 roads", "hard 1", "hard 1 lateness", "hard 1 availability",
-                "hard 1 capacity", "hard 2", "hard 3", "hard 4", "soft 0 overtime", "soft 0 variance"))
+                "hard 1 capacity", "hard 2", "hard 3", "hard 5", "soft 0 overtime", "soft 0 variance"))
             if (reached.getOrDefault(part, 0) < 5) unreached.add(part + "=" + reached.getOrDefault(part, 0));
         assertEquals(List.of(), unreached, "parts reached by too few plans, of " + reached);
     }
@@ -247,7 +250,7 @@ class FairnessUnitsTest {
     }
 
     private static RouteScoringFacts.ScoredRoute route(String id, long capacity, long paid) {
-        var metrics = new RouteTimeline.Result(new RouteTimeline.Violations(0, 0, 0, 0, 0), Required.value(Map.of()), paid, 0, 0, 0, 0);
+        var metrics = new RouteTimeline.Result(new RouteTimeline.Violations(0, 0, 0, 0, 0), Required.value(Map.of()), paid, 0, 0, 0, 0, 0);
         return new RouteScoringFacts.ScoredRoute(id, capacity, true, metrics);
     }
     private static final RouteScoringFacts FACTS = DayConstraintProviderTest.fixture().getScoringFacts();

@@ -37,7 +37,7 @@ class BoundedBookingSearchTest {
                     for (boolean confirmed : List.of(false, true)) {
                         var full = dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(arrangement, copied, RATES, confirmed));
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmed));
-                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes()), evaluation.metrics(arrangement, facts, confirmed));
+                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes(), full.bufferSeconds()), evaluation.metrics(arrangement, facts, confirmed));
                         if (confirmed && full.feasible()) assertEquals(SchedulingPolicy.measure(day.plan(arrangement, copied, RATES, true)).fairness().variance(),
                                 evaluation.fairness(arrangement, facts));
                     }
@@ -156,7 +156,7 @@ class BoundedBookingSearchTest {
                         if (confirmedOnly && full.feasible()) assertEquals(SchedulingPolicy.measure(day.plan(arrangement, facts, RATES, true)).fairness().variance(),
                                 evaluation.fairness(arrangement, facts));
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
-                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes()),
+                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes(), full.bufferSeconds()),
                                 evaluation.metrics(arrangement, facts, confirmedOnly));
                         long evaluated = evaluation.evaluations();
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));

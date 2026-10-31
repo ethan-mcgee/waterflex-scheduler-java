@@ -14,7 +14,36 @@ class SchedulingPolicyTest {
         return new SchedulingPolicy.Workload(id, paid, capacity, Required.value(BigDecimal.ZERO));
     }
     private static SchedulingPolicy.Metrics metrics(long overtime, long cost, long a, long b) {
-        return new SchedulingPolicy.Metrics(overtime, cost, SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", a, 480), work("b", b, 480)))));
+        return new SchedulingPolicy.Metrics(overtime, 0, cost, SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", a, 480), work("b", b, 480)))));
+    }
+    private static SchedulingPolicy.Metrics buffered(long buffer, long cost, long a, long b) {
+        return new SchedulingPolicy.Metrics(0, buffer, cost, SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", a, 480), work("b", b, 480)))));
+    }
+    /** Buffer use ranks below overtime and above fairness and cost; without a buffer every plan uses none and nothing changes. */
+    @Test void bufferUseRanksBelowOvertimeAndAboveFairnessAndCost() {
+        var baseline = buffered(600, 100, 240, 240);
+        // Less buffer than the current routes is an improvement, though it spreads work less evenly and costs more.
+        var calmer = buffered(0, 101, 300, 180);
+        var decision = SchedulingPolicy.compare(baseline, calmer, calmer, RULES);
+        assertTrue(decision.accepted());
+        assertEquals("BUFFER_IMPROVEMENT", decision.reason());
+        // More buffer than the reference is refused before the cost ceiling is read.
+        var regression = SchedulingPolicy.compare(baseline, buffered(601, 50, 240, 240), buffered(600, 100, 240, 240), RULES);
+        assertFalse(regression.accepted());
+        assertEquals("BUFFER_REGRESSION", regression.reason());
+        // More buffer than the current routes is refused even when it is cheaper and fairer.
+        var tighter = SchedulingPolicy.compare(buffered(0, 100, 300, 180), buffered(60, 90, 240, 240), buffered(60, 90, 240, 240), RULES);
+        assertFalse(tighter.accepted());
+        assertEquals("BUFFER_REGRESSION", tighter.reason());
+        // Equal buffer use leaves the decision to fairness and cost, as before the buffer.
+        assertEquals("COST_REDUCTION", SchedulingPolicy.compare(buffered(60, 100, 240, 240), buffered(60, 90, 240, 240), buffered(60, 90, 240, 240), RULES).reason());
+    }
+    @Test void aReferenceIsChosenByOvertimeThenBufferThenCost() {
+        var overtime = new SchedulingPolicy.Metrics(10, 0, 50, buffered(0, 0, 240, 240).fairness());
+        assertTrue(SchedulingPolicy.referenceOrder(buffered(900, 500, 240, 240), overtime) < 0);
+        assertTrue(SchedulingPolicy.referenceOrder(buffered(0, 500, 240, 240), buffered(1, 100, 240, 240)) < 0);
+        assertTrue(SchedulingPolicy.referenceOrder(buffered(5, 100, 240, 240), buffered(5, 101, 240, 240)) < 0);
+        assertEquals(0, SchedulingPolicy.referenceOrder(buffered(5, 100, 240, 240), buffered(5, 100, 300, 180)));
     }
     @Test void scarcityNeverAuthorizesOvertime() {
         assertFalse(RULES.authorizeOvertime(3, 100, 100, true));

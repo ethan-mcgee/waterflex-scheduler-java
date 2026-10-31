@@ -37,6 +37,7 @@ class PublicApiContractTest {
         types.put("Location", PublicTypes.Location.class);
         types.put("Window", PublicTypes.Window.class);
         types.put("Rates", PublicTypes.Rates.class);
+        types.put("ArrivalBuffer", PublicTypes.ArrivalBuffer.class);
         types.put("Policy", PublicTypes.Policy.class);
         types.put("Technician", PublicTypes.Technician.class);
         types.put("TechnicianDay", PublicTypes.TechnicianDay.class);
