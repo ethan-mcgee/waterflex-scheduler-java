@@ -52,15 +52,20 @@ fi
 version="${1:?Pass a map version such as 2026-09-16}"
 case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
 target="/maps/versions/$version"
+mkdir -p "$target"
+# The region names the Geofabrik extracts to merge, an optional clip box and the points validation routes
+# (infra/map-import/regions/<name>.json). It is recorded in the manifest; a manifest without one is the Omaha region.
+python3 /usr/local/bin/region-map.py decode "${MAP_REGION_BASE64:?Pass a map region}" "$target/region.json"
 if [ -e "$target/manifest.json" ]; then
-  if python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); assert "missouri" in m["sources"] and "coverage" in m and "filter" in m["tiger"]' "$target/manifest.json" 2>/dev/null; then
+  if python3 /usr/local/bin/region-map.py prepared "$target/manifest.json" "$target/region.json" 2>/dev/null; then
     echo "Version already prepared: $version"; exit 0
   fi
 fi
-mkdir -p "$target"
 printf '%s' "${MAP_COVERAGE_BASE64:?Pass depot-derived coverage}" | base64 -d > "$target/coverage.json"
 python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); b=c["bounds"]; assert c["circles"] and c["marginMi"]==10 and -180<=b["west"]<b["east"]<=180 and -90<=b["south"]<b["north"]<=90' "$target/coverage.json"
-for state in nebraska iowa missouri; do
+sources="$(python3 /usr/local/bin/region-map.py sources "$target/region.json")"
+clip="$(python3 /usr/local/bin/region-map.py clip "$target/region.json")"
+for state in $sources; do
   source="https://download.geofabrik.de/north-america/us/${state}-latest.osm.pbf"
   if [ ! -f "$target/${state}.osm.pbf" ]; then
     curl --fail --location --retry 3 --silent --show-error "$source" --output "$target/${state}.osm.pbf.part"
@@ -101,24 +106,43 @@ else
   rm -f "$national"
   echo "Filtered TIGER: $stats"
 fi
-osmium merge "$target/nebraska.osm.pbf" "$target/iowa.osm.pbf" "$target/missouri.osm.pbf" --overwrite -o "$target/omaha.osm.pbf"
+# A region with a clip box keeps only that box of each extract (a whole state is far more than a metro needs), so
+# the merge, the tiles and both road graphs stay small. The merged file keeps its historical name whatever the region.
+inputs=""
+for state in $sources; do
+  if [ -n "$clip" ]; then
+    if [ ! -f "$target/${state}.clipped.osm.pbf" ]; then
+      osmium extract --bbox "$clip" --overwrite --output-format pbf -o "$target/${state}.clipped.osm.pbf.part" "$target/${state}.osm.pbf"
+      mv "$target/${state}.clipped.osm.pbf.part" "$target/${state}.clipped.osm.pbf"
+    fi
+    inputs="$inputs $target/${state}.clipped.osm.pbf"
+  else
+    inputs="$inputs $target/${state}.osm.pbf"
+  fi
+done
+# shellcheck disable=SC2086
+osmium merge $inputs --overwrite -o "$target/omaha.osm.pbf"
 osmium fileinfo "$target/omaha.osm.pbf" >/dev/null
 python3 - "$target" "$version" "$tiger_year" "$tiger_url" <<'PY'
 import hashlib, json, pathlib, subprocess, sys, datetime
 with pathlib.Path(sys.argv[1], 'coverage.json').open() as f:
     coverage = json.load(f)
+with pathlib.Path(sys.argv[1], 'region.json').open() as f:
+    region = json.load(f)
 target = pathlib.Path(sys.argv[1])
 def checksum(path):
     with path.open('rb') as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
 manifest = {'version': sys.argv[2], 'preparedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'coverage': coverage, 'mergedSha256': checksum(target / 'omaha.osm.pbf'), 'sources': {}}
-for state in ['nebraska', 'iowa', 'missouri']:
+            'region': region, 'coverage': coverage, 'mergedSha256': checksum(target / 'omaha.osm.pbf'), 'sources': {}}
+for state in region['sources']:
     manifest['sources'][state] = {
         'url': f'https://download.geofabrik.de/north-america/us/{state}-latest.osm.pbf',
         'sourceTimestamp': subprocess.check_output(['osmium', 'fileinfo', '-e', '-g', 'data.timestamp.last', str(target / f'{state}.osm.pbf')], text=True).strip(),
         'sha256': checksum(target / f'{state}.osm.pbf'),
     }
+    if region['clip'] is not None:
+        manifest['sources'][state]['clippedSha256'] = checksum(target / f'{state}.clipped.osm.pbf')
 tiger_filter = json.loads((target / 'tiger-filter.json').read_text())
 manifest['tiger'] = {'year': sys.argv[3], 'url': sys.argv[4], 'sourceSha256': tiger_filter['sourceSha256'],
                      'sha256': checksum(target / 'tiger-nominatim-preprocessed.csv.tar.gz'), 'filter': tiger_filter['filter']}

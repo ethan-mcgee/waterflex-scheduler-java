@@ -66,7 +66,7 @@ What is single on this VM, what happens when each part stops, and the host's ret
 
 ## Another metro
 
-Copy `routing-omaha` to `routing-<metro>` with that metro's map (its own volume or version directory), and add `<metro id>=http://routing-<metro>:8001` to `ROUTING_METRO_URLS`. The metro ID is the one WaterFlex Software sends in its snapshots.
+Copy `routing-omaha` to `routing-<metro>` with that metro's map (its own volume or version directory), and add `<metro id>=http://routing-<metro>:8001` to `ROUTING_METRO_URLS`. The metro ID is the one WaterFlex Software sends in its snapshots. For a study on the local rehearsal, a second metro needs no new service: prepare its map as a version of another region (`infra/prepare-map.ps1 -Region <region>`), leave it serving through the development stack's `routing-preview` (127.0.0.1:18001), and list it in `rehearsal.env` beside Omaha, for example `ROUTING_METRO_URLS=metro-omaha=http://host.docker.internal:8001,metro-paso-robles=http://host.docker.internal:18001`.
 
 ## Local rehearsal
 

@@ -1,0 +1,23 @@
+{
+  "runId": "backtest-<client>-<yyyy-mm>",
+  "timeZone": "America/Los_Angeles",
+  "metroId": "metro-paso-robles",
+  "depot": {"address": {"street": "<house number and street>", "city": "<city>", "state": "CA", "postalCode": "<zip>"}},
+  "bbox": {"west": -121.5, "south": 34.3, "east": -119.4, "north": 36.3},
+  "years": [2024, 2025, 2026],
+  "calibrationYears": [2024],
+  "shift": {"start": "08:00", "end": "17:00", "salesCallEnd": "19:00"},
+  "windowMinutes": 120,
+  "salesCallCodes": ["X01"],
+  "zeroDurationMinutes": 60,
+  "excludeTechnicians": [],
+  "rates": {"regularHourly": "30", "overtimeHourly": "45", "mileagePerMile": "0.67", "travelBufferPct": "0.1", "travelBufferMinutes": 2,
+            "arrivalBuffer": {"percent": 25, "minMinutes": 15, "maxMinutes": 60}},
+  "policy": {"fairnessBudget": "0.02", "dailySearch": "TABU_KOPT", "costSearchSeconds": 10, "fairnessSearchSeconds": 5,
+             "bookingDeadlineMs": 5000, "regularWindowThreshold": 2},
+  "search": {"variant": "TABU_KOPT", "seed": 17, "remainingMillis": 15000},
+  "apiDateShiftDays": null,
+  "ruleSets": ["strict-17", "evening-sales", "sales-day"],
+  "primaryRuleSet": "strict-17",
+  "bars": {"repairShareMin": 0.8}
+}

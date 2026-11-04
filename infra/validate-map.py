@@ -8,8 +8,13 @@ from pathlib import Path
 import sys
 import urllib.request
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'map-import'))
+import region as map_region  # noqa: E402
+
 manifest_path = Path(sys.argv[1])
 manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
+# The region the version was prepared with names its extracts and the points to route; an older manifest is Omaha.
+region = map_region.from_manifest(manifest, Path(__file__).resolve().parent / 'map-import' / 'regions')
 def get(url, body=None):
     headers = {'Content-Type': 'application/json'}
     if os.environ.get('ROUTING_AUTH_TOKEN'):
@@ -30,13 +35,9 @@ b = manifest['coverage']['bounds']
 # PMTiles stores bounds at seven decimal places, so allow only that encoding precision.
 epsilon = 0.0000001
 assert west <= b['west'] + epsilon and east >= b['east'] - epsilon and south <= b['south'] + epsilon and north >= b['north'] - epsilon
-assert set(manifest['sources']) == {'nebraska', 'iowa', 'missouri'}
+assert set(manifest['sources']) == set(region['sources'])
 assert 'omaha.pmtiles' in manifest['artifacts'] and 'graph/properties' in manifest['artifacts']
-samples = [('Omaha', 41.25855, -95.92929), ('Lincoln', 40.81362, -96.70260),
-           ('Fremont', 41.4333, -96.498), ('Tekamah', 41.7783, -96.2211),
-           ('West Point', 41.8417, -96.7086), ('Oakland Iowa', 41.309, -95.3967),
-           ('Atlantic Iowa', 41.4036, -95.0139), ('Rock Port Missouri', 40.4111, -95.5169),
-           ('Tarkio Missouri', 40.4403, -95.3775), ('Auburn', 40.3931, -95.838)]
+samples = [(sample['name'], sample['lat'], sample['lng']) for sample in region['samples']]
 results = []
 for name, lat, lng in samples:
     point = {'lat': lat, 'lng': lng}
@@ -51,6 +52,6 @@ for name, lat, lng in samples:
         assert len(tile.read()) > 0, name
     results.append({'name': name, 'lat': lat, 'lng': lng, 'routing': response, 'state': reverse['address'].get('state')})
     assert response['pairs'][0]['leg']['routable'], (name, response)
-print(json.dumps({'version': manifest['version'], 'validatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+print(json.dumps({'version': manifest['version'], 'region': region['name'], 'validatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'manifestSha256': hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
                   'routingIdentity': health['routingIdentity'], 'geocoder': geocoder, 'samples': results}, indent=2))
