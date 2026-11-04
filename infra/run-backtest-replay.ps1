@@ -76,6 +76,21 @@ $metro = $config.metroId
 $metroLine = (Get-Content -LiteralPath $envFile | Where-Object { $_ -like 'ROUTING_METRO_URLS=*' } | Select-Object -First 1)
 if ($null -eq $metroLine -or $metroLine -notmatch "(^|[=,])$([regex]::Escape($metro))=") {
     throw "The rehearsal env does not route $metro; add it to ROUTING_METRO_URLS in $envFile (for example ,$metro=http://host.docker.internal:18001)" }
+# The replicas report ready only while every listed metro's routing answers (HealthController), so each one is probed
+# from the host. The development routing-service (8001, Omaha) is started for the replay when it is down, and stopped
+# by the pass that takes the stack down; any other metro that does not answer stops the replay here.
+$devCompose = Join-Path $repository 'docker-compose.yml'
+$routingMarker = Join-Path $logs 'routing-service-started-by-replay'
+$metroUrls = [ordered]@{}
+foreach ($pair in ($metroLine -replace '^ROUTING_METRO_URLS=', '') -split ',') {
+    $name, $address = $pair -split '=', 2
+    $metroUrls[$name.Trim()] = ($address.Trim() -replace 'host\.docker\.internal', '127.0.0.1').TrimEnd('/') }
+$routingReady = { param($address) try { [bool](Invoke-RestMethod "$address/health" -TimeoutSec 5).ready } catch { $false } }
+$devRoutingDown = $false
+foreach ($name in @($metroUrls.Keys)) {
+    if (& $routingReady $metroUrls[$name]) { continue }
+    if ($metroUrls[$name] -match ':8001$' -and $name -ne $metro) { $devRoutingDown = $true; continue }
+    throw "Routing for $name does not answer at $($metroUrls[$name])/health; the rehearsal replicas would never report ready" }
 
 # The image: the commit in its own worktree, built once under its own tag.
 $sha = (git -C $repository rev-parse --verify "$Revision^{commit}" 2>$null)
@@ -146,9 +161,22 @@ try {
     $env:SCHEDULER_IMAGE = $tag; $env:SCHEDULER_PULL_POLICY = 'never'
     $env:SCHEDULER_STUDY_RECEIPTS = 'true'; $env:TIMEFOLD_LOG_LEVEL = 'INFO'
     $env:SCHEDULER_STUDY_PROFILES = if ($profiles) { '/profiles' } else { '' }
+    if ($devRoutingDown) {
+        Write-Output 'Starting the development routing-service (Omaha) so the rehearsal replicas can report ready'
+        & $docker @('compose', '-f', $devCompose, 'up', '-d', '--no-deps', '--no-build', 'routing-service') (Join-Path $logs 'routing-start.log')
+        Set-Content -LiteralPath $routingMarker -Value $since -Encoding ascii
+        $until = (Get-Date).AddMinutes(10)
+        while (-not (& $routingReady 'http://127.0.0.1:8001') -and (Get-Date) -lt $until) { Start-Sleep -Seconds 5 }
+        if (-not (& $routingReady 'http://127.0.0.1:8001')) { throw "The development routing-service did not come up (see $logs/routing-start.log)" }
+    }
     & $docker (@('compose') + $rehearsal + @('up', '-d', '--no-build', '--remove-orphans')) (Join-Path $logs 'up.log')
     $started = $true
-    if (-not (& $health 300)) { throw "The stack did not come up on $tag (see $logs/up.log)" }
+    if (-not (& $health 300)) {
+        # The replicas' own words on why they are not ready, kept before the stack comes down.
+        $ErrorActionPreference = 'Continue'
+        & docker compose @rehearsal logs --no-color --tail 120 scheduler-daily scheduler-booking *> (Join-Path $logs 'not-ready.log')
+        $ErrorActionPreference = 'Stop'
+        throw "The stack did not come up on $tag (see $logs/up.log and not-ready.log)" }
     $daily = & $dailyContainers
     $verified = @()
     foreach ($id in @($daily) + @(& $bookingContainers)) {
@@ -193,6 +221,11 @@ try {
     if ($started -and -not $KeepStack) {
         Write-Output 'Stopping the study stack; bring the rehearsal back with its own image as deploy/vm/README.md says'
         & docker compose @rehearsal down *> (Join-Path $logs 'down.log')
+    }
+    # The routing-service a replay pass started (this one or an earlier -KeepStack pass) stops with the stack.
+    if (-not $KeepStack -and (Test-Path -LiteralPath $routingMarker)) {
+        & docker compose -f $devCompose stop routing-service *> (Join-Path $logs 'routing-stop.log')
+        Remove-Item -LiteralPath $routingMarker -Force
     }
     $ErrorActionPreference = 'Stop'
 }
