@@ -61,6 +61,7 @@ public final class BacktestTool {
             case "backtest-score" -> scoreJob(job);
             case "backtest-solve" -> solveJob(job);
             case "backtest-day" -> dayJob(job);
+            case "backtest-screen" -> screenJob(job);
             default -> throw new IllegalArgumentException("Unknown backtest job");
         };
     }
@@ -101,6 +102,43 @@ public final class BacktestTool {
         var receipt = Required.value(Map.<String,@org.jspecify.annotations.NonNull Object>of("kind","backtest-day","bookedHash",booked.contentHash(),"actualHash",actual.contentHash(),
                 "accepted",solved.accepted(),"reason",solved.reason(),"solveMs",solved.solveMs(),"wallMs",solved.wallMs(),"files",files));
         return document(receipt);
+    }
+
+    /** One day's screen: the dispatcher's booked plan read on the sealed booked draft, with the day's size. */
+    public record ScreenRow(String day, String datasetHash, String planHash, boolean feasible, boolean routesHold, long unassigned,
+            long hardPenalty, int visits, int technicians, long costCents) {
+        public ScreenRow { Required.value(day); Required.value(datasetHash); Required.value(planHash); }
+    }
+
+    /**
+     * Many days in one JVM: seals each day's booked draft in memory and reads its as-planned plan, so a study can pick
+     * the days whose booked plan already holds without solving them. Writes nothing beside the importer's files.
+     */
+    private static Object screenJob(JsonNode job) {
+        fields(job,"version","kind","days","output");
+        if (integer(get(job,"version"),1) != 1) throw new IllegalArgumentException("Backtest job version");
+        JsonNode days = get(job,"days");
+        if (!days.isArray() || days.isEmpty()) throw new IllegalArgumentException("A screen needs at least one day");
+        List<ScreenRow> rows = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (JsonNode element : days) {
+            JsonNode entry = Required.value(element, "screen day");
+            fields(entry,"day","directory");
+            String day = text(get(entry,"day"));
+            if (!seen.add(day)) throw new IllegalArgumentException("Day screened twice: " + day);
+            Path directory = Required.value(Path.of(text(get(entry,"directory"))));
+            DailyDataset dataset = DailyDataset.parse(DailyDataset.seal(SnapshotFileIO.readText(directory.resolve("facts.json").toFile())));
+            String planJson = SnapshotFileIO.readText(directory.resolve("as-planned.plan.json").toFile());
+            Row row = score(dataset, CalculationJson.read(planJson, Plan.class), CalculationJson.hash(planJson));
+            DayPlan plan = dataset.toDayPlan();
+            rows.add(new ScreenRow(day, row.datasetHash(), row.planHash(), row.feasible(), row.routesHold(), row.unassigned(), row.hardPenalty(),
+                    plan.getVisits().size(), plan.getRoutes().size(), row.costCents()));
+        }
+        String json = CalculationJson.write(Required.value(Map.<String,@org.jspecify.annotations.NonNull Object>of("version",1,"kind","backtest-screen","rows",rows)));
+        SnapshotFileIO.writeText(Path.of(text(get(job,"output"))).toFile(), json);
+        long holding = 0;
+        for (ScreenRow row : rows) if (row.feasible()) holding++;
+        return document(Map.of("kind","backtest-screen","days",rows.size(),"holding",holding,"sha256",CalculationJson.hash(json)));
     }
 
     /** The draft {@code <name>.json} of the day sealed into the output as {@code <name>.sealed.json}, reusing a seal already there. */

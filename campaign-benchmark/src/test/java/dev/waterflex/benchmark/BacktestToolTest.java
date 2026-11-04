@@ -163,4 +163,44 @@ class BacktestToolTest {
         assertEquals(Map.of(), CalculationJson.read(CalculationJson.write(new BacktestTool.Plan(1, Required.value(Map.of()), Required.value(List.of()))), BacktestTool.Plan.class).routes());
     }
 
+    @Test void screenReadsEveryDaysBookedPlanInOneRunAndRefusesARepeatedDay() throws Exception {
+        var dataset = dataset();
+        var draft = (com.fasterxml.jackson.databind.node.ObjectNode) CalculationJson.tree(dataset.json(DailyDataset.Encoding.SPARSE));
+        draft.putNull("contentHash");
+        var holding = BacktestTool.Plan.of(dataset.toDayPlan());
+        // The same day with every visit left out: the screen reports it as not holding instead of refusing it.
+        List<String> everyVisit = Required.value(dataset.toDayPlan().getVisits().stream().map(visit -> Required.value(visit).getId()).sorted().toList());
+        Map<String,List<String>> empty = new java.util.TreeMap<>();
+        holding.routes().keySet().forEach(technician -> empty.put(Required.value(technician), Required.value(List.<String>of())));
+        var unassigned = new BacktestTool.Plan(1, empty, everyVisit);
+        StringBuilder days = new StringBuilder();
+        for (var entry : List.of(Map.entry("2026-09-21", holding), Map.entry("2026-09-22", unassigned))) {
+            Path day = Required.value(directory().resolve(entry.getKey()));
+            Files.createDirectories(day);
+            Files.writeString(Required.value(day.resolve("facts.json")), CalculationJson.write(draft));
+            Files.writeString(Required.value(day.resolve("as-planned.plan.json")), CalculationJson.write(Required.value(entry.getValue())));
+            if (!days.isEmpty()) days.append(',');
+            days.append("{\"day\":\"").append(entry.getKey()).append("\",\"directory\":").append(CalculationJson.write(Required.value(day.toString()))).append('}');
+        }
+        Path output = Required.value(directory().resolve("screen.json"));
+        String job = "{\"version\":1,\"kind\":\"backtest-screen\",\"days\":[" + days + "],\"output\":" + CalculationJson.write(Required.value(output.toString())) + "}";
+        var receipt = CalculationJson.tree(CalculationJson.write(DatasetTool.execute(CalculationJson.tree(job))));
+        assertEquals(2, Required.value(receipt.get("days")).asInt());
+        assertEquals(1, Required.value(receipt.get("holding")).asInt());
+        var rows = Required.value(CalculationJson.tree(Required.value(Files.readString(output))).get("rows"));
+        var first = CalculationJson.read(CalculationJson.write(Required.value(rows.get(0))), BacktestTool.ScreenRow.class);
+        var second = CalculationJson.read(CalculationJson.write(Required.value(rows.get(1))), BacktestTool.ScreenRow.class);
+        assertEquals("2026-09-21", first.day()); assertTrue(first.feasible()); assertEquals(0, first.unassigned());
+        assertEquals(dataset.contentHash(), first.datasetHash(), "the draft seals to the fixture's own hash");
+        assertEquals(dataset.toDayPlan().getVisits().size(), first.visits());
+        assertEquals(dataset.toDayPlan().getRoutes().size(), first.technicians());
+        assertEquals(RouteEvaluator.evaluate(dataset.toDayPlan()).costCents(), first.costCents());
+        assertFalse(second.feasible()); assertEquals(everyVisit.size(), second.unassigned());
+        // A repeated day and an empty list are malformed jobs.
+        String repeated = Required.value(job.replace("2026-09-22", "2026-09-21"));
+        assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(repeated)));
+        String none = "{\"version\":1,\"kind\":\"backtest-screen\",\"days\":[],\"output\":" + CalculationJson.write(Required.value(output.toString())) + "}";
+        assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(none)));
+    }
+
 }

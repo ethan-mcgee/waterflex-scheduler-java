@@ -57,7 +57,7 @@ public final class DatasetTool {
             }
             case "export", "import", "anonymize" -> historical(job,kind);
             case "freeze-target" -> freeze(job);
-            case "backtest-score", "backtest-solve", "backtest-day" -> BacktestTool.execute(job,kind);
+            case "backtest-score", "backtest-solve", "backtest-day", "backtest-screen" -> BacktestTool.execute(job,kind);
             default -> throw new IllegalArgumentException("Unknown dataset setup job");
         };
     }
