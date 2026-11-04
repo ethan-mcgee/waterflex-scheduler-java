@@ -26,6 +26,10 @@ param(
     [switch]$AllowContainers
 )
 $ErrorActionPreference = 'Stop'
+# JSON the engine and Python read: UTF-8 without the byte-order mark Windows PowerShell's -Encoding utf8 writes.
+function Write-Json($value, $path, $depth) {
+    [IO.File]::WriteAllText($path, ($value | ConvertTo-Json -Depth $depth), (New-Object Text.UTF8Encoding $false))
+}
 function Invoke-Native($program, [string[]]$arguments, $log) {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -96,7 +100,7 @@ $manifest = [ordered]@{ study = 'backtest harness'; startedAt = [DateTime]::UtcN
     java = $version; jvm = $jvm; processors = [Environment]::ProcessorCount; variant = $Variant; costMs = $CostMs; fairnessMs = $FairnessMs
     days = $Days; dayCount = $dayList.Count; seeds = $seedList; repetitions = $Repetitions; routingIdentity = $index.routingIdentity; policy = $policy }
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
-$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $run "manifest-$stamp.json") -Encoding utf8
+Write-Json $manifest (Join-Path $run "manifest-$stamp.json") 5
 Write-Output "$($dayList.Count) days x $($seedList.Count) seeds x $Repetitions repetitions at $CostMs + $FairnessMs ms, about $([math]::Ceiling($seconds / 60)) minutes. Output: $run\rows"
 
 $failures = @()
@@ -116,7 +120,7 @@ for ($repetition = 1; $repetition -le $Repetitions; $repetition++) {
             $job = [ordered]@{ version = 1; kind = 'backtest-day'; directory = (Join-Path $run "days\$day"); output = $output
                 variant = $Variant; seed = $seed; costMs = $CostMs; fairnessMs = $FairnessMs; policy = $policy }
             $request = Join-Path $output 'job.json'
-            $job | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $request -Encoding utf8
+            Write-Json $job $request 4
             Write-Output "[$count/$total] $day $name"
             $code = Invoke-Native $java ($jvm + @('-jar', $jar, $request, $receipt)) (Join-Path $output 'log.txt')
             if ($code -ne 0 -or -not (Test-Path -LiteralPath $receipt)) { $failures += "$day $name" }

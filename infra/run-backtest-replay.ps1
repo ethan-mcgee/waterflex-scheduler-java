@@ -49,6 +49,10 @@ if (-not (Test-Path -LiteralPath $Jar)) { throw "No benchmark jar at $Jar (run i
 $logs = Join-Path $run 'api-logs'
 New-Item -ItemType Directory -Force $logs | Out-Null
 
+# JSON the engine and Python read: UTF-8 without the byte-order mark Windows PowerShell's -Encoding utf8 writes.
+function Write-Json($value, $path, $depth) {
+    [IO.File]::WriteAllText($path, ($value | ConvertTo-Json -Depth $depth), (New-Object Text.UTF8Encoding $false))
+}
 $docker = { param($arguments, $log)
     # Docker writes progress to stderr, which must not stop the script.
     $ErrorActionPreference = 'Continue'
@@ -174,7 +178,7 @@ try {
     $manifest = [ordered]@{ runId = $index.runId; revision = $sha; image = $tag; imageId = $imageId; url = $Url; metro = $metro; preview = $PreviewUrl
         routingIdentity = $index.routingIdentity; select = $Select; days = $days.Count; rep = $Rep; concurrency = $Concurrency; profiles = $profiles
         containers = $verified; startedAt = $since }
-    $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $logs "manifest-rep$Rep-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')).json") -Encoding utf8
+    Write-Json $manifest (Join-Path $logs "manifest-rep$Rep-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')).json") 6
     $ErrorActionPreference = 'Continue'
     & python -X utf8 (Join-Path $repository 'infra/backtest_replay.py') replay --run $run --url $Url --token-file $token --select $Select --rep $Rep --concurrency $Concurrency --timeout-s $TimeoutSeconds 2>&1 |
         Tee-Object -FilePath (Join-Path $logs "replay-rep$Rep.log")
