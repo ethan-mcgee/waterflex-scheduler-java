@@ -295,6 +295,12 @@ public class DailyProposals {
                 ? Required.value(unavailable.getMessage()) : "Road routing unavailable");
     }
 
+    /** An error in the scheduler itself that a retry cannot cure; nothing was stored. */
+    static Problem internalError() {
+        return new Problem(ErrorCode.INTERNAL_ERROR, "The scheduler failed while calculating this request; nothing was stored, and "
+                + "sending it again fails the same way until the scheduler is fixed");
+    }
+
     /** A cancelled request: the claim is released, so the same requestId runs again when it is retried. */
     static Problem cancelled() {
         return new Problem(ErrorCode.CANCELLED, "The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again");
@@ -326,7 +332,16 @@ public class DailyProposals {
             return new Released(Reply.of(429, new Problem(ErrorCode.BUSY, Required.value(already.getMessage()))));
         }
         try {
-            StoredProposal stored = Required.value(propose.propose(registered));
+            StoredProposal stored;
+            try { stored = Required.value(propose.propose(registered)); }
+            catch (Final | RoadClient.RoadUnavailable | SearchAdmission.Busy | HttpCalculation.Unavailable | SearchDeadline.Expired
+                   | org.springframework.dao.DataAccessException expected) { throw expected; }
+            catch (RuntimeException broken) {
+                // A broken invariant fails the same way on every retry, so it is answered at once instead of retried. It
+                // is not stored: the same requestId runs again once the scheduler is fixed.
+                LOG.error("Daily calculation for request {} failed", requestId, broken);
+                return new Released(Reply.of(500, internalError()));
+            }
             store.completeDaily(tenantId, owner, stored);
             return new Stored(new Reply(201, CalculationJson.write(stored.proposal()), null));
         } catch (Final failure) {
@@ -427,8 +442,10 @@ public class DailyProposals {
         var before = DayScoreCalculator.evaluate(baseline);
         SearchDeadline.checkpoint();
         var validated = RouteEvaluator.evaluate(baseline);
-        if (before.hardPenalty() != 0 || !validated.feasible() || before.costCents() != validated.costCents() || !before.arrivals().equals(validated.arrivals()))
-            return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, "The current routes are infeasible or cannot be scored consistently; nothing was proposed");
+        // Routes that do not hold have no timing to answer with; the host is told which technician-days break which rules.
+        if (!validated.feasible()) throw new Final(422, ErrorCode.CURRENT_ROUTES_INFEASIBLE, infeasible(baseline, serviceDate));
+        if (before.hardPenalty() != 0 || before.costCents() != validated.costCents() || !before.arrivals().equals(validated.arrivals()))
+            return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, "The current routes cannot be scored consistently; nothing was proposed");
         Map<String, String> kept = new LinkedHashMap<>();
         for (TechRoute route : baseline.getRoutes()) kept.put(route.getId(), Required.value(tokens.get(route.getId()), "technician-day token"));
         String configuration = configuration(policy, search, allocation);
@@ -447,6 +464,33 @@ public class DailyProposals {
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;
         return new Outcome(prepared, baseline, decision, ReasonText.describe(calculation.reason()));
     }
+
+    /**
+     * The 422 message for routes that do not hold: each technician-day that breaks a rule, and by how much. A request
+     * allows no overtime (RequestDay), so a route back after its shift end reads as work outside its shift.
+     */
+    static String infeasible(DayPlan plan, LocalDate serviceDate) {
+        List<String> days = new ArrayList<>();
+        for (DayScoreCalculator.RouteViolations route : DayScoreCalculator.violations(plan)) {
+            if (route.holds()) continue;
+            List<String> broken = new ArrayList<>();
+            if (route.unavailableRoads() > 0) broken.add("has " + count(route.unavailableRoads(), "leg", "legs") + " with no road");
+            if (route.unqualifiedVisits() > 0) broken.add("has " + count(route.unqualifiedVisits(), "appointment", "appointments") + " it is not qualified for");
+            if (route.latenessSeconds() > 0) broken.add("arrives " + minutes(route.latenessSeconds()) + " past the end of its arrival windows");
+            if (route.outsideHoursSeconds() > 0) broken.add("works " + minutes(route.outsideHoursSeconds()) + " outside its shift or during an absence");
+            if (route.capacityMinutes() > 0) broken.add("is " + route.capacityMinutes() + " min over its paid or overtime limit");
+            days.add(route.technicianId() + " on " + serviceDate + " " + String.join(", ", broken));
+        }
+        // The evaluator refused the day, so the score must find a route that breaks a rule; otherwise they disagree.
+        if (days.isEmpty()) throw new IllegalStateException("The current routes do not hold, but no route breaks a rule");
+        return "The current routes do not hold, so nothing was proposed (minutes are as timed in the given order): " + String.join("; ", days)
+                + ". Send routes that hold, or a repair proposal for the technician-day";
+    }
+
+    private static String count(long value, String one, String many) { return value + " " + (value == 1 ? one : many); }
+
+    /** Seconds as whole minutes, rounded up, so a few seconds late still reads as late. */
+    private static String minutes(long seconds) { return ((seconds + 59) / 60) + " min"; }
 
     private static DailyProposal response(DailyProposalRequest request, String proposalId, String revision, Outcome outcome) {
         DayPlan plan = outcome.chosen();

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.9.0
+  version: 1.10.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -36,6 +36,13 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.10.0 (2026-11-05): the error codes CURRENT_ROUTES_INFEASIBLE and INTERNAL_ERROR, for daily and repair
+      proposals. When the snapshot's current routes do not hold (an arrival past its window, work past the shift end
+      or during an absence, a leg with no road), the proposal answers 422 CURRENT_ROUTES_INFEASIBLE naming each
+      technician-day and what it breaks; the answer is stored and replayed like any 422. Before 1.10.0 such a day got no defined answer: a synchronous call answered 409 without a problem body,
+      and a queued one ended with 503 CALCULATION_UNAVAILABLE, which sending again could not cure. A calculation that
+      fails inside the scheduler answers 500 INTERNAL_ERROR at once; it is not stored, so the same requestId runs again
+      once the scheduler is fixed.
     - 1.9.0 (2026-10-27): the optional late-arrival buffer, Rates.arrivalBuffer. The scheduler avoids planning an
       arrival in the last part of its window (a share of the window, held between a floor and a cap), so a long repair,
       a break or a fuel stop does not make the technician late. It never leaves an appointment unplanned to keep a
@@ -148,8 +155,9 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Cancelled' }
-        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '422': { $ref: '#/components/responses/ProposalUnprocessable' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/daily/proposals/{proposalId}/commit:
     post:
@@ -418,8 +426,9 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Cancelled' }
-        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '422': { $ref: '#/components/responses/ProposalUnprocessable' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/requests/{requestId}:
     get:
@@ -431,7 +440,7 @@ paths:
         for a calculation slot on any replica, RUNNING while it is calculated, COMPLETED with the answer the call
         itself would have given. A completed result with status 201 carries the stored proposal; the same requestId
         sent again replays it. A completed result with an error status that is not stored (BUSY, ROUTING_UNAVAILABLE,
-        CALCULATION_UNAVAILABLE or CANCELLED) released the requestId, so sending the request again with it runs it
+        CALCULATION_UNAVAILABLE, CANCELLED or INTERNAL_ERROR) released the requestId, so sending the request again with it runs it
         again; it carries retryAfterSeconds when a wait is advised. Poll no sooner than Retry-After. Other operations'
         requests and unknown IDs are 404.
       x-implementation: implemented
@@ -624,6 +633,35 @@ components:
             expired: { value: { error: HOLD_UNAVAILABLE, message: The hold expired } }
             stale: { value: { error: STALE, message: 'The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId', changed: [ { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T22:41:05.512Z' } ] } }
             cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
+    ProposalUnprocessable:
+      description: >-
+        The snapshot is well formed but cannot be proposed from (stored and replayed): INCOMPLETE_FACTS when it
+        cannot be scheduled (an unknown metro, a frozen date, an absent technician-day that cannot be located), or
+        CURRENT_ROUTES_INFEASIBLE when its current routes do not hold (an arrival past its window, work past the shift
+        end or during an absence, a leg with no road). CURRENT_ROUTES_INFEASIBLE names each technician-day and what it
+        breaks, timed in the order given; send routes that hold, or a repair proposal for the technician-day.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            frozen: { value: { error: INCOMPLETE_FACTS, message: Routes for 2026-10-12 are frozen from 6 a.m. local time } }
+            late:
+              value:
+                error: CURRENT_ROUTES_INFEASIBLE
+                message: >-
+                  The current routes do not hold, so nothing was proposed (minutes are as timed in the given order):
+                  tech-1 on 2026-10-12 arrives 12 min past the end of its arrival windows. Send routes that hold, or a
+                  repair proposal for the technician-day
+    InternalError:
+      description: >-
+        The calculation failed inside the scheduler (INTERNAL_ERROR). Nothing was stored and the requestId was
+        released, but sending the same request again fails the same way until the scheduler is fixed, so report it
+        rather than retrying it.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            failed: { value: { error: INTERNAL_ERROR, message: 'The scheduler failed while calculating this request; nothing was stored, and sending it again fails the same way until the scheduler is fixed' } }
     IncompleteFacts:
       description: The snapshot is well formed but cannot be scheduled, for example a location with no road route.
       content:
@@ -1314,7 +1352,7 @@ components:
       properties:
         error:
           type: string
-          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED, SERVICE_UNAVAILABLE]
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED, SERVICE_UNAVAILABLE, CURRENT_ROUTES_INFEASIBLE, INTERNAL_ERROR]
         message: { type: string, minLength: 1 }
     StaleProblem:
       type: object
