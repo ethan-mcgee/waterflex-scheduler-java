@@ -40,7 +40,10 @@ LEG_BATCH = 256
 # The shift rules a run is built under (owner, 2026-11-03): strict-17 ends every technician-day at the regular end;
 # evening-sales gives the later end only to a technician the dispatcher gave a sales call that cannot finish by the
 # regular end, and keeps that call with them; sales-day gives every technician the later end on any day with a sales call.
-RULE_SETS = ('strict-17', 'evening-sales', 'sales-day')
+# as-run (owner, 2026-11-04) is the dispatcher's day as it ran: every kept job at its booked time, nothing held out, the
+# shift ending at the regular end so that the work past it reads as overtime, and windows running to the later end.
+RULE_SETS = ('strict-17', 'evening-sales', 'sales-day', 'as-run')
+ROSTERS = ('spans', 'csv-days')
 
 
 class ImportError_(ValueError):
@@ -67,16 +70,34 @@ def depot_addressed(depot):
 
 
 def validate_config(config):
-    required = {'runId', 'timeZone', 'metroId', 'depot', 'bbox', 'years', 'calibrationYears', 'shift', 'windowMinutes',
+    required = {'runId', 'timeZone', 'metroId', 'bbox', 'years', 'calibrationYears', 'shift', 'windowMinutes',
                 'salesCallCodes', 'zeroDurationMinutes', 'excludeTechnicians', 'rates', 'policy', 'search', 'apiDateShiftDays',
                 'ruleSets', 'primaryRuleSet'}
     missing = required - set(config)
     if missing:
         raise ImportError_(f'Study config lacks {sorted(missing)}')
     ZoneInfo(config['timeZone'])
-    depot = config['depot']
-    if not isinstance(depot, dict) or not (depot_located(depot) or depot_addressed(depot)):
-        raise ImportError_('Study config depot needs lat and lng, or an address (street, city, state, postalCode) to geocode')
+    # One depot for everyone (depot), or named depots with each technician's dated assignment (depots, technicianDepots).
+    if ('depot' in config) == ('depots' in config):
+        raise ImportError_('Study config needs exactly one of depot (one for everyone) or depots with technicianDepots')
+    if 'depot' in config:
+        if 'technicianDepots' in config:
+            raise ImportError_('Study config technicianDepots needs depots, not depot')
+        named = {'depot': config['depot']}
+    else:
+        named = config['depots']
+        if not isinstance(named, dict) or not named:
+            raise ImportError_('Study config depots must name at least one depot')
+        validate_assignments(config.get('technicianDepots'), set(named))
+    for name, depot in named.items():
+        if not isinstance(depot, dict) or not (depot_located(depot) or depot_addressed(depot)):
+            raise ImportError_(f'Study config depot {name} needs lat and lng, or an address (street, city, state, postalCode) to geocode')
+    roster_rule = config.get('roster', 'spans')
+    if roster_rule not in ROSTERS:
+        raise ImportError_(f'Study config roster must be one of {list(ROSTERS)}')
+    limit = config.get('maxBookedMinutes')
+    if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit < 1):
+        raise ImportError_('Study config maxBookedMinutes must be null (no limit) or a positive integer')
     bbox = config['bbox']
     if not (bbox['west'] < bbox['east'] and bbox['south'] < bbox['north']):
         raise ImportError_('Study config bbox is out of order')
@@ -111,6 +132,67 @@ def validate_config(config):
     if config['primaryRuleSet'] not in rule_sets:
         raise ImportError_('Study config primaryRuleSet must be one of its ruleSets')
     return config
+
+
+def validate_assignments(assignments, depots):
+    """technicianDepots: {pseudonym: [{from: null or an ISO date, depot: name}, ...]}, the first from null, dates rising."""
+    if not isinstance(assignments, dict) or not assignments:
+        raise ImportError_('Study config technicianDepots must give each technician its depots')
+    for technician, periods in assignments.items():
+        if not isinstance(periods, list) or not periods:
+            raise ImportError_(f'Study config technicianDepots.{technician} must list at least one period')
+        previous = None
+        for position, period in enumerate(periods):
+            if not isinstance(period, dict) or set(period) != {'from', 'depot'}:
+                raise ImportError_(f'Study config technicianDepots.{technician} periods need exactly from and depot')
+            if period['depot'] not in depots:
+                raise ImportError_(f'Study config technicianDepots.{technician} names an unknown depot {period["depot"]!r}')
+            if position == 0:
+                if period['from'] is not None:
+                    raise ImportError_(f'Study config technicianDepots.{technician} must start with from null (every date before the first move)')
+                continue
+            try:
+                start = dt.date.fromisoformat(period['from'])
+            except (TypeError, ValueError):
+                raise ImportError_(f'Study config technicianDepots.{technician} from must be an ISO date after the first period') from None
+            if previous is not None and start <= previous:
+                raise ImportError_(f'Study config technicianDepots.{technician} dates must rise')
+            previous = start
+
+
+def depot_names(config):
+    """{name: depot} for the configured depots; a single depot is named 'depot'."""
+    return {'depot': config['depot']} if 'depot' in config else dict(config['depots'])
+
+
+def depot_of(config, pseudonym, day):
+    """(name, (lat, lng)) of the depot the technician starts and ends at on the day; refused when none is configured."""
+    named = depot_names(config)
+    if 'depot' in config:
+        name = 'depot'
+    else:
+        periods = config['technicianDepots'].get(pseudonym)
+        if periods is None:
+            raise ImportError_(f'Study config technicianDepots has no depot for {pseudonym}; every technician needs one')
+        name = periods[0]['depot']
+        for period in periods[1:]:
+            if day >= dt.date.fromisoformat(period['from']):
+                name = period['depot']
+    depot = named[name]
+    if not depot_located(depot):
+        raise ImportError_(f'Study config depot {name} has no coordinates yet: geocode it (backtest_import.py geocode) or record them from the owner')
+    return name, (depot['lat'], depot['lng'])
+
+
+def check_assignments(config, pseudonyms):
+    """Every technician of the run has a depot, and every assignment names a technician of the run."""
+    if 'depot' in config:
+        return
+    known, assigned = set(pseudonyms.values()), set(config['technicianDepots'])
+    if known - assigned:
+        raise ImportError_(f'Study config technicianDepots has no depot for {sorted(known - assigned)}; every technician needs one')
+    if assigned - known:
+        raise ImportError_(f'Study config technicianDepots names technicians the history does not have: {sorted(assigned - known)}')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -239,6 +321,8 @@ def apply_rules(rows, config, corrections=None):
                 row.flags.append('ZERO_DURATION_REPAIRED')
         elif row.booked_minutes > 720:
             reasons.append('BAD_DURATION')
+        if row.booked_minutes is not None and config.get('maxBookedMinutes') is not None and row.booked_minutes > config['maxBookedMinutes']:
+            reasons.append('BOOKED_OVER_LIMIT')
         if reasons:
             for reason in reasons:
                 ledger.append((row, reason, EXCLUDE))
@@ -274,14 +358,15 @@ def travel_minutes(seconds, rates):
     return -(-exact.numerator // exact.denominator) + rates['travelBufferMinutes']
 
 
-def depot_legs(rows, config, road_client):
-    """{row index: (minutes from the depot, minutes back, both routable)} for every row, from the road client."""
-    depot = (config['depot']['lat'], config['depot']['lng'])
+def depot_legs(rows, config, road_client, pseudonyms):
+    """{row index: (minutes from its technician's depot that day, minutes back, both routable)} for every row."""
+    depots = {row.index: depot_of(config, pseudonyms[row.technician], row.day)[1] for row in rows}
     points = {row.index: (row.lat, row.lng) for row in rows}
-    pairs = sorted({(depot, point) for point in points.values()} | {(point, depot) for point in points.values()})
+    pairs = sorted({(depots[i], point) for i, point in points.items()} | {(point, depots[i]) for i, point in points.items()})
     legs = road_client.legs(pairs) if pairs else {}
     result = {}
     for index, point in points.items():
+        depot = depots[index]
         out, back = legs[road_client.key(depot, point)], legs[road_client.key(point, depot)]
         routable = out['routable'] and back['routable']
         result[index] = (travel_minutes(out['seconds'], config['rates']) if routable else None,
@@ -289,9 +374,9 @@ def depot_legs(rows, config, road_client):
     return result
 
 
-def drop_unroutable(kept, config, road_client):
-    """Kept rows whose pin the road graph cannot reach from or back to the depot leave every plan (UNROUTABLE_LOCATION)."""
-    legs = depot_legs(kept, config, road_client)
+def drop_unroutable(kept, config, road_client, pseudonyms):
+    """Kept rows whose pin the road graph cannot reach from or back to their technician's depot leave every plan (UNROUTABLE_LOCATION)."""
+    legs = depot_legs(kept, config, road_client, pseudonyms)
     ledger, routable = [], []
     for row in kept:
         if legs[row.index][2]:
@@ -315,11 +400,14 @@ def servable(row, end, legs, config):
 def shift_rule(rule, rows, legs, config):
     """One day under one rule set: (rows served, rows held out, {technician: day end in minutes}, rows pinned to their
     dispatcher's technician, the end that caps every unpinned window). Held-out rows leave every plan of the rule set, the
-    dispatcher's included, so pairing stays exact."""
+    dispatcher's included, so pairing stays exact. Under as-run nothing is held out and the windows run to the later end
+    (window_cap), while every shift ends at the regular end."""
     regular, late = minutes(config['shift']['end']), minutes(config['shift']['salesCallEnd'])
     sales_codes = set(config['salesCallCodes'])
     technicians = {row.technician for row in rows}
     pinned = set()
+    if rule == 'as-run':
+        return list(rows), [], {t: regular for t in technicians}, pinned, late
     if rule == 'strict-17':
         ends = {t: regular for t in technicians}
     elif rule == 'sales-day':
@@ -363,6 +451,12 @@ def roster(rows, kept, config):
     holiday_set = set(holidays)
     days = sorted({row.day for row in kept})
     on_shift = {}
+    if config.get('roster', 'spans') == 'csv-days':
+        # Owner, 2026-11-04: a technician works a date exactly when the history has a row of theirs on it.
+        worked = defaultdict(set)
+        for row in dated:
+            worked[row.day].add(row.technician)
+        return spans, holidays, {day: sorted(worked[day]) for day in days}
     for day in days:
         if day.weekday() < 5 and day not in holiday_set:
             on_shift[day] = sorted(t for t, (first, last) in spans.items() if first <= day <= last)
@@ -489,23 +583,29 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
     zone = ZoneInfo(config['timeZone'])
     shift, window_minutes = config['shift'], config['windowMinutes']
     sales_codes = set(config['salesCallCodes'])
-    if not depot_located(config['depot']):
-        raise ImportError_('Study config depot has no coordinates yet: geocode it (backtest_import.py geocode) or record them from the owner')
-    depot = (config['depot']['lat'], config['depot']['lng'])
     sales_day = any(row.codes[0] in sales_codes for row in rows)
-    served, held, ends, pinned, fleet_end = shift_rule(rule, rows, depot_legs(rows, config, road_client), config)
+    served, held, ends, pinned, fleet_end = shift_rule(rule, rows, depot_legs(rows, config, road_client, pseudonyms), config)
+    # The end that caps a window: the fleet's end, except under as-run, whose windows run to the later end.
+    window_cap = fleet_end
+    if rule == 'as-run':
+        fleet_end, window_cap = minutes(shift['end']), fleet_end
     day_start = minutes(shift['start'])
     technicians = sorted(set(on_shift) | {row.technician for row in rows})
+    # Each technician's depot that day; the day's depots come first in the locations, in name order.
+    tech_depot = {t: depot_of(config, pseudonyms[t], day) for t in technicians}
+    depot_points = {name: point for name, point in tech_depot.values()}
+    depot_order = sorted(depot_points)
+    depot_location = {name: position for position, name in enumerate(depot_order)}
     # A rostered technician without a job of the day takes the fleet's end (the later end on a sales-day day).
     tech_end = {t: ends.get(t, fleet_end) for t in technicians}
     day_end = max(tech_end.values())
     tech_index = {t: i for i, t in enumerate(technicians)}
     rows = served
-    visits, points = [], [depot]
+    visits, points = [], [depot_points[name] for name in depot_order]
     rows = sorted(rows, key=lambda r: (r.booked, r.index))
     for row in rows:
         window_start = row.booked
-        window_end = min(row.booked + window_minutes, tech_end[row.technician] if row.index in pinned else fleet_end)
+        window_end = min(row.booked + window_minutes, tech_end[row.technician] if row.index in pinned else window_cap)
         if window_end <= window_start:
             raise ImportError_(f'Row {row.index} is booked at or after the day end; the rules should have excluded it')
         sales = row.codes[0] in sales_codes
@@ -520,17 +620,12 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
     services = sorted({visit['service'] for visit in visits})
     service_index = {s: i for i, s in enumerate(services)}
     qualified = {t: [s for s in services if '@' not in s or s.endswith('@' + pseudonyms[t])] for t in technicians}
-    # Locations: the depot once, then one entry per visit (two visits at one address keep their own entries).
-    locations = [{'id': 'depot', 'latitude': depot[0], 'longitude': depot[1]}]
+    # Locations: each of the day's depots once, then one entry per visit (two visits at one address keep their own entries).
+    locations = [{'id': 'depot' if name == 'depot' else f'depot-{name}', 'latitude': depot_points[name][0], 'longitude': depot_points[name][1]}
+                 for name in depot_order]
     for visit in visits:
         locations.append({'id': visit['id'], 'latitude': visit['location'][0], 'longitude': visit['location'][1]})
-    pairs = set()
-    for v in range(1, len(points)):
-        pairs.add((points[0], points[v]))
-        pairs.add((points[v], points[0]))
-        for w in range(1, len(points)):
-            if v != w:
-                pairs.add((points[v], points[w]))
+    pairs = {(points[v], points[w]) for v in range(len(points)) for w in range(len(points)) if v != w}
     legs = road_client.legs(sorted(pairs)) if pairs else {}
     entries, unreachable = [], 0
     for v in range(len(points)):
@@ -550,18 +645,20 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
     for visit in sorted(visits, key=lambda v: (v['row'].actual_start if v['row'].actual_start is not None else v['row'].booked, v['row'].index)):
         executed[visit['technician']].append(visit['id'])
     visit_index = {visit['id']: i for i, visit in enumerate(visits)}
+    first_visit = len(depot_order)
     rates = config['rates']
 
     def dataset(durations):
         technician_nodes = []
         for real in technicians:
-            technician_nodes.append({'id': pseudonyms[real], 'departureLocation': 0, 'returnLocation': 0, 'shiftStart': local_instant(day, day_start, zone),
+            home = depot_location[tech_depot[real][0]]
+            technician_nodes.append({'id': pseudonyms[real], 'departureLocation': home, 'returnLocation': home, 'shiftStart': local_instant(day, day_start, zone),
                                      'shiftEnd': local_instant(day, tech_end[real], zone), 'maxDailyMinutes': tech_end[real] - day_start, 'maxOvertimeMinutes': 0,
                                      'qualifications': [service_index[s] for s in qualified[real]],
                                      'absences': [], 'assigned': [visit_index[i] for i in planned.get(real, [])], 'pinnedPrefix': 0})
         visit_nodes = []
         for visit in visits:
-            visit_nodes.append({'id': visit['id'], 'service': service_index[visit['service']], 'location': visit_index[visit['id']] + 1,
+            visit_nodes.append({'id': visit['id'], 'service': service_index[visit['service']], 'location': visit_index[visit['id']] + first_visit,
                                 'windowStart': visit['windowStart'], 'windowEnd': visit['windowEnd'], 'durationMinutes': durations[visit['id']],
                                 'originalTechnician': tech_index[visit['technician']], 'originalPlannedStart': visit['plannedStart']})
         return {'schemaVersion': 1, 'operation': 'DAILY', 'mode': 'ASSIGNED', 'snapshotId': f'{config["runId"]}/{day.isoformat()}',
@@ -588,7 +685,7 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
             appointments.append({'id': visit_id, 'technicianId': pseudonyms[real], 'serviceDate': api_day.isoformat(), 'serviceId': visit['service'],
                                  'durationMinutes': visit['durationMinutes'],
                                  'window': {'start': local_instant(api_day, booked_local, zone),
-                                            'end': local_instant(api_day, min(booked_local + window_minutes, tech_end[real] if visit['pinned'] else fleet_end), zone)},
+                                            'end': local_instant(api_day, min(booked_local + window_minutes, tech_end[real] if visit['pinned'] else window_cap), zone)},
                                  'location': {'lat': visit['location'][0], 'lng': visit['location'][1]}, 'sequence': sequence,
                                  'plannedStart': local_instant(api_day, booked_local, zone)})
     appointments.sort(key=lambda a: (a['technicianId'], a['sequence']))
@@ -597,7 +694,8 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
                                 'technicians': [{'id': pseudonyms[t], 'qualifications': qualified[t]} for t in technicians],
                                 'technicianDays': [{'technicianId': pseudonyms[t], 'serviceDate': api_day.isoformat(), 'lastModified': local_instant(api_day, 0, zone),
                                                     'shift': {'start': local_instant(api_day, day_start, zone), 'end': local_instant(api_day, tech_end[t], zone)},
-                                                    'absences': [], 'start': {'lat': depot[0], 'lng': depot[1]}, 'end': {'lat': depot[0], 'lng': depot[1]},
+                                                    'absences': [], 'start': {'lat': tech_depot[t][1][0], 'lng': tech_depot[t][1][1]},
+                                                    'end': {'lat': tech_depot[t][1][0], 'lng': tech_depot[t][1][1]},
                                                     'maxPaidMinutes': tech_end[t] - day_start} for t in technicians],
                                 'appointments': appointments}}
     observed = {'day': day.isoformat(), 'visits': {visit['id']: {
@@ -612,6 +710,7 @@ def build_day(day, rows, on_shift, pseudonyms, config, road_client, rule):
              'dayEnd': clock(day_end), 'unreachableLegs': unreachable, 'ruleSet': rule,
              'heldOut': len(held), 'heldOutSalesCalls': sum(1 for row in held if row.codes[0] in sales_codes),
              'pinnedSalesCalls': len(pinned), 'extendedTechnicians': sorted(pseudonyms[t] for t in technicians if tech_end[t] > minutes(shift['end'])),
+             'depots': {pseudonyms[t]: tech_depot[t][0] for t in technicians},
              'flags': dict(Counter(flag for visit in visits for flag in visit['row'].flags)),
              'split': 'calibration' if day.year in set(config['calibrationYears']) else 'test'}
     return {'facts.json': dataset(booked), 'facts-actual-durations.json': dataset(actual), 'as-planned.plan.json': plan_file(planned),
@@ -646,13 +745,16 @@ def build(rows, config, out, road_client, corrections=None):
     ledger, kept = apply_rules(rows, config, corrections)
     if not kept:
         raise ImportError_('Every row was excluded; check the configuration against the CSV')
-    unroutable, kept = drop_unroutable(kept, config, road_client)
+    # Pseudonyms come from every dated row, so they do not depend on which rows the rules keep.
+    spans, _, _ = roster(rows, kept, config)
+    pseudonyms = technician_ids(spans)
+    check_assignments(config, pseudonyms)
+    unroutable, kept = drop_unroutable(kept, config, road_client, pseudonyms)
     ledger += unroutable
     # A dropped row's flags were already written; its exclusion is the decision that counts, so its flag entries go.
     dropped = {row.index for row, _, _ in unroutable}
     ledger = [(row, reason, severity) for row, reason, severity in ledger if severity == EXCLUDE or row.index not in dropped]
     spans, holidays, on_shift = roster(rows, kept, config)
-    pseudonyms = technician_ids(spans)
     out.mkdir(parents=True, exist_ok=True)
     with (out / 'ledger.csv').open('w', encoding='utf-8', newline='') as stream:
         writer = csv.writer(stream)
@@ -663,7 +765,8 @@ def build(rows, config, out, road_client, corrections=None):
                'reasons': {severity: dict(sorted(Counter(reason for _, reason, s in ledger if s == severity).items())) for severity in (EXCLUDE, FLAG)}}
     write_json(out / 'ledger-summary.json', summary)
     write_json(out / 'technicians.json', {'pseudonyms': pseudonyms, 'spans': {pseudonyms[t]: [first.isoformat(), last.isoformat()] for t, (first, last) in spans.items()},
-                                          'holidays': [d.isoformat() for d in holidays]})
+                                          'holidays': [d.isoformat() for d in holidays], 'roster': config.get('roster', 'spans'),
+                                          'depots': config.get('technicianDepots', {p: [{'from': None, 'depot': 'depot'}] for p in pseudonyms.values()})})
     by_day = defaultdict(list)
     for row in kept:
         by_day[row.day].append(row)
@@ -735,7 +838,7 @@ def geocode(rows, config, nominatim):
     """Coordinates for the rows outside the area and the depot, from the local Nominatim; exact house matches inside the box only."""
     bbox = config['bbox']
     result = {'rows': {}, 'unresolved': [], 'depot': None}
-    depot = config['depot']
+    depot = config.get('depot', {})  # named depots carry their coordinates already
     if 'address' in depot:
         address = depot['address']
         found = nominatim_search(nominatim, {'street': address['street'], 'city': address['city'], 'state': address['state'], 'postalcode': address['postalCode']})

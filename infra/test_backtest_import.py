@@ -404,5 +404,150 @@ class BuildTest(unittest.TestCase):
                 self.assertIn('contentHash', json.loads(receipt.read_text(encoding='utf-8')))
 
 
+NORTH = {'lat': 35.63, 'lng': -120.69}
+SOUTH = {'lat': 34.95, 'lng': -120.44}
+MOVE = MONDAY + dt.timedelta(days=7)
+
+
+def two_depots(**changes):
+    """The as-run study shape: two depots, t01 always north, t02 north until MOVE and south from it."""
+    base = dict(config(), ruleSets=['as-run'], primaryRuleSet='as-run', roster='csv-days', maxBookedMinutes=360,
+                depots={'north': dict(NORTH), 'south': dict(SOUTH)},
+                technicianDepots={'t01': [{'from': None, 'depot': 'north'}],
+                                  't02': [{'from': None, 'depot': 'north'}, {'from': MOVE.isoformat(), 'depot': 'south'}]})
+    del base['depot']
+    base.update(changes)
+    return bi.validate_config(base)
+
+
+class TwoDepotConfigTest(unittest.TestCase):
+    def test_one_depot_or_named_depots_never_both(self):
+        both = dict(two_depots(), depot=dict(NORTH))
+        with self.assertRaises(bi.ImportError_):
+            bi.validate_config(both)
+        neither = dict(two_depots())
+        del neither['depots']
+        with self.assertRaises(bi.ImportError_):
+            bi.validate_config(neither)
+        with self.assertRaises(bi.ImportError_):
+            bi.validate_config(dict(config(), technicianDepots={'t01': [{'from': None, 'depot': 'depot'}]}))
+
+    def test_assignments_start_open_name_known_depots_and_rise(self):
+        bad = [
+            {'t01': [{'from': '2024-01-01', 'depot': 'north'}]},
+            {'t01': [{'from': None, 'depot': 'west'}]},
+            {'t01': [{'from': None, 'depot': 'north'}, {'from': '2024-02-01', 'depot': 'south'}, {'from': '2024-01-15', 'depot': 'north'}]},
+            {'t01': [{'from': None, 'depot': 'north'}, {'from': 'soon', 'depot': 'south'}]},
+            {'t01': [{'from': None}]},
+            {'t01': []},
+            {},
+        ]
+        for assignments in bad:
+            with self.assertRaises(bi.ImportError_, msg=str(assignments)):
+                two_depots(technicianDepots=assignments)
+
+    def test_the_depot_follows_the_date_of_a_move(self):
+        cfg = two_depots()
+        self.assertEqual('north', bi.depot_of(cfg, 't02', MOVE - dt.timedelta(days=1))[0])
+        self.assertEqual(('south', (SOUTH['lat'], SOUTH['lng'])), bi.depot_of(cfg, 't02', MOVE))
+        with self.assertRaises(bi.ImportError_):
+            bi.depot_of(cfg, 't03', MOVE)
+
+    def test_the_roster_rule_and_the_booking_limit_are_checked(self):
+        with self.assertRaises(bi.ImportError_):
+            two_depots(roster='every-weekday')
+        for limit in (0, -5, True, '360'):
+            with self.assertRaises(bi.ImportError_, msg=repr(limit)):
+                two_depots(maxBookedMinutes=limit)
+        self.assertIsNone(two_depots(maxBookedMinutes=None)['maxBookedMinutes'])
+
+
+class AsRunTwoDepotBuildTest(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.out = Path(self.directory.name) / 'run'
+        self.rows = bi.parse_rows(write_history(self.directory.name))
+        self.run = bi.build(self.rows, two_depots(), self.out, bi.StubRoadClient())
+        self.index = json.loads((self.out / 'variants' / 'as-run' / 'index.json').read_text(encoding='utf-8'))
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def read(self, date, name):
+        with (self.out / 'variants' / 'as-run' / 'days' / date.isoformat() / name).open(encoding='utf-8') as stream:
+            return json.load(stream)
+
+    def test_each_technician_day_starts_and_ends_at_its_depot_from_the_date_of_a_move(self):
+        before = self.read(MONDAY, 'facts.json')
+        self.assertEqual(['depot-north'], [location['id'] for location in before['locations'][:1]])
+        self.assertEqual({0}, {t['departureLocation'] for t in before['technicians']} | {t['returnLocation'] for t in before['technicians']})
+        after = self.read(MOVE, 'facts.json')
+        self.assertEqual(['depot-north', 'depot-south'], [location['id'] for location in after['locations'][:2]])
+        homes = {t['id']: (t['departureLocation'], t['returnLocation']) for t in after['technicians']}
+        self.assertEqual({'t01': (0, 0), 't02': (1, 1)}, homes)
+        self.assertEqual((SOUTH['lat'], SOUTH['lng']), (after['locations'][1]['latitude'], after['locations'][1]['longitude']))
+        self.assertTrue(all(visit['location'] >= 2 for visit in after['visits']), 'visits follow both depots')
+        self.assertEqual(len(after['locations']) * (len(after['locations']) - 1), len(after['roads']['entries']), 'every ordered pair, depot to depot included')
+        request = self.read(MOVE, 'api-request.json')
+        starts = {day['technicianId']: (day['start'], day['end']) for day in request['snapshot']['technicianDays']}
+        self.assertEqual(({'lat': SOUTH['lat'], 'lng': SOUTH['lng']},) * 2, starts['t02'])
+        self.assertEqual(({'lat': NORTH['lat'], 'lng': NORTH['lng']},) * 2, starts['t01'])
+        entry = next(e for e in self.index['days'] if e['day'] == MOVE.isoformat())
+        self.assertEqual({'t01': 'north', 't02': 'south'}, entry['depots'])
+        technicians = json.loads((self.out / 'technicians.json').read_text(encoding='utf-8'))
+        self.assertEqual('csv-days', technicians['roster'])
+        self.assertEqual('south', technicians['depots']['t02'][1]['depot'])
+
+    def test_as_run_holds_nothing_out_ends_shifts_at_seventeen_and_runs_windows_to_nineteen(self):
+        self.assertEqual(0, self.index['ledger']['heldOut']['rows'])
+        wednesday = MONDAY + dt.timedelta(days=2)
+        facts = self.read(wednesday, 'facts.json')
+        index = next(i for i, r in enumerate(history(), start=2) if r[0] == '100014')
+        evening = next(visit for visit in facts['visits'] if visit['id'] == f'wo-{index}')
+        self.assertEqual(bi.local_instant(wednesday, 17 * 60 + 30, ZONE), evening['windowStart'])
+        self.assertEqual(bi.local_instant(wednesday, 19 * 60, ZONE), evening['windowEnd'], 'a 17:30 booking keeps its window, capped at 19:00')
+        for technician in facts['technicians']:
+            self.assertEqual(bi.local_instant(wednesday, 17 * 60, ZONE), technician['shiftEnd'])
+            self.assertEqual(540, technician['maxDailyMinutes'])
+            self.assertEqual(0, technician['maxOvertimeMinutes'])
+        tuesday = MONDAY + dt.timedelta(days=1)
+        self.assertEqual([], next(e for e in self.index['days'] if e['day'] == tuesday.isoformat())['extendedTechnicians'], 'no sales-call day extends a shift')
+
+    def test_a_technician_without_a_depot_is_refused(self):
+        cfg = two_depots(technicianDepots={'t01': [{'from': None, 'depot': 'north'}]})
+        with self.assertRaises(bi.ImportError_):
+            bi.build(self.rows, cfg, Path(self.directory.name) / 'refused', bi.StubRoadClient())
+        stray = two_depots(technicianDepots=dict(two_depots()['technicianDepots'], t09=[{'from': None, 'depot': 'north'}]))
+        with self.assertRaises(bi.ImportError_):
+            bi.build(self.rows, stray, Path(self.directory.name) / 'stray', bi.StubRoadClient())
+
+    def test_a_booking_over_the_limit_leaves_the_study(self):
+        rows = bi.parse_rows(write_history(self.directory.name))
+        rows[0].booked_minutes, rows[1].booked_minutes = 361, 360
+        ledger, kept = bi.apply_rules(rows, two_depots())
+        self.assertIn((rows[0].index, 'BOOKED_OVER_LIMIT', bi.EXCLUDE), {(row.index, reason, severity) for row, reason, severity in ledger})
+        self.assertIn(rows[1].index, {row.index for row in kept}, 'exactly six hours stays')
+        _, unlimited = bi.apply_rules(bi.parse_rows(write_history(self.directory.name)), two_depots(maxBookedMinutes=None))
+        self.assertEqual(len(kept) + 1, len(unlimited))
+
+    def test_the_csv_roster_holds_exactly_who_worked_each_date(self):
+        thursday = MONDAY + dt.timedelta(days=3)
+        rows = [row for row in bi.parse_rows(write_history(self.directory.name)) if not (row.day == thursday and row.technician == 'CD2')]
+        _, kept = bi.apply_rules(rows, two_depots())
+        _, _, by_csv = bi.roster(rows, kept, two_depots())
+        _, _, by_span = bi.roster(rows, kept, two_depots(roster='spans'))
+        self.assertEqual(['AB1'], by_csv[thursday], 'CD2 has no row that Thursday')
+        self.assertEqual(['AB1', 'CD2'], by_span[thursday], 'the span rule would roster CD2 anyway')
+
+    @unittest.skipUnless(JAR.exists(), 'campaign-benchmark jar not built')
+    def test_two_depot_days_seal_in_the_engine(self):
+        for date in (MONDAY, MOVE):
+            source = self.out / 'variants' / 'as-run' / 'days' / date.isoformat() / 'facts.json'
+            request, receipt = source.with_suffix('.seal.json'), source.with_suffix('.receipt.json')
+            request.write_text(json.dumps({'version': 1, 'kind': 'seal', 'input': str(source), 'output': str(source.with_suffix('.sealed.json'))}), encoding='utf-8')
+            result = subprocess.run(['java', '-jar', str(JAR), str(request), str(receipt)], capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, f'{date}: {result.stderr[-2000:]}')
+
+
 if __name__ == '__main__':
     unittest.main()

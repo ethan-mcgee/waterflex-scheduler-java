@@ -3,6 +3,7 @@ package dev.waterflex.benchmark;
 import static dev.waterflex.benchmark.Protocol.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.waterflex.scheduler.CalculationJson;
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.optimizer.*;
@@ -15,7 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Backtest jobs over a sealed {@link DailyDataset}: {@code backtest-score} reads a given plan (a dispatcher's day as
- * planned or as executed, or a proposal) in numbers and never refuses a day that does not hold, and
+ * planned or as executed, or a proposal) in numbers and never refuses a day that does not hold,
+ * {@code backtest-score-days} reads one plan file of many days in one JVM, and
  * {@code backtest-solve} runs the production daily calculation on the dataset's own assignment. Road legs come from
  * the dataset alone, so a day reads the same on every machine that has the file.
  */
@@ -44,9 +46,12 @@ public final class BacktestTool {
      * visit assigned; {@code routesHold} is the score's. {@code pastShiftMinutes} rounds the availability violation up
      * to whole minutes. The fairness variance is the policy's own (DECIMAL128) over the routes it would measure, read
      * from the same timing whether or not the plan holds, since {@link SchedulingPolicy#measure} refuses an infeasible day.
+     * {@code regularCents}, {@code overtimeCents} and {@code mileageCents} price the fleet's regular minutes, overtime
+     * minutes and meters each on its own, rounded half up once each, so their sum may differ from {@code costCents} (the
+     * fleet's exact total, rounded once) by a cent or two.
      */
     public record Row(String datasetHash, String planHash, boolean feasible, boolean routesHold, long unassigned, long hardPenalty,
-            long costCents, long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds,
+            long costCents, long regularCents, long overtimeCents, long mileageCents, long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds,
             long qualifications, long unreachableLegs, long latenessSeconds, long lateVisits, long availabilitySeconds,
             long pastShiftMinutes, long capacityExcessMinutes, BigDecimal fairnessVariance, BigDecimal maximumUtilization, List<RouteRow> routes) {
         public Row {
@@ -59,6 +64,7 @@ public final class BacktestTool {
     static Object execute(JsonNode job, String kind) throws Exception {
         return switch (kind) {
             case "backtest-score" -> scoreJob(job);
+            case "backtest-score-days" -> scoreDaysJob(job);
             case "backtest-solve" -> solveJob(job);
             case "backtest-day" -> dayJob(job);
             case "backtest-screen" -> screenJob(job);
@@ -141,6 +147,44 @@ public final class BacktestTool {
         return document(Map.of("kind","backtest-screen","days",rows.size(),"holding",holding,"sha256",CalculationJson.hash(json)));
     }
 
+    /** One day's reading of one plan file in a {@code backtest-score-days} run. */
+    public record DayRow(String day, String plan, Row row) {
+        public DayRow { Required.value(day); Required.value(plan); Required.value(row); }
+    }
+
+    /**
+     * Many days in one JVM: seals each day's {@code dataset} draft in memory and reads its {@code plan} file (for Part 1,
+     * the dispatcher's day as booked), in the job's day order. A day that does not hold is read in numbers, never
+     * refused; a missing or malformed file is. Writes the rows to {@code output} and nothing beside the importer's files.
+     */
+    private static Object scoreDaysJob(JsonNode job) {
+        fields(job,"version","kind","dataset","plan","days","output");
+        if (integer(get(job,"version"),1) != 1) throw new IllegalArgumentException("Backtest job version");
+        String datasetName = text(get(job,"dataset")), planName = text(get(job,"plan"));
+        for (String name : List.of(datasetName, planName))
+            if (!name.matches("[A-Za-z0-9.-]+\\.json")) throw new IllegalArgumentException("A score-days file is a plain JSON file name: " + name);
+        JsonNode days = get(job,"days");
+        if (!days.isArray() || days.isEmpty()) throw new IllegalArgumentException("A score-days run needs at least one day");
+        List<DayRow> rows = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (JsonNode element : days) {
+            JsonNode entry = Required.value(element, "score day");
+            fields(entry,"day","directory");
+            String day = text(get(entry,"day"));
+            if (!seen.add(day)) throw new IllegalArgumentException("Day scored twice: " + day);
+            Path directory = Required.value(Path.of(text(get(entry,"directory"))));
+            DailyDataset dataset = DailyDataset.parse(DailyDataset.seal(SnapshotFileIO.readText(directory.resolve(datasetName).toFile())));
+            String planJson = SnapshotFileIO.readText(directory.resolve(planName).toFile());
+            rows.add(new DayRow(day, planName, score(dataset, CalculationJson.read(planJson, Plan.class), CalculationJson.hash(planJson))));
+        }
+        String json = CalculationJson.write(Required.value(Map.<String,@org.jspecify.annotations.NonNull Object>of(
+                "version",1,"kind","backtest-score-days","dataset",datasetName,"plan",planName,"rows",rows)));
+        SnapshotFileIO.writeText(Path.of(text(get(job,"output"))).toFile(), json);
+        long holding = 0;
+        for (DayRow row : rows) if (row.row().feasible()) holding++;
+        return document(Map.of("kind","backtest-score-days","days",rows.size(),"holding",holding,"sha256",CalculationJson.hash(json)));
+    }
+
     /** The draft {@code <name>.json} of the day sealed into the output as {@code <name>.sealed.json}, reusing a seal already there. */
     private static DailyDataset sealed(Path directory, Path output, String name) {
         Path target = output.resolve(name + ".sealed.json");
@@ -210,8 +254,12 @@ public final class BacktestTool {
         }
         var fairness = SchedulingPolicy.fairness(workloads);
         long unassigned = plan.getUnassignedVisitIds().size();
+        long paid = evaluation.paidMinutes(), overtime = evaluation.overtimeMinutes(), meters = evaluation.meters();
+        long regularCents = Monetary.cents(paid - overtime, 0, 0, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
+        long overtimeCents = Monetary.cents(overtime, overtime, 0, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
+        long mileageCents = Monetary.cents(0, 0, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Row(datasetHash, planHash, independent.feasible() && unassigned == 0, hold, unassigned, evaluation.hardPenalty(),
-                evaluation.costCents(), evaluation.paidMinutes(), evaluation.overtimeMinutes(), evaluation.driveMinutes(), evaluation.waitingMinutes(),
+                evaluation.costCents(), regularCents, overtimeCents, mileageCents, evaluation.paidMinutes(), evaluation.overtimeMinutes(), evaluation.driveMinutes(), evaluation.waitingMinutes(),
                 evaluation.meters(), evaluation.bufferSeconds(), qualifications, unreachable, lateness, late, availability,
                 Math.floorDiv(Math.addExact(availability, 59), 60), capacity, fairness.variance(), fairness.maximumUtilization(), rows);
     }

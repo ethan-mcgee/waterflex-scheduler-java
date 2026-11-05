@@ -203,4 +203,57 @@ class BacktestToolTest {
         assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(none)));
     }
 
+    @Test void theCostSplitPricesRegularOvertimeAndMilesEachOnItsOwn() {
+        // Work past the shift end: overtime minutes the score reads from its relaxed walk, priced at the overtime rate.
+        var row = BacktestTool.score(day(at("16:50:00"), at("18:00:00")), "facts", "evening");
+        assertTrue(row.overtimeMinutes() > 0, row.toString());
+        assertEquals(dev.waterflex.scheduler.Monetary.cents(row.overtimeMinutes(), row.overtimeMinutes(), 0, new BigDecimal("30"), new BigDecimal("45"), new BigDecimal("0.67")), row.overtimeCents());
+        assertEquals(dev.waterflex.scheduler.Monetary.cents(row.paidMinutes() - row.overtimeMinutes(), 0, 0, new BigDecimal("30"), new BigDecimal("45"), new BigDecimal("0.67")), row.regularCents());
+        assertEquals(dev.waterflex.scheduler.Monetary.cents(0, 0, row.meters(), new BigDecimal("30"), new BigDecimal("45"), new BigDecimal("0.67")), row.mileageCents());
+        assertTrue(Math.abs(row.regularCents() + row.overtimeCents() + row.mileageCents() - row.costCents()) <= 2, "the parts sum to the total within their rounding: " + row);
+        var holds = BacktestTool.score(day(at("13:00:00"), at("15:00:00")), "facts", "holds");
+        assertEquals(0, holds.overtimeCents(), "a day inside its shift has no overtime cost");
+        assertTrue(holds.regularCents() > 0 && holds.mileageCents() > 0);
+    }
+
+    @Test void scoreDaysReadsOnePlanFileOfManyDaysInOrderAndRefusesARepeatOrAPath() throws Exception {
+        var dataset = dataset();
+        var draft = (com.fasterxml.jackson.databind.node.ObjectNode) CalculationJson.tree(dataset.json(DailyDataset.Encoding.SPARSE));
+        draft.putNull("contentHash");
+        var booked = BacktestTool.Plan.of(dataset.toDayPlan());
+        // The second day leaves every visit out: read in numbers as not holding, never refused.
+        List<String> everyVisit = Required.value(dataset.toDayPlan().getVisits().stream().map(visit -> Required.value(visit).getId()).sorted().toList());
+        Map<String,List<String>> empty = new java.util.TreeMap<>();
+        booked.routes().keySet().forEach(technician -> empty.put(Required.value(technician), Required.value(List.<String>of())));
+        StringBuilder days = new StringBuilder();
+        for (var entry : List.of(Map.entry("2026-09-22", new BacktestTool.Plan(1, empty, everyVisit)), Map.entry("2026-09-21", booked))) {
+            Path day = Required.value(directory().resolve(entry.getKey()));
+            Files.createDirectories(day);
+            Files.writeString(Required.value(day.resolve("facts.json")), CalculationJson.write(draft));
+            Files.writeString(Required.value(day.resolve("as-planned.plan.json")), CalculationJson.write(Required.value(entry.getValue())));
+            if (!days.isEmpty()) days.append(',');
+            days.append("{\"day\":\"").append(entry.getKey()).append("\",\"directory\":").append(CalculationJson.write(Required.value(day.toString()))).append('}');
+        }
+        Path output = Required.value(directory().resolve("rows.json"));
+        String job = "{\"version\":1,\"kind\":\"backtest-score-days\",\"dataset\":\"facts.json\",\"plan\":\"as-planned.plan.json\",\"days\":[" + days
+                + "],\"output\":" + CalculationJson.write(Required.value(output.toString())) + "}";
+        var receipt = CalculationJson.tree(CalculationJson.write(DatasetTool.execute(CalculationJson.tree(job))));
+        assertEquals(2, Required.value(receipt.get("days")).asInt());
+        assertEquals(1, Required.value(receipt.get("holding")).asInt());
+        var written = CalculationJson.tree(Required.value(Files.readString(output)));
+        assertEquals("as-planned.plan.json", Required.value(written.get("plan")).asText());
+        var rows = Required.value(written.get("rows"));
+        var first = CalculationJson.read(CalculationJson.write(Required.value(rows.get(0))), BacktestTool.DayRow.class);
+        var second = CalculationJson.read(CalculationJson.write(Required.value(rows.get(1))), BacktestTool.DayRow.class);
+        assertEquals("2026-09-22", first.day(), "the job's order, not the calendar's");
+        assertFalse(first.row().feasible()); assertEquals(everyVisit.size(), first.row().unassigned());
+        assertEquals("2026-09-21", second.day());
+        assertEquals(BacktestTool.score(dataset, booked, CalculationJson.hash(CalculationJson.write(Required.value(booked)))), second.row());
+        String repeated = Required.value(job.replace("2026-09-22", "2026-09-21"));
+        assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(repeated)));
+        String path = Required.value(job.replace("\"plan\":\"as-planned.plan.json\"", "\"plan\":\"../as-planned.plan.json\""));
+        assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(path)));
+        String none = Required.value(job.replaceFirst("\"days\":\\[.*\\],", "\"days\":[],"));
+        assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(none)));
+    }
 }
