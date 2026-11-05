@@ -81,6 +81,12 @@ export function refusedFor(error: unknown): never {
     if (error.code === "BUSY") throw new DispatchRefused(429, "The scheduler is busy. Try again shortly.", error.retryAfterMs);
     if (error.code === "CANCELLED") throw new DispatchRefused(409, OPTIMIZATION_CANCELLED);
     if (error.code === "INCOMPLETE_FACTS") throw new DispatchRefused(422, error.message);
+    // The day's routes run late or past a shift as they stand; the scheduler names each technician-day (spec 1.10.0).
+    if (error.code === "CURRENT_ROUTES_INFEASIBLE") throw new DispatchRefused(422, `The current routes need attention before they can be optimized. ${error.message}`);
+    if (error.code === "INTERNAL_ERROR") {
+      console.error("Scheduling API calculation failed", error.status, error.message);
+      throw new DispatchRefused(502, "The scheduler failed on this day, and trying again fails the same way. Ask an administrator to check the scheduler logs.");
+    }
     if (error.code === "ROUTING_UNAVAILABLE" || error.code === "CALCULATION_UNAVAILABLE" || error.code === "SERVICE_UNAVAILABLE" || error.code === "TRANSPORT")
       throw new DispatchRefused(503, `${error.message}. Try again shortly.`);
     console.error("Scheduling API call failed", error.status, error.code, error.message);

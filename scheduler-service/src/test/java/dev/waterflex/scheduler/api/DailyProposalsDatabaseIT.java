@@ -598,4 +598,65 @@ class DailyProposalsDatabaseIT {
         assertTrue(((Number) Required.value(row.get("wait"))).intValue() > 50, "it waits about as long as the work ahead: " + row);
         assertNull(jobs.next("it-worker", queue.maxWait()), "not before its time");
     }
+
+    /** The spec example with appt-7's window closing at 08:05, before tech-1 can drive there: its current routes do not hold. */
+    private static String lateRequest() {
+        ObjectNode request = object(CalculationJson.tree(request(false)));
+        ArrayNode appointments = (ArrayNode) Required.value(snapshot(request).get("appointments"));
+        object(object(appointments.get(0)).get("window")).put("end", "2026-10-12T08:05:00-05:00");
+        return CalculationJson.write(request);
+    }
+
+    /** A calculation that breaks inside the scheduler, as a broken invariant would. */
+    private DailyProposals broken() {
+        var failing = org.mockito.Mockito.mock(CalculationTransport.class, _ -> { throw new IllegalStateException("Injected broken invariant"); });
+        return new DailyProposals(store, new MetroRouting(Required.value(Map.of("omaha", "http://routing-omaha:8001")), _ -> omaha), _ -> null,
+                Required.value(failing), solvers, admission, running, jobs, queue, Required.value(Clock.fixed(BEFORE_CUTOFF, ZoneOffset.UTC)));
+    }
+
+    @Test void currentRoutesThatDoNotHoldAnswer422NamingTheTechnicianDayAndTheAnswerIsReplayed() {
+        String body = lateRequest();
+        var reply = proposals().create(tenant, body);
+        String message = problem(reply, 422, ErrorCode.CURRENT_ROUTES_INFEASIBLE).message();
+        assertTrue(message.contains("tech-1 on 2026-10-12 arrives "), message);
+        assertFalse(message.contains("tech-2"), message);
+        assertEquals(0, solves.get(), "nothing is searched from routes that do not hold");
+        assertEquals(reply, proposals().create(tenant, body), "the answer is stored and replayed");
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_daily_proposal WHERE \"tenantId\"=?", Long.class, tenant));
+    }
+
+    @Test void aQueuedDayWhoseRoutesDoNotHoldCompletesWith422AtItsFirstAttempt() {
+        // Before 1.10.0 this job failed, was taken again after 30 s three times, and ended with a 503 that invited a resend.
+        String body = lateRequest();
+        String id = requestId(body);
+        status(proposals().createAsync(tenant, body), 202, "QUEUED");
+        DailyQueueWorker worker = worker(proposals(), running);
+        assertTrue(worker.runOnce("it-worker"));
+        assertEquals(0, worker.failed(), "the job ends with an answer, not a failure");
+        assertEquals(0L, jobRows(tenant), "nothing is left to take again");
+        JsonNode result = status(proposals().describe(tenant, id), 200, "COMPLETED").path("result");
+        assertEquals(422, result.path("status").asInt());
+        assertEquals("CURRENT_ROUTES_INFEASIBLE", result.path("body").path("error").asText());
+        assertTrue(result.path("body").path("message").asText().contains("tech-1 on 2026-10-12"), result.toString());
+        problem(proposals().create(tenant, body), 422, ErrorCode.CURRENT_ROUTES_INFEASIBLE);
+    }
+
+    @Test void aCalculationThatBreaksInsideTheSchedulerAnswers500AtOnceAndReleasesTheClaim() {
+        String body = request(false);
+        problem(broken().create(tenant, body), 500, ErrorCode.INTERNAL_ERROR);
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+
+        String queued = request(false);
+        String id = requestId(queued);
+        status(broken().createAsync(tenant, queued), 202, "QUEUED");
+        DailyQueueWorker worker = worker(broken(), running);
+        assertTrue(worker.runOnce("it-worker"));
+        assertEquals(0, worker.failed(), "a broken calculation is answered, not taken again");
+        assertEquals(0L, jobRows(tenant));
+        JsonNode result = status(proposals().describe(tenant, id), 200, "COMPLETED").path("result");
+        assertEquals(500, result.path("status").asInt());
+        assertEquals("INTERNAL_ERROR", result.path("body").path("error").asText());
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+        proposal(proposals().create(tenant, queued));
+    }
 }
