@@ -9,11 +9,17 @@ account number or a street: technicians and visits get pseudonymous ids, and onl
         [--roads http://127.0.0.1:18001] [--token-env ROUTING_AUTH_TOKEN] [--corrections <geocode-corrections.json>]
     python infra/backtest_import.py geocode --csv <history.csv> --config <study-config.json> --out <corrections.json>
         --nominatim http://127.0.0.1:18082
+    python infra/backtest_import.py inputs --csv <history.csv> --config <run dir>/study-config.json --out <run dir>
+        [--roads ...] [--token-env ...] [--corrections ...]
+
+build also writes Part 2's inputs (part2/requests.json and part2/availability.json); inputs writes only those, from the
+same rules, so a run whose days are already scored gains them without rewriting a day file.
 
 Stdlib only. The road client is the development routing service's POST /internal/legs; a build without --roads refuses
 to write datasets, since a day without legs cannot be scored.
 """
 import argparse
+import copy
 import csv
 import datetime as dt
 import hashlib
@@ -98,6 +104,7 @@ def validate_config(config):
     limit = config.get('maxBookedMinutes')
     if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit < 1):
         raise ImportError_('Study config maxBookedMinutes must be null (no limit) or a positive integer')
+    validate_extension(config.get('availabilityExtension'))
     bbox = config['bbox']
     if not (bbox['west'] < bbox['east'] and bbox['south'] < bbox['north']):
         raise ImportError_('Study config bbox is out of order')
@@ -132,6 +139,26 @@ def validate_config(config):
     if config['primaryRuleSet'] not in rule_sets:
         raise ImportError_('Study config primaryRuleSet must be one of its ruleSets')
     return config
+
+
+def validate_extension(extension):
+    """availabilityExtension: null (none), or the roster repeated past the data (owner, 2026-11-05, decision 8):
+    {repeatFrom, repeatTo, through: ISO dates, holidays: [ISO dates]}; the working weekdays from repeatFrom to repeatTo
+    repeat in order, one per weekday after the last date of the data, through the through date, skipping the holidays."""
+    if extension is None:
+        return
+    if not isinstance(extension, dict) or set(extension) != {'repeatFrom', 'repeatTo', 'through', 'holidays'}:
+        raise ImportError_('Study config availabilityExtension needs exactly repeatFrom, repeatTo, through and holidays')
+    try:
+        start, end, through = (dt.date.fromisoformat(extension[k]) for k in ('repeatFrom', 'repeatTo', 'through'))
+        holidays = extension['holidays']
+        if not isinstance(holidays, list):
+            raise TypeError
+        [dt.date.fromisoformat(d) for d in holidays]
+    except (TypeError, ValueError):
+        raise ImportError_('Study config availabilityExtension dates must be ISO dates and holidays a list of them') from None
+    if not start <= end < through:
+        raise ImportError_('Study config availabilityExtension needs repeatFrom <= repeatTo < through')
 
 
 def validate_assignments(assignments, depots):
@@ -280,7 +307,8 @@ def inside(bbox, lat, lng):
 
 
 def apply_rules(rows, config, corrections=None):
-    """Decide every row: a list of (row, reason, severity) ledger entries, and the rows kept with their flags."""
+    """Decide every row: a list of (row, reason, severity) ledger entries, and the rows kept with their flags. The rows it
+    returns are copies, so the parsed rows stay as read and the rules can be applied again with the same result."""
     corrections = corrections or {}
     bbox, zero = config['bbox'], config['zeroDurationMinutes']
     years, excluded_technicians = set(config['years']), set(config['excludeTechnicians'])
@@ -289,10 +317,18 @@ def apply_rules(rows, config, corrections=None):
     # one rule set cannot serve is held out of that rule set's days (shift_rule), not excluded here.
     latest_end = minutes(config['shift']['salesCallEnd'])
     ledger, kept = [], []
-    for row in rows:
+    for original in rows:
+        row = copy.copy(original)
+        row.flags = list(original.flags)
         reasons = []
         if row.day is None or row.day.year not in years:
             reasons.append('BAD_YEAR')
+        # Part 2 replays every job on its request date, so a job without one, or requested after it was served, is refused
+        # rather than given a date it never had.
+        if row.requested is None:
+            reasons.append('NO_REQUEST_DATE')
+        elif row.day is not None and row.requested > row.day:
+            reasons.append('REQUESTED_AFTER_SERVICE')
         if not row.technician:
             reasons.append('NO_TECHNICIAN')
         elif row.technician in excluded_technicians:
@@ -430,10 +466,24 @@ def shift_rule(rule, rows, legs, config):
     return served, held, ends, pinned, fleet_end
 
 
+def dated_rows(rows, config):
+    """Rows with a date inside the study years and a technician the study keeps, whatever else the rules decide."""
+    excluded = set(config['excludeTechnicians'])
+    return [row for row in rows if row.day is not None and row.day.year in set(config['years']) and row.technician and row.technician not in excluded]
+
+
+def worked_days(rows, config):
+    """{date: sorted real technician ids} for every date of the history (owner, 2026-11-04, decision 1): a technician works a
+    date exactly when the history has a row of theirs on it, kept or excluded."""
+    worked = defaultdict(set)
+    for row in dated_rows(rows, config):
+        worked[row.day].add(row.technician)
+    return {day: sorted(worked[day]) for day in sorted(worked)}
+
+
 def roster(rows, kept, config):
     """Technician spans, holidays and the roster per day (the owner's rule), from every dated row and the kept rows."""
-    excluded = set(config['excludeTechnicians'])
-    dated = [row for row in rows if row.day is not None and row.day.year in set(config['years']) and row.technician and row.technician not in excluded]
+    dated = dated_rows(rows, config)
     if not dated:
         raise ImportError_('No dated rows inside the study years')
     spans = {}
@@ -452,11 +502,8 @@ def roster(rows, kept, config):
     days = sorted({row.day for row in kept})
     on_shift = {}
     if config.get('roster', 'spans') == 'csv-days':
-        # Owner, 2026-11-04: a technician works a date exactly when the history has a row of theirs on it.
-        worked = defaultdict(set)
-        for row in dated:
-            worked[row.day].add(row.technician)
-        return spans, holidays, {day: sorted(worked[day]) for day in days}
+        worked = worked_days(rows, config)
+        return spans, holidays, {day: worked[day] for day in days}
     for day in days:
         if day.weekday() < 5 and day not in holiday_set:
             on_shift[day] = sorted(t for t, (first, last) in spans.items() if first <= day <= last)
@@ -736,9 +783,9 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def build(rows, config, out, road_client, corrections=None):
-    """The whole run directory from parsed rows. Returns the index document."""
-    out = Path(out)
+def prepare(rows, config, road_client, corrections=None):
+    """The decisions every output shares: (config with the date shift chosen, ledger, kept rows, pseudonyms, spans,
+    holidays, roster per kept day)."""
     config = dict(config)
     if config['apiDateShiftDays'] is None:
         config['apiDateShiftDays'] = default_date_shift(rows, years=set(config['years']))
@@ -755,6 +802,108 @@ def build(rows, config, out, road_client, corrections=None):
     dropped = {row.index for row, _, _ in unroutable}
     ledger = [(row, reason, severity) for row, reason, severity in ledger if severity == EXCLUDE or row.index not in dropped]
     spans, holidays, on_shift = roster(rows, kept, config)
+    return config, ledger, kept, pseudonyms, spans, holidays, on_shift
+
+
+def extension_days(worked, config):
+    """[(date after the data, the source date whose technicians it repeats)] under availabilityExtension, in date order."""
+    extension = config.get('availabilityExtension')
+    if extension is None:
+        return []
+    last = max(worked)
+    start, end, through = (dt.date.fromisoformat(extension[k]) for k in ('repeatFrom', 'repeatTo', 'through'))
+    if end > last or through <= last:
+        raise ImportError_(f'availabilityExtension must repeat dates of the data (to {last}) and run past it')
+    # The working weekdays of the source weeks: a weekday with nobody working (a holiday) is not repeated.
+    source = [day for day in worked if start <= day <= end and day.weekday() < 5 and worked[day]]
+    if not source:
+        raise ImportError_('availabilityExtension repeats no working weekday')
+    holidays = {dt.date.fromisoformat(d) for d in extension['holidays']}
+    result, day = [], last + dt.timedelta(days=1)
+    while day <= through:
+        if day.weekday() < 5 and day not in holidays:
+            result.append((day, source[len(result) % len(source)]))
+        day += dt.timedelta(days=1)
+    return result
+
+
+def part2_inputs(rows, kept, config, pseudonyms):
+    """Part 2's request stream and technician-days (simulation-plan.md, Host rules), pseudonymous: (requests, availability)."""
+    sales_codes = set(config['salesCallCodes'])
+    requests = []
+    for row in sorted(kept, key=lambda r: (r.requested, r.index)):
+        if row.requested is None or row.requested > row.day:
+            raise ImportError_(f'Row {row.index} has no request date before its service; the rules should have excluded it')
+        pseudonym = pseudonyms[row.technician]
+        requests.append({'id': f'wo-{row.index}', 'requestDate': row.requested.isoformat(), 'serviceId': row.codes[0], 'tags': list(row.codes),
+                         'salesCall': row.codes[0] in sales_codes, 'durationMinutes': row.booked_minutes,
+                         'location': {'lat': row.lat, 'lng': row.lng}, 'flags': list(row.flags),
+                         # What the dispatcher did, for the comparison only; the simulator books without it.
+                         'dispatcher': {'serviceDate': row.day.isoformat(), 'technicianId': pseudonym, 'bookedStart': clock(row.booked),
+                                        'depot': depot_of(config, pseudonym, row.day)[0]}})
+    start, end = minutes(config['shift']['start']), minutes(config['shift']['end'])
+    jobs = Counter((row.day, row.technician) for row in kept)
+    worked = worked_days(rows, config)
+
+    def technician_day(day, real, source, repeat_of):
+        pseudonym = pseudonyms[real]
+        name, (lat, lng) = depot_of(config, pseudonym, day)
+        return {'date': day.isoformat(), 'technicianId': pseudonym, 'depot': name, 'location': {'lat': lat, 'lng': lng},
+                'shiftStart': config['shift']['start'], 'shiftEnd': config['shift']['end'], 'maxPaidMinutes': end - start,
+                'source': source, 'repeatOf': repeat_of, 'dispatcherJobs': jobs[(day, real)] if source == 'history' else None}
+
+    days = [technician_day(day, real, 'history', None) for day in worked for real in worked[day]]
+    tail = extension_days(worked, config)
+    days += [technician_day(day, real, 'repeat', source.isoformat()) for day, source in tail for real in worked[source]]
+    lead = 'requestDate'
+    availability = {'version': 1, 'runId': config['runId'], 'timeZone': config['timeZone'], 'lastHistoryDate': max(worked).isoformat(),
+                    'extension': config.get('availabilityExtension'), 'technicianDays': days,
+                    'summary': {'history': sum(1 for d in days if d['source'] == 'history'), 'repeat': sum(1 for d in days if d['source'] == 'repeat'),
+                                'historyDates': len(worked), 'repeatDates': len(tail),
+                                'historyWithoutKeptJobs': sum(1 for d in days if d['source'] == 'history' and d['dispatcherJobs'] == 0)}}
+    request_document = {'version': 1, 'runId': config['runId'], 'timeZone': config['timeZone'], 'salesCallCodes': sorted(sales_codes),
+                        'requests': requests,
+                        'summary': {'requests': len(requests), 'firstRequestDate': requests[0][lead], 'lastRequestDate': requests[-1][lead],
+                                    'salesCalls': sum(1 for r in requests if r['salesCall']),
+                                    'beforeStudyYears': sum(1 for r in requests if int(r[lead][:4]) not in set(config['years']))}}
+    return request_document, availability
+
+
+def write_part2_inputs(out, rows, kept, config, pseudonyms, road_client, expected_ids=None):
+    """Write part2/requests.json, part2/availability.json and part2/inputs.json (their hashes); returns inputs.json's document.
+    expected_ids, when given, is the as-run job set the requests must equal, so both parts cover the same jobs."""
+    requests, availability = part2_inputs(rows, kept, config, pseudonyms)
+    if expected_ids is not None and {r['id'] for r in requests['requests']} != set(expected_ids):
+        raise ImportError_('Part 2 requests differ from the as-run jobs; both parts must cover the same jobs')
+    directory = Path(out) / 'part2'
+    write_json(directory / 'requests.json', requests)
+    write_json(directory / 'availability.json', availability)
+    receipt = {'version': 1, 'runId': config['runId'], 'routingIdentity': road_client.identity,
+               'files': {name: sha256(directory / name) for name in ('requests.json', 'availability.json')},
+               'requests': requests['summary'], 'availability': availability['summary']}
+    write_json(directory / 'inputs.json', receipt)
+    return receipt
+
+
+def inputs(rows, config, out, road_client, corrections=None):
+    """Part 2's inputs alone for a run already built under the same rules: checked against its as-run day files when present."""
+    config, _, kept, pseudonyms, _, _, _ = prepare(rows, config, road_client, corrections)
+    expected = None
+    index_path = Path(out) / 'variants' / 'as-run' / 'index.json'
+    if index_path.exists():
+        with index_path.open(encoding='utf-8') as stream:
+            index = json.load(stream)
+        expected = set()
+        for entry in index['days']:
+            with (index_path.parent / 'days' / entry['day'] / 'observed.json').open(encoding='utf-8') as stream:
+                expected |= set(json.load(stream)['visits'])
+    return write_part2_inputs(out, rows, kept, config, pseudonyms, road_client, expected)
+
+
+def build(rows, config, out, road_client, corrections=None):
+    """The whole run directory from parsed rows. Returns the index document."""
+    out = Path(out)
+    config, ledger, kept, pseudonyms, spans, holidays, on_shift = prepare(rows, config, road_client, corrections)
     out.mkdir(parents=True, exist_ok=True)
     with (out / 'ledger.csv').open('w', encoding='utf-8', newline='') as stream:
         writer = csv.writer(stream)
@@ -770,7 +919,7 @@ def build(rows, config, out, road_client, corrections=None):
     by_day = defaultdict(list)
     for row in kept:
         by_day[row.day].append(row)
-    variants = {}
+    variants, as_run_ids = {}, None
     for rule in config['ruleSets']:
         # Each rule set is a run directory of its own, so the harness, the replay and the summary read it unchanged.
         variant = dict(config, runId=f'{config["runId"]}-{rule}', ruleSet=rule)
@@ -788,6 +937,8 @@ def build(rows, config, out, road_client, corrections=None):
             entry = documents['index']
             entry['files'] = {name: sha256(day_directory / name) for name in documents if name != 'index'}
             days.append(entry)
+            if rule == 'as-run':
+                as_run_ids = (as_run_ids or set()) | {visit['id'] for visit in documents['facts.json']['visits']}
         sales_codes = set(config['salesCallCodes'])
         with (directory / 'held-out.csv').open('w', encoding='utf-8', newline='') as stream:
             writer = csv.writer(stream)
@@ -803,8 +954,9 @@ def build(rows, config, out, road_client, corrections=None):
         write_json(directory / 'index.json', index)
         write_json(directory / 'study-config.json', variant)
         variants[rule] = {'directory': f'variants/{rule}', 'days': len(days), 'jobs': sum(e['jobs'] for e in days), 'heldOut': held_summary}
+    part2 = write_part2_inputs(out, rows, kept, config, pseudonyms, road_client, as_run_ids)
     run = {'runId': config['runId'], 'routingIdentity': road_client.identity, 'mapVersion': road_client.map_version,
-           'primaryRuleSet': config['primaryRuleSet'], 'ruleSets': variants, 'ledger': summary}
+           'primaryRuleSet': config['primaryRuleSet'], 'ruleSets': variants, 'ledger': summary, 'part2': part2}
     write_json(out / 'run.json', run)
     write_json(out / 'study-config.json', config)
     return run
@@ -873,6 +1025,11 @@ def main(argv=None):
     build_cmd.add_argument('--roads', required=True, help='routing service URL, for example http://127.0.0.1:18001, or "stub" for a straight-line dry run that no study may score')
     build_cmd.add_argument('--token-env', default='ROUTING_AUTH_TOKEN')
     build_cmd.add_argument('--corrections', help='geocode-corrections.json from the geocode command')
+    inputs_cmd = commands.add_parser('inputs')
+    for name in ('--csv', '--config', '--out', '--roads'):
+        inputs_cmd.add_argument(name, required=True)
+    inputs_cmd.add_argument('--token-env', default='ROUTING_AUTH_TOKEN')
+    inputs_cmd.add_argument('--corrections')
     geocode_cmd = commands.add_parser('geocode')
     geocode_cmd.add_argument('--csv', required=True)
     geocode_cmd.add_argument('--config', required=True)
@@ -893,6 +1050,9 @@ def main(argv=None):
             corrections = json.load(stream)['rows']
     token = os.environ.get(args.token_env, '')
     client = StubRoadClient() if args.roads == 'stub' else RoadClient(args.roads, token, Path(args.out) / 'roads-cache.json')
+    if args.command == 'inputs':
+        print(json.dumps(inputs(rows, config, args.out, client, corrections)))
+        return 0
     run = build(rows, config, args.out, client, corrections)
     print(json.dumps({'kept': run['ledger']['kept'], 'excludedRows': run['ledger']['excludedRows'], 'routingIdentity': run['routingIdentity'],
                       'ruleSets': run['ruleSets']}))

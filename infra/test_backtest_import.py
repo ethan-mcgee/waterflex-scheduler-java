@@ -549,5 +549,113 @@ class AsRunTwoDepotBuildTest(unittest.TestCase):
             self.assertEqual(0, result.returncode, f'{date}: {result.stderr[-2000:]}')
 
 
+FRIDAY = MONDAY + dt.timedelta(days=11)  # the last date of the fabricated history
+EXTENSION = {'repeatFrom': MOVE.isoformat(), 'repeatTo': FRIDAY.isoformat(), 'through': (FRIDAY + dt.timedelta(days=7)).isoformat(),
+             'holidays': [(FRIDAY + dt.timedelta(days=5)).isoformat()]}
+
+
+class Part2InputsTest(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.out = Path(self.directory.name) / 'run'
+        self.rows = bi.parse_rows(write_history(self.directory.name))
+        thursday = MONDAY + dt.timedelta(days=3)
+        # CD2's only Thursday job loses its booked time: excluded, yet CD2 still worked that date.
+        next(row for row in self.rows if row.day == thursday and row.technician == 'CD2').booked = None
+        self.config = two_depots(availabilityExtension=EXTENSION)
+        self.run = bi.build(self.rows, self.config, self.out, bi.StubRoadClient())
+        self.requests = json.loads((self.out / 'part2' / 'requests.json').read_text(encoding='utf-8'))
+        self.availability = json.loads((self.out / 'part2' / 'availability.json').read_text(encoding='utf-8'))
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def as_run_jobs(self):
+        index = json.loads((self.out / 'variants' / 'as-run' / 'index.json').read_text(encoding='utf-8'))
+        ids = set()
+        for entry in index['days']:
+            ids |= set(json.loads((self.out / 'variants' / 'as-run' / 'days' / entry['day'] / 'observed.json').read_text(encoding='utf-8'))['visits'])
+        return ids
+
+    def test_the_requests_are_the_as_run_jobs_in_request_order(self):
+        requests = self.requests['requests']
+        self.assertEqual(self.as_run_jobs(), {r['id'] for r in requests}, 'Part 2 is asked for exactly the jobs Part 1 scored')
+        self.assertEqual(sorted(requests, key=lambda r: (r['requestDate'], int(r['id'][3:]))), requests)
+        sales = [r for r in requests if r['salesCall']]
+        self.assertEqual(['X01'], [r['serviceId'] for r in sales])
+        evening = next(r for r in requests if r['dispatcher']['bookedStart'] == '17:30')
+        self.assertEqual({'serviceDate': (MONDAY + dt.timedelta(days=2)).isoformat(), 'technicianId': 't01', 'bookedStart': '17:30', 'depot': 'north'},
+                         evening['dispatcher'])
+        moved = next(r for r in requests if r['dispatcher']['technicianId'] == 't02' and r['dispatcher']['serviceDate'] >= MOVE.isoformat())
+        self.assertEqual('south', moved['dispatcher']['depot'])
+        self.assertEqual(len(requests), self.requests['summary']['requests'])
+        receipt = json.loads((self.out / 'part2' / 'inputs.json').read_text(encoding='utf-8'))
+        self.assertEqual(bi.sha256(self.out / 'part2' / 'requests.json'), receipt['files']['requests.json'])
+        self.assertEqual(receipt, self.run['part2'])
+
+    def test_history_days_are_who_worked_and_the_tail_repeats_working_weekdays(self):
+        days = self.availability['technicianDays']
+        history = [d for d in days if d['source'] == 'history']
+        thursday = (MONDAY + dt.timedelta(days=3)).isoformat()
+        cd2 = next(d for d in history if d['date'] == thursday and d['technicianId'] == 't02')
+        self.assertEqual(0, cd2['dispatcherJobs'], 'a technician-day with only excluded rows still counts as worked')
+        self.assertEqual(1, self.availability['summary']['historyWithoutKeptJobs'])
+        saturday = (MONDAY + dt.timedelta(days=5)).isoformat()
+        self.assertEqual(['t02'], [d['technicianId'] for d in history if d['date'] == saturday], 'a weekend day is who worked')
+        self.assertTrue(all(d['shiftStart'] == '08:00' and d['shiftEnd'] == '17:00' and d['maxPaidMinutes'] == 540 for d in days))
+        self.assertTrue(all(d['dispatcherJobs'] is None for d in days if d['source'] == 'repeat'), 'a repeated day has no dispatcher')
+        # Working weekdays of MOVE..FRIDAY: Mon, Tue, Thu, Fri (the Wednesday is a holiday with no rows).
+        tail = sorted({(d['date'], d['repeatOf']) for d in days if d['source'] == 'repeat'})
+        source = [MOVE, MOVE + dt.timedelta(days=1), MOVE + dt.timedelta(days=3), FRIDAY]
+        targets = [FRIDAY + dt.timedelta(days=n) for n in (3, 4, 6, 7)]  # Mon, Tue, (Wed holiday), Thu, Fri
+        self.assertEqual([(t.isoformat(), s.isoformat()) for t, s in zip(targets, source)], tail)
+        repeated = {d['technicianId']: d['depot'] for d in days if d['source'] == 'repeat'}
+        self.assertEqual({'t01': 'north', 't02': 'south'}, repeated, 'a repeated day takes the depot of its own date')
+        self.assertEqual(FRIDAY.isoformat(), self.availability['lastHistoryDate'])
+
+    def test_no_account_street_or_real_id_reaches_part2(self):
+        for path in (self.out / 'part2').iterdir():
+            text = path.read_text(encoding='utf-8')
+            for secret in ('10000', 'FABRICATED', 'AB1', 'CD2'):
+                self.assertNotIn(secret, text, f'{secret} in {path.name}')
+
+    def test_inputs_alone_match_the_build_and_leave_the_days_untouched(self):
+        day = self.out / 'variants' / 'as-run' / 'days' / MONDAY.isoformat() / 'facts.json'
+        before = (day.stat().st_mtime_ns, bi.sha256(day))
+        first = bi.sha256(self.out / 'part2' / 'requests.json'), bi.sha256(self.out / 'part2' / 'availability.json')
+        receipt = bi.inputs(self.rows, self.config, self.out, bi.StubRoadClient())
+        self.assertEqual(first, (receipt['files']['requests.json'], receipt['files']['availability.json']))
+        self.assertEqual(before, (day.stat().st_mtime_ns, bi.sha256(day)))
+
+    def test_inputs_refuse_a_run_whose_jobs_differ(self):
+        rows = bi.parse_rows(write_history(self.directory.name))
+        rows[0].booked_minutes = 400  # now over the limit, so the requests lose a job the as-run days still hold
+        with self.assertRaises(bi.ImportError_):
+            bi.inputs(rows, self.config, self.out, bi.StubRoadClient())
+
+    def test_a_request_date_missing_or_after_service_is_excluded(self):
+        rows = bi.parse_rows(write_history(self.directory.name))
+        rows[0].requested = None
+        rows[1].requested = rows[1].day + dt.timedelta(days=1)
+        ledger, kept = bi.apply_rules(rows, self.config)
+        reasons = {(row.index, reason) for row, reason, severity in ledger if severity == bi.EXCLUDE}
+        self.assertIn((rows[0].index, 'NO_REQUEST_DATE'), reasons)
+        self.assertIn((rows[1].index, 'REQUESTED_AFTER_SERVICE'), reasons)
+        self.assertFalse({rows[0].index, rows[1].index} & {row.index for row in kept})
+
+    def test_the_extension_is_checked(self):
+        bad = [dict(EXTENSION, through=EXTENSION['repeatTo']), dict(EXTENSION, repeatFrom='soon'), dict(EXTENSION, holidays='none'),
+               {k: v for k, v in EXTENSION.items() if k != 'holidays'}, dict(EXTENSION, extra=1)]
+        for extension in bad:
+            with self.assertRaises(bi.ImportError_, msg=str(extension)):
+                two_depots(availabilityExtension=extension)
+        with self.assertRaises(bi.ImportError_, msg='a source past the data'):
+            late = dict(EXTENSION, repeatTo=(FRIDAY + dt.timedelta(days=3)).isoformat(), through=(FRIDAY + dt.timedelta(days=9)).isoformat())
+            bi.build(self.rows, two_depots(availabilityExtension=late), Path(self.directory.name) / 'late', bi.StubRoadClient())
+        plain = bi.part2_inputs(self.rows, bi.prepare(self.rows, two_depots(), bi.StubRoadClient())[2], two_depots(),
+                                {'AB1': 't01', 'CD2': 't02'})[1]
+        self.assertEqual(0, plain['summary']['repeat'], 'no extension, no repeated days')
+
+
 if __name__ == '__main__':
     unittest.main()
