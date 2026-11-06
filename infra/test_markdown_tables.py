@@ -18,6 +18,12 @@ class MarkdownTablesTest(unittest.TestCase):
         self.assertEqual('---', mt.align(['a', 'b', '3']))
         self.assertEqual('---:', mt.align(['1', '2', 'n/a', '']))
 
+    def test_a_named_text_column_stays_left_aligned_even_when_its_cells_look_numeric(self):
+        rendered = mt.table(['Period', 'Jobs'], [['2024', '5'], ['2024-03', '12']], text=(0,)).splitlines()
+        self.assertEqual('| ------- | ---: |', rendered[1])
+        self.assertEqual('| 2024    |    5 |', rendered[2])
+        self.assertEqual('| ---: | ---: |', mt.table(['Year', 'Jobs'], [['2024', '5']]).splitlines()[1], 'without text the numbers right-align')
+
     def test_a_short_row_is_refused(self):
         with self.assertRaises(ValueError):
             mt.table(['a', 'b'], [['only one']])

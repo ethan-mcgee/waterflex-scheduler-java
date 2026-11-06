@@ -140,6 +140,7 @@ class DispatcherSummaryTest(unittest.TestCase):
         self.assertNotIn('—', text)
         self.assertIn('2025 (to 2025-01-06)', text)
         self.assertIn('| Study ', text)
+        self.assertIn('| 2024-03 ', text, 'period labels are left-aligned text')
         block = []
         for line in text.splitlines() + ['']:
             if line.startswith('|'):
