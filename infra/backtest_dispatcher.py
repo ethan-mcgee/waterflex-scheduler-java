@@ -58,10 +58,10 @@ def flag(value, name):
 # The scoring job
 
 
-def load_index(run):
+def load_index(run, rule='as-run'):
     index = read_json(Path(run) / 'index.json')
-    if index.get('ruleSet') != 'as-run':
-        raise SummaryError(f'Part 1 reads the as-run rule set, not {index.get("ruleSet")!r}')
+    if index.get('ruleSet') != rule:
+        raise SummaryError(f'This summary reads the {rule} rule set, not {index.get("ruleSet")!r}')
     days = index['days']
     if not days:
         raise SummaryError('The run has no days')
@@ -100,12 +100,13 @@ def checked_row(day, row):
     return row
 
 
-def load(run, rows_path):
-    """Every day of the run with its score row and observed visits: [(entry, row, observed)] in date order."""
-    index = load_index(run)
+def load(run, rows_path, rule='as-run', plan='as-planned.plan.json', directories=None):
+    """Every day of the run with its score row and observed visits: [(entry, row, observed)] in date order. directories
+    maps a day to the directory its observed.json is in when that is not <run>/days/<day> (Part 1 on Part 2's jobs)."""
+    index = load_index(run, rule)
     scored = read_json(rows_path)
-    if scored.get('kind') != 'backtest-score-days' or scored.get('plan') != 'as-planned.plan.json':
-        raise SummaryError('The rows are not a backtest-score-days reading of the as-planned plans')
+    if scored.get('kind') != 'backtest-score-days' or scored.get('plan') != plan:
+        raise SummaryError(f'The rows are not a backtest-score-days reading of {plan}')
     by_day = {}
     for item in scored['rows']:
         if item['day'] in by_day:
@@ -120,7 +121,8 @@ def load(run, rows_path):
         raise SummaryError(f'Score rows for days the run does not have, the first {extra[0]}')
     days = []
     for entry in entries:
-        observed = read_json(Path(run) / 'days' / entry['day'] / 'observed.json')
+        directory = (directories or {}).get(entry['day'], Path(run) / 'days' / entry['day'])
+        observed = read_json(Path(directory) / 'observed.json')
         row = by_day[entry['day']]
         visits = sum(route['visits'] for route in row['routes'])
         if visits != entry['jobs'] or len(observed['visits']) != entry['jobs']:

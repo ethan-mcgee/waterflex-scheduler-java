@@ -8,10 +8,15 @@ overnight run and commits each IMPROVED proposal. A checkpoint after every date 
 shuffles and versions are deterministic, so a resumed segment sends the same calls and the API replays its answers.
 
     python infra/backtest_simulate.py plan --run <run dir> --out <simulation dir> --segments 4 --warmup-weeks 3 [--until <date>]
+    python infra/backtest_simulate.py window --run <run dir> --out <simulation dir> --first <date> --end <date> --copies a:3,b:3,c:6,d:6
+    python infra/backtest_simulate.py busiest --run <run dir> --year 2024
     python infra/backtest_simulate.py run --config <simulation dir>/simulation.json --url http://127.0.0.1:18080 [--only s1,s2]
 
-`plan` writes simulation.json (segments, date shifts chosen from today, the settings sent); `run` reads each segment's
-token from the variable the config names (SIMULATION_TOKEN_<SEGMENT>), never from a file. Stdlib only.
+`plan` writes simulation.json (segments, date shifts chosen from today, the settings sent); `window` plans the
+calibration month instead: the same dates simulated by named copies, each with its own warm-up and tenant; `busiest`
+names the month the calibration uses. `run` reads each segment's token from the variable the config names
+(SIMULATION_TOKEN_<SEGMENT>), never from a file; the tenant of a segment is fixed by the plan, so a resumed run issues a
+new token for the same tenant and the API replays that tenant's answers. Stdlib only.
 """
 import argparse
 import datetime as dt
@@ -19,7 +24,9 @@ import json
 import os
 import sys
 import threading
+import re
 import time
+from collections import Counter
 from pathlib import Path
 
 import backtest_api as ba
@@ -28,6 +35,7 @@ import backtest_host as bh
 GATE = 2  # booking calls in flight across every segment: the booking pool's capacity, so nothing waits in its queue
 OVERNIGHT_MINUTE = 60  # the overnight run starts at 01:00 local on the day after the request date
 STEPS = ('offers', 'select', 'confirm', 'daily', 'commit')
+TENANT = re.compile('[a-z0-9][a-z0-9-]{0,62}')
 
 
 class SimulationError(RuntimeError):
@@ -69,17 +77,38 @@ def shift_for(start, today, margin_days=7):
     return 7 * weeks
 
 
+def tenant_of(simulation_id, name):
+    tenant = f'bt-{simulation_id}-{name}'.lower()
+    if not TENANT.fullmatch(tenant):
+        raise SimulationError(f'{tenant} is not a tenant id ([a-z0-9][a-z0-9-]{{0,62}}); choose a shorter simulation directory name')
+    return tenant
+
+
+def inputs_of(run):
+    run = Path(run)
+    from backtest_import import sha256  # the importer's hash, so the check is the one inputs.json was written with
+    inputs = bh.load_json(run / 'part2' / 'inputs.json')
+    for name in ('requests.json', 'availability.json'):
+        if sha256(run / 'part2' / name) != inputs['files'][name]:
+            raise SimulationError(f'part2/{name} differs from part2/inputs.json')
+    return (inputs, bh.load_json(run / 'part2' / 'requests.json'), bh.load_json(run / 'part2' / 'availability.json'),
+            bh.load_json(run / 'study-config.json'))
+
+
+def document_of(run, out, config, inputs, requests, availability, segments, seed, warmup, today, until, kind):
+    return {'version': 1, 'kind': kind, 'simulationId': Path(out).name, 'run': str(Path(run).resolve()), 'inputs': inputs['files'],
+            'routingIdentity': inputs['routingIdentity'], 'metroId': config['metroId'], 'timeZone': config['timeZone'], 'seed': seed, 'warmupWeeks': warmup,
+            'plannedOn': today, 'horizonRule': dict(bh.HORIZON_RULE), 'bookingGate': GATE, 'retryWeekdays': bh.RETRY_WEEKDAYS,
+            'settings': {'rates': dict(config['rates']), 'policy': dict(config['policy']), 'offerLimit': 1, 'windowHours': 2,
+                         'services': sorted({r['serviceId'] for r in requests['requests']})},
+            'historyLastDate': availability['lastHistoryDate'], 'rosterEnd': max(d['date'] for d in availability['technicianDays']), 'until': until,
+            'segments': segments}
+
+
 def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=None):
     """simulation.json for the run directory's Part 2 inputs. until cuts the simulation short (smoke, calibration)."""
     run, out = Path(run), Path(out)
-    inputs = bh.load_json(run / 'part2' / 'inputs.json')
-    requests = bh.load_json(run / 'part2' / 'requests.json')
-    availability = bh.load_json(run / 'part2' / 'availability.json')
-    config = bh.load_json(run / 'study-config.json')
-    for name in ('requests.json', 'availability.json'):
-        from backtest_import import sha256  # the importer's hash, so the check is the one inputs.json was written with
-        if sha256(run / 'part2' / name) != inputs['files'][name]:
-            raise SimulationError(f'part2/{name} differs from part2/inputs.json')
+    inputs, requests, availability, config = inputs_of(run)
     history_last = availability['lastHistoryDate']
     first_service = min(r['dispatcher']['serviceDate'] for r in requests['requests'])
     bounds = segment_bounds(first_service, history_last, count)
@@ -94,17 +123,44 @@ def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=N
         if stop < start:
             continue
         segments.append({'name': f's{number}', 'first': first, 'end': bh.add_days(roster_end, 1) if last_segment else end, 'start': start, 'stop': stop,
-                         'last': last_segment, 'shiftDays': shift_for(start, today), 'tokenEnv': f'SIMULATION_TOKEN_S{number}'})
+                         'last': last_segment, 'shiftDays': shift_for(start, today), 'tokenEnv': f'SIMULATION_TOKEN_S{number}',
+                         'tenantId': tenant_of(out.name, f's{number}')})
     if only_first is not None:
         segments = segments[:only_first]
-    services = sorted({r['serviceId'] for r in requests['requests']})
-    document = {'version': 1, 'simulationId': out.name, 'run': str(run.resolve()), 'inputs': inputs['files'], 'routingIdentity': inputs['routingIdentity'],
-                'metroId': config['metroId'], 'timeZone': config['timeZone'], 'seed': seed, 'warmupWeeks': warmup_weeks, 'plannedOn': today,
-                'horizonRule': dict(bh.HORIZON_RULE), 'bookingGate': GATE, 'retryWeekdays': bh.RETRY_WEEKDAYS,
-                'settings': {'rates': dict(config['rates']), 'policy': dict(config['policy']), 'offerLimit': 1, 'windowHours': 2, 'services': services},
-                'historyLastDate': history_last, 'rosterEnd': roster_end, 'until': until, 'segments': segments}
+    document = document_of(run, out, config, inputs, requests, availability, segments, seed, warmup_weeks, today, until, 'study')
     write_json(out / 'simulation.json', document)
     return document
+
+
+def window(run, out, first, end, copies, today, seed=17):
+    """The calibration month: the service dates [first, end) simulated by each named copy with its own warm-up in weeks."""
+    run, out = Path(run), Path(out)
+    inputs, requests, availability, config = inputs_of(run)
+    segments = []
+    for name, weeks in copies:
+        start = bh.add_days(first, -7 * weeks)
+        segments.append({'name': name, 'first': first, 'end': end, 'start': start, 'stop': bh.add_days(end, -1), 'last': False,
+                         'shiftDays': shift_for(start, today), 'tokenEnv': f'SIMULATION_TOKEN_{name.upper()}', 'tenantId': tenant_of(out.name, name),
+                         'warmupWeeks': weeks})
+    document = document_of(run, out, config, inputs, requests, availability, segments, seed, None, today, None, 'window')
+    write_json(out / 'simulation.json', document)
+    return document
+
+
+def busiest(run, year):
+    """[first, end) of the year's month with the most dispatcher jobs per working weekday (simulation-plan.md, Calibration month)."""
+    index = bh.load_json(Path(run) / 'variants' / 'as-run' / 'index.json')
+    jobs, weekdays = Counter(), Counter()
+    for entry in index['days']:
+        if entry['year'] == year and bh.is_weekday(entry['day']):
+            jobs[entry['day'][:7]] += entry['jobs']
+            weekdays[entry['day'][:7]] += 1
+    if not jobs:
+        raise SimulationError(f'No weekday of {year} in the run')
+    month = max(jobs, key=lambda m: (jobs[m] / weekdays[m], m))
+    first = f'{month}-01'
+    end = (bh.date_of(first).replace(day=28) + dt.timedelta(days=4)).replace(day=1).isoformat()
+    return {'month': month, 'first': first, 'end': end, 'jobsPerWeekday': round(jobs[month] / weekdays[month], 2), 'weekdays': weekdays[month]}
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -137,9 +193,10 @@ class Segment:
             if saved['segment'] != segment:
                 raise SimulationError(f'{checkpoint} belongs to another plan of segment {self.name}')
             self.cursor, self.book, self.desk = saved['cursor'], bh.Book.from_json(saved['book']), bh.Desk.from_json(saved['desk'])
+            self.elapsed = saved['elapsedSeconds']
             self.trim_logs(self.cursor)
         else:
-            self.cursor = start
+            self.cursor, self.elapsed = start, 0.0
             self.book = bh.Book.from_availability(availability, first=start)
             self.desk = bh.Desk(seed=config['seed'])
 
@@ -157,8 +214,11 @@ class Segment:
                 kept = [line for line in path.read_text(encoding='utf-8').splitlines() if line and json.loads(line)['date'] < cursor]
                 path.write_text(''.join(line + '\n' for line in kept), encoding='utf-8', newline='\n')
 
-    def save(self, cursor):
-        write_json(self.directory / 'checkpoint.json', {'segment': self.segment, 'cursor': cursor, 'book': self.book.to_json(), 'desk': self.desk.to_json()})
+    def save(self, cursor, seconds):
+        """The checkpoint after a date, with the wall time spent so far (every invocation's, summed)."""
+        self.elapsed += seconds
+        write_json(self.directory / 'checkpoint.json', {'segment': self.segment, 'cursor': cursor, 'book': self.book.to_json(), 'desk': self.desk.to_json(),
+                                                        'elapsedSeconds': round(self.elapsed, 3)})
         self.cursor = cursor
 
     def rid(self, date, step, key, attempt=1):
@@ -244,17 +304,18 @@ class Segment:
         while self.cursor <= stop:
             if stopping():
                 return None
-            date = self.cursor
+            date, started = self.cursor, time.monotonic()
             for identifier in self.desk.due(date, self.calls.get(date, []), self.carried if date == self.segment['start'] else ()):
                 self.append('bookings.jsonl', self.book_request(date, identifier))
             self.overnight(bh.add_days(date, 1))
-            self.save(bh.add_days(date, 1))
+            self.save(bh.add_days(date, 1), time.monotonic() - started)
             if bh.date_of(date).weekday() == 6:
                 self.log(f'{self.name} through {date}: {sum(1 for o in self.desk.outcomes.values() if o == "BOOKED")} booked, '
                          f'{len(self.desk.waiting)} waiting, {sum(1 for o in self.desk.outcomes.values() if o == "TURNED_AWAY")} turned away')
         ended = self.desk.end_of_data() if self.segment['last'] and self.segment['stop'] == self.config['rosterEnd'] else []
         summary = {'segment': self.name, 'finished': True, 'outcomes': dict(sorted(self.desk.outcomes.items())),
-                   'waitingAtEnd': sorted(self.desk.waiting), 'endOfData': ended, 'appointments': len(self.book.appointments)}
+                   'waitingAtEnd': sorted(self.desk.waiting), 'endOfData': ended, 'appointments': len(self.book.appointments),
+                   'elapsedSeconds': round(self.elapsed, 3), 'simulatedDays': (bh.date_of(stop) - bh.date_of(self.segment['start'])).days + 1}
         write_json(self.directory / 'segment.json', summary)
         return summary
 
@@ -314,6 +375,16 @@ def main(argv=None):
     planner.add_argument('--until')
     planner.add_argument('--only-first', type=int)
     planner.add_argument('--today', default=dt.date.today().isoformat())
+    windowed = commands.add_parser('window')
+    windowed.add_argument('--run', required=True)
+    windowed.add_argument('--out', required=True)
+    windowed.add_argument('--first', required=True)
+    windowed.add_argument('--end', required=True)
+    windowed.add_argument('--copies', default='a:3,b:3,c:6,d:6')
+    windowed.add_argument('--today', default=dt.date.today().isoformat())
+    busy = commands.add_parser('busiest')
+    busy.add_argument('--run', required=True)
+    busy.add_argument('--year', type=int, default=2024)
     runner = commands.add_parser('run')
     runner.add_argument('--config', required=True)
     runner.add_argument('--url', required=True)
@@ -322,6 +393,14 @@ def main(argv=None):
     if args.command == 'plan':
         document = plan(args.run, args.out, args.segments, args.warmup_weeks, args.today, args.until, only_first=args.only_first)
         print(json.dumps([{k: s[k] for k in ('name', 'start', 'first', 'end', 'stop', 'shiftDays')} for s in document['segments']]))
+        return 0
+    if args.command == 'window':
+        copies = [(item.split(':')[0], int(item.split(':')[1])) for item in args.copies.split(',')]
+        document = window(args.run, args.out, args.first, args.end, copies, args.today)
+        print(json.dumps([{k: s[k] for k in ('name', 'start', 'first', 'end', 'shiftDays', 'tenantId')} for s in document['segments']]))
+        return 0
+    if args.command == 'busiest':
+        print(json.dumps(busiest(args.run, args.year)))
         return 0
     results = run(args.config, args.url, set(args.only.split(',')) if args.only else None)
     print(json.dumps({name: {k: v for k, v in result.items() if k != 'outcomes'} if result else None for name, result in results.items()}))

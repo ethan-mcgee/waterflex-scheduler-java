@@ -171,6 +171,15 @@ class SimulateTest(unittest.TestCase):
         self.assertEqual(['R11', 'R15'], document['settings']['services'])
         self.assertEqual(POLICY, document['settings']['policy'])
 
+    def test_a_window_plans_named_copies_with_their_own_warm_up_and_tenant(self):
+        document = bs.window(self.run, Path(self.directory.name) / 'cal-b', '2024-03-11', '2024-03-18', [('b1', 1), ('c1', 2)], '2026-11-05')
+        b1, c1 = document['segments']
+        self.assertEqual(('2024-03-04', '2024-02-26'), (b1['start'], c1['start']))
+        self.assertEqual(('bt-cal-b-b1', 'bt-cal-b-c1'), (b1['tenantId'], c1['tenantId']))
+        self.assertEqual(('window', '2024-03-17'), (document['kind'], b1['stop']))
+        with self.assertRaises(bs.SimulationError):
+            bs.tenant_of('x' * 70, 's1')
+
     def test_a_three_day_run_books_every_request_proposes_each_night_and_checkpoints(self):
         config = self.planned('three')
         results = bs.run(Path(self.directory.name) / 'three' / 'simulation.json', 'http://stub', client_factory=lambda s: FakeScheduler(), log=lambda m: None)
@@ -191,6 +200,8 @@ class SimulateTest(unittest.TestCase):
         committed = [p for p in proposals if p.get('committed')]
         self.assertTrue(committed, 'a technician-day with two stops gets an IMPROVED proposal, which is committed')
         self.assertGreater(book.version, 16, 'every booking and commit moved the versions')
+        self.assertGreaterEqual(summary['elapsedSeconds'], 0)
+        self.assertEqual(3, summary['simulatedDays'])
         self.assertEqual(config['segments'][0]['shiftDays'] % 7, 0)
 
     def test_a_run_killed_mid_date_resumes_to_the_same_end_state(self):
