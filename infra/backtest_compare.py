@@ -3,8 +3,9 @@
 
 Reads a scored export (backtest_export.py): Part 1 is the dispatcher's as-run days on Part 2's jobs, Part 2 the
 simulated book; both scored by the same scorer. Every measure is the Part 1 summary's own (backtest_dispatcher.py), so
-the two parts are read the same way. Promptness is read per request: Part 1 from the dispatcher's service dates of the
-jobs both parts serve, Part 2 from each request's outcome in the segment that owns its request date.
+the two parts are read the same way. Promptness is read per request, on the same set for both: every request Part 2
+booked (its outcome from the segment that owns its request date), Part 1 at the dispatcher's service date and Part 2 at
+the booked date, with the paired difference per request.
 
     python infra/backtest_compare.py compare --simulation <dir> --out research/<study>/part2 [--segment <copy>]
     python infra/backtest_compare.py calibration --alone <run A dir> --together <run B dir> --out research/<study>/calibration
@@ -102,21 +103,51 @@ def week_differences(weeks1, weeks2):
     return result, {'paired': len(paired), 'part1Only': len(set(weeks1) - set(weeks2)), 'part2Only': sorted(set(weeks2) - set(weeks1))}
 
 
-def part2_promptness(outcomes, requests, keep=lambda request: True):
-    """Part 2's promptness of every booked request, as Part 1 reads it: one synthetic day per service date."""
-    days = defaultdict(dict)
+def booked(outcomes, requests, keep=lambda request: True):
+    """Every request Part 2 booked, with its request: the one set both parts' promptness is read on."""
     for identifier, outcome in outcomes.items():
+        if identifier not in requests:
+            raise CompareError(f'The outcome of {identifier} has no request')
         request = requests[identifier]
-        if outcome['outcome'] != 'BOOKED' or not keep(request):
-            continue
-        lead = (dt.date.fromisoformat(outcome['serviceDate']) - dt.date.fromisoformat(request['requestDate'])).days
-        days[outcome['serviceDate']][identifier] = {'tags': request['tags'], 'salesCall': request['salesCall'], 'requestLeadDays': lead}
+        if outcome['outcome'] == 'BOOKED' and keep(request):
+            if not outcome.get('serviceDate'):
+                raise CompareError(f'{identifier} is booked without a service date')
+            if not (request.get('dispatcher') or {}).get('serviceDate'):
+                raise CompareError(f'{identifier} has no dispatcher service date')
+            yield identifier, request, outcome
+
+
+def promptness_on(served, outcomes, requests, keep):
+    """bd.promptness of the booked requests, each served on served(request, outcome): one synthetic day per service date."""
+    days = defaultdict(dict)
+    for identifier, request, outcome in booked(outcomes, requests, keep):
+        day = served(request, outcome)
+        lead = (dt.date.fromisoformat(day) - dt.date.fromisoformat(request['requestDate'])).days
+        days[day][identifier] = {'tags': request['tags'], 'salesCall': request['salesCall'], 'requestLeadDays': lead}
     return bd.promptness([({'day': day}, None, {'visits': visits}) for day, visits in sorted(days.items())], {'X01'})[0]
 
 
-def part1_promptness(part1, requests, keep=lambda request: True):
-    days = [(entry, row, dict(observed, visits={i: v for i, v in observed['visits'].items() if keep(requests[i])})) for entry, row, observed in part1]
-    return bd.promptness(days, {'X01'})[0]
+def part2_promptness(outcomes, requests, keep=lambda request: True):
+    """Part 2's promptness: each booked request at the date Part 2 booked it for."""
+    return promptness_on(lambda request, outcome: outcome['serviceDate'], outcomes, requests, keep)
+
+
+def part1_promptness(outcomes, requests, keep=lambda request: True):
+    """The dispatcher's promptness on the same requests: each at the dispatcher's service date, whether or not that date is
+    among the scored days (reading only the scored days would drop the requests the dispatcher served late in a short run)."""
+    return promptness_on(lambda request, outcome: request['dispatcher']['serviceDate'], outcomes, requests, keep)
+
+
+def paired_leads(outcomes, requests):
+    """Per booked request, Part 2's service date minus the dispatcher's in days, by period of the request date."""
+    by_period = defaultdict(list)
+    for _, request, outcome in booked(outcomes, requests):
+        difference = (dt.date.fromisoformat(outcome['serviceDate']) - dt.date.fromisoformat(request['dispatcher']['serviceDate'])).days
+        for key in bd.periods(dt.date.fromisoformat(request['requestDate'])):
+            by_period[key].append(difference)
+    return {key: {'requests': len(values), 'median': statistics.median(values), 'sooner': sum(1 for v in values if v < 0),
+                  'same': sum(1 for v in values if v == 0), 'later': sum(1 for v in values if v > 0)}
+            for key, values in by_period.items()}
 
 
 def long_lead(request):
@@ -169,9 +200,10 @@ def compare(sim_dir, only=None):
             'part1': {k: dict(v) for k, v in totals1.items()}, 'part2': {k: dict(v) for k, v in totals2.items()},
             'part2WithinData': {k: dict(v) for k, v in within.items()}, 'tail': dict(tail_totals) if tail_totals else None,
             'weekly': weekly, 'pairing': pairing,
-            'promptness': {'part1': part1_promptness(part1, requests), 'part2': part2_promptness(decided, requests),
-                           'part1WithoutLongLeads': part1_promptness(part1, requests, lambda r: not long_lead(r)),
-                           'part2WithoutLongLeads': part2_promptness(decided, requests, lambda r: not long_lead(r))},
+            'promptness': {'part1': part1_promptness(decided, requests), 'part2': part2_promptness(decided, requests),
+                           'part1WithoutLongLeads': part1_promptness(decided, requests, lambda r: not long_lead(r)),
+                           'part2WithoutLongLeads': part2_promptness(decided, requests, lambda r: not long_lead(r)),
+                           'paired': paired_leads(decided, requests)},
             'demand': {'counts': outcomes['counts'], 'undecided': len(outcomes['undecided']),
                        'calledBack': sum(1 for o in decided.values() if o['attempts'] > 1),
                        'turnedAwayEmergencies': sum(1 for i, o in decided.items() if o['outcome'] in ('TURNED_AWAY', 'END_OF_DATA')
@@ -206,7 +238,8 @@ def period_label(key, last):
 
 
 def both(t1, t2, key, name, scale=1, form=None):
-    form = form or (lambda value: number(value / scale))
+    # A whole count stays whole: dividing by a scale of 1 would print 70 as 70.0.
+    form = form or (lambda value: number(value if scale == 1 else value / scale))
     return [form(t[key][name]) if key in t else 'n/a' for t in (t1, t2)]
 
 
@@ -272,7 +305,7 @@ def report(result):
                          number(r['better']), number(r['tied']), number(r['worse'])])
         lines += [f'Weekly difference in {title.lower()}:', '', table(['Period', 'Weeks', f'Median {title}', '95% interval', 'Lower', 'Equal', 'Higher'], rows, text=(0,)), '']
     lines += ['## Promptness', '',
-              'Each table shows, by the period of the request date, the days from request to service: Part 1 at the dispatcher\'s service date of the jobs both parts serve, Part 2 at the date each request was booked for. Part 2 books from the day after the request, so same-day service is not possible for it.', '']
+              'Each table shows, by the period of the request date, the days from request to service of the same requests, every one Part 2 booked: Part 1 at the dispatcher\'s service date, Part 2 at the date Part 2 booked it for. Part 2 books from the day after the request, so same-day service is not possible for it.', '']
     names = {'all': 'Every job', 'emergency': 'Emergencies (' + ', '.join(bd.EMERGENCY_CODES) + ')', 'sales': 'Sales calls', 'other': 'Other jobs'}
     prompt = result['promptness']
     for group in bd.GROUPS:
@@ -288,6 +321,10 @@ def report(result):
                   table(['Period', 'Jobs P1', 'Jobs P2', 'Median P1 (days)', 'Median P2 (days)'], first, text=(0,)), '',
                   'The same rows with the 90th percentile and the jobs served within 5 weekdays:', '',
                   table(['Period', 'p90 P1 (days)', 'p90 P2 (days)', 'In 5 weekdays P1', 'In 5 weekdays P2'], second, text=(0,)), '']
+    paired = [[label(k), number(r['requests']), signed(float(r['median'])), number(r['sooner']), number(r['same']), number(r['later'])]
+              for k in keys if (r := prompt['paired'].get(k)) is not None]
+    lines += ["The table pairs each request with itself and reads Part 2's service date minus the dispatcher's: the median difference and the requests Part 2 served sooner, on the same day or later. Negative is sooner for Part 2.", '',
+              table(['Period', 'Requests', 'Median P2 minus P1 (days)', 'Sooner', 'Same day', 'Later'], paired, text=(0,)), '']
     a, b = prompt['part1WithoutLongLeads'].get('study', {}).get('all'), prompt['part2WithoutLongLeads'].get('study', {}).get('all')
     if a and b:
         lines += [f'Without the requests the dispatcher served more than 30 days out, the study medians are {number(float(a["medianDays"]))} days for Part 1 and {number(float(b["medianDays"]))} for Part 2 (90th percentiles {a["p90Days"]} and {b["p90Days"]}).', '']

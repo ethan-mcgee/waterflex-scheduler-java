@@ -119,6 +119,31 @@ class CompareTest(unittest.TestCase):
         self.assertEqual(4, without, 'wo-5, the only long lead, was turned away and is in neither')
         self.assertEqual({'counts': {'BOOKED': 4, 'TURNED_AWAY': 1}, 'undecided': 0, 'calledBack': 2, 'turnedAwayEmergencies': 0}, self.result['demand'])
 
+    def test_each_request_is_paired_with_itself(self):
+        # Part 2 minus the dispatcher: wo-1, wo-2 and wo-3 a day later, wo-4 four days later; wo-5 was turned away.
+        self.assertEqual({'requests': 4, 'median': 1.0, 'sooner': 0, 'same': 0, 'later': 4}, self.result['promptness']['paired']['study'])
+
+    def test_part1_promptness_reads_the_dispatcher_date_even_off_the_scored_days(self):
+        # A short run scores a few days only; a request the dispatcher served after them must still count, at its own lead.
+        requests = {'x': request('x', '2024-03-01', '2024-03-20'), 'y': request('y', '2024-03-01', '2024-03-04')}
+        outcomes = {'x': {'outcome': 'BOOKED', 'serviceDate': '2024-03-05', 'attempts': 1},
+                    'y': {'outcome': 'TURNED_AWAY', 'serviceDate': None, 'attempts': 11}}
+        part1 = bc.part1_promptness(outcomes, requests)['study']['all']
+        self.assertEqual((1, 19), (part1['jobs'], part1['medianDays']), 'only the booked request, at the dispatcher date')
+        self.assertEqual(4, bc.part2_promptness(outcomes, requests)['study']['all']['medianDays'])
+
+    def test_a_booked_request_without_a_dispatcher_date_is_refused(self):
+        broken = dict(request('x', '2024-03-01', '2024-03-04'), dispatcher={'serviceDate': None})
+        with self.assertRaises(bc.CompareError):
+            bc.part1_promptness({'x': {'outcome': 'BOOKED', 'serviceDate': '2024-03-05', 'attempts': 1}}, {'x': broken})
+
+    def test_counts_print_as_whole_numbers(self):
+        text = bc.report(self.result)
+        rows = [line for line in text.splitlines() if line.startswith('| Study ')]
+        self.assertIn(['Study', '1', '0', '1', '0'], [[c.strip() for c in line.strip('|').split('|')] for line in rows],
+                      'late visits and routes not holding are counts')
+        self.assertIn('Median P2 minus P1 (days)', text)
+
     def test_booking_and_overnight_readings(self):
         booking = self.result['booking']
         self.assertEqual((5, 1), (booking['searches'], booking['capStops']))
