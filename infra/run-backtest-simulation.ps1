@@ -67,7 +67,11 @@ if (-not (Test-Path -LiteralPath $envFile)) { throw "No rehearsal env file at $e
 $settings = @{}
 foreach ($line in Get-Content -LiteralPath $envFile) { if ($line -match '^([A-Z0-9_]+)=(.*)$') { $settings[$Matches[1]] = $Matches[2] } }
 $metro = (Get-Content -LiteralPath (Join-Path $run 'study-config.json') -Raw | ConvertFrom-Json).metroId
-if ($settings['ROUTING_METRO_URLS'] -notmatch "(^|,)$metro=") { throw "$RehearsalEnv routes no $metro (ROUTING_METRO_URLS); see deploy/vm/README.md, Another metro" }
+$route = @($settings['ROUTING_METRO_URLS'] -split ',' | Where-Object { $_ -like "$metro=*" })
+if ($route.Count -ne 1) { throw "$RehearsalEnv routes no $metro (ROUTING_METRO_URLS); see deploy/vm/README.md, Another metro" }
+# Each replica's readiness probes every metro it routes, and the env file's other metros (metro-omaha on the development
+# stack's routing) need not be running; the stack routes only the metro under study.
+$metroRoutes = $route[0]
 try { $health = Invoke-RestMethod "$RoutingUrl/health" -TimeoutSec 10 } catch { throw "routing-preview does not answer at $RoutingUrl (docker compose -f docker-compose.yml -f docker-compose.map-preview.yml up -d --no-deps nominatim-preview routing-preview)" }
 if (-not $health.ready -or $health.routingIdentity -ne $identity) { throw "routing-preview serves $($health.routingIdentity), the run was imported on $identity" }
 $java = Join-Path $JavaHome 'bin\java.exe'
@@ -170,8 +174,8 @@ if ($profiles) {
 }
 $compose += @('--env-file', $envFile)
 $saved = @{}
-foreach ($key in @('SCHEDULER_IMAGE', 'SCHEDULER_PULL_POLICY', 'SCHEDULER_DAILY_REPLICAS', 'SCHEDULER_STUDY_PROFILES', 'ROUTING_AUTH_TOKEN')) { $saved[$key] = [Environment]::GetEnvironmentVariable($key) }
-$env:SCHEDULER_IMAGE = $image; $env:SCHEDULER_PULL_POLICY = 'never'; $env:SCHEDULER_DAILY_REPLICAS = '2'
+foreach ($key in @('SCHEDULER_IMAGE', 'SCHEDULER_PULL_POLICY', 'SCHEDULER_DAILY_REPLICAS', 'SCHEDULER_STUDY_PROFILES', 'ROUTING_AUTH_TOKEN', 'ROUTING_METRO_URLS')) { $saved[$key] = [Environment]::GetEnvironmentVariable($key) }
+$env:SCHEDULER_IMAGE = $image; $env:SCHEDULER_PULL_POLICY = 'never'; $env:SCHEDULER_DAILY_REPLICAS = '2'; $env:ROUTING_METRO_URLS = $metroRoutes
 $env:SCHEDULER_STUDY_PROFILES = if ($profiles) { '/profiles' } else { '' }
 # The export reads new road legs from routing-preview with the development stack's routing token, from the env file.
 $env:ROUTING_AUTH_TOKEN = $settings['ROUTING_AUTH_TOKEN']
@@ -234,6 +238,11 @@ try {
     }
     # Each daily replica's log, kept before the stack stops.
     foreach ($id in @($daily)) { if ($id) { & docker logs --timestamps $id 2>&1 | ForEach-Object { "$_" } | Set-Content -LiteralPath (Join-Path $logs "scheduler-daily-$id.log") -Encoding utf8 } }
+    # A stack that never became healthy has no replica list yet: keep every scheduler service's state and log instead.
+    if (@($daily | Where-Object { $_ }).Count -eq 0) {
+        & docker @($compose + @('ps', '-a')) *> (Join-Path $logs 'unhealthy-ps.log')
+        & docker @($compose + @('logs', '--no-color', '--timestamps', 'scheduler-daily', 'scheduler-booking', 'scheduler-proxy')) *> (Join-Path $logs 'unhealthy-stack.log')
+    }
     & docker @($compose + @('down')) *> (Join-Path $logs 'down.log')
     foreach ($key in @($saved.Keys)) { if ($null -eq $saved[$key]) { Remove-Item -Path "env:$key" -ErrorAction SilentlyContinue } else { Set-Item -Path "env:$key" -Value $saved[$key] } }
     [Backtest.Power]::SetThreadExecutionState([uint32]'0x80000000') | Out-Null
