@@ -155,6 +155,11 @@ if ($Smoke) {
 
 # The stack on the revision's image, every replica checked to run it.
 $compose = @('compose', '-f', (Join-Path $main 'deploy/vm/docker-compose.yml'), '-f', (Join-Path $main 'deploy/vm/rehearsal.override.yml'))
+# rehearsal.override.yml publishes the daily pool's management port on one fixed loopback port, which only one replica
+# can bind; the simulation reads no replica metrics, so the two daily replicas publish nothing.
+$unpublished = Join-Path $logs 'daily-unpublished.yml'
+@('services:', '  scheduler-daily:', '    ports: !reset []') | Set-Content -LiteralPath $unpublished -Encoding ascii
+$compose += @('-f', $unpublished)
 $profiles = -not $NoProfiles
 if ($profiles) {
     $profileDirectory = Join-Path $simulations "$Name-profiles"
