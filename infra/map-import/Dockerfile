@@ -4,5 +4,6 @@ COPY prepare.sh /usr/local/bin/prepare-map
 COPY finalize.py /usr/local/bin/finalize-map.py
 COPY verify.py /usr/local/bin/verify-map.py
 COPY filter_tiger.py /usr/local/bin/filter-tiger.py
+COPY region.py /usr/local/bin/region-map.py
 RUN chmod +x /usr/local/bin/prepare-map
 ENTRYPOINT ["/usr/local/bin/prepare-map"]

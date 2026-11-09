@@ -1,0 +1,17 @@
+{
+  "name": "omaha",
+  "sources": ["nebraska", "iowa", "missouri"],
+  "clip": null,
+  "samples": [
+    {"name": "Omaha", "lat": 41.25855, "lng": -95.92929},
+    {"name": "Lincoln", "lat": 40.81362, "lng": -96.7026},
+    {"name": "Fremont", "lat": 41.4333, "lng": -96.498},
+    {"name": "Tekamah", "lat": 41.7783, "lng": -96.2211},
+    {"name": "West Point", "lat": 41.8417, "lng": -96.7086},
+    {"name": "Oakland Iowa", "lat": 41.309, "lng": -95.3967},
+    {"name": "Atlantic Iowa", "lat": 41.4036, "lng": -95.0139},
+    {"name": "Rock Port Missouri", "lat": 40.4111, "lng": -95.5169},
+    {"name": "Tarkio Missouri", "lat": 40.4403, "lng": -95.3775},
+    {"name": "Auburn", "lat": 40.3931, "lng": -95.838}
+  ]
+}

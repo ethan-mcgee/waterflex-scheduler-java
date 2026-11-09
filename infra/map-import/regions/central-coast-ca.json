@@ -1,0 +1,17 @@
+{
+  "name": "central-coast-ca",
+  "sources": ["california"],
+  "clip": {"west": -121.5, "south": 34.3, "east": -119.4, "north": 36.3},
+  "samples": [
+    {"name": "Paso Robles", "lat": 35.6266, "lng": -120.691},
+    {"name": "Templeton", "lat": 35.5497, "lng": -120.7061},
+    {"name": "Atascadero", "lat": 35.4894, "lng": -120.6707},
+    {"name": "San Luis Obispo", "lat": 35.2828, "lng": -120.6596},
+    {"name": "Arroyo Grande", "lat": 35.1186, "lng": -120.5908},
+    {"name": "Nipomo", "lat": 35.0428, "lng": -120.476},
+    {"name": "Santa Maria", "lat": 34.953, "lng": -120.4357},
+    {"name": "Guadalupe", "lat": 34.9717, "lng": -120.5718},
+    {"name": "San Miguel", "lat": 35.7525, "lng": -120.6963},
+    {"name": "Bradley", "lat": 35.8647, "lng": -120.8016}
+  ]
+}

@@ -1,6 +1,7 @@
-param([Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9._-]+$')][string]$Version)
+# -SkipDepotCoverage leaves out the portal depot check (DATABASE_URL) for a study region without portal depots.
+param([Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9._-]+$')][string]$Version, [switch]$SkipDepotCoverage)
 if ($Version -in @('.', '..')) { throw 'Invalid version' }
-if (-not $env:DATABASE_URL) { throw 'Set DATABASE_URL for current depot coverage validation' }
+if (-not $SkipDepotCoverage -and -not $env:DATABASE_URL) { throw 'Set DATABASE_URL for current depot coverage validation, or pass -SkipDepotCoverage' }
 $env:PREVIEW_MAP_VERSION = $Version
 # validate-map.py calls routing's token-protected endpoints; use the same local-only default as Compose when unset.
 if (-not $env:ROUTING_AUTH_TOKEN) { $env:ROUTING_AUTH_TOKEN = 'local-compose-routing-token-not-for-production' }
@@ -13,8 +14,10 @@ New-Item -ItemType Directory -Force -Path $directory | Out-Null
 $manifest = Join-Path $directory 'manifest.json'
 docker cp "${previewId}:/maps/versions/$Version/manifest.json" $manifest
 if ($LASTEXITCODE -ne 0) { throw 'Could not read prepared manifest' }
-node --import ./web/node_modules/tsx/dist/loader.mjs ./web/scripts/map-coverage.ts $manifest
-if ($LASTEXITCODE -ne 0) { throw 'Current depot coverage exceeds prepared maps' }
+if (-not $SkipDepotCoverage) {
+    node --import ./web/node_modules/tsx/dist/loader.mjs ./web/scripts/map-coverage.ts $manifest
+    if ($LASTEXITCODE -ne 0) { throw 'Current depot coverage exceeds prepared maps' }
+}
 $validation = python "$PSScriptRoot/validate-map.py" $manifest
 if ($LASTEXITCODE -ne 0) { throw 'Preview map validation failed; activation remains blocked' }
 $report = Join-Path $directory 'validated.json'
