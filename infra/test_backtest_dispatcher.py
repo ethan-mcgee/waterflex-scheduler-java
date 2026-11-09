@@ -1,5 +1,6 @@
 """Regression coverage for infra/backtest_dispatcher.py on a synthetic as-run run: no real row appears here."""
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,11 +8,12 @@ from pathlib import Path
 import backtest_dispatcher as bd
 
 
-def route(tech, visits, paid, overtime, drive, meters, late=0, lateness=0, holds=True, availability=0, unpaid=None):
-    """A route as the scorer pays it. Without unpaid, a route paid more than 300 minutes was longer than 6 hours depot to
-    depot and has its 60 minute lunch; one paid 300 or less was not."""
-    unpaid = (60 if paid > 300 else 0) if unpaid is None else unpaid
-    return {'technicianId': tech, 'holds': holds, 'visits': visits, 'paidMinutes': paid, 'overtimeMinutes': overtime, 'unpaidMinutes': unpaid, 'driveMinutes': drive,
+def route(tech, visits, paid, overtime, drive, meters, late=0, lateness=0, holds=True, availability=0, unpaid=None, double=None):
+    """A route as the scorer pays it. Without unpaid: a route paid 300 minutes or less had no meal; one paid up to 600
+    had its 60 minute lunch and no more than 10 hours of work after it; one paid more had both meal periods (90)."""
+    unpaid = (0 if paid <= 300 else 60 if paid <= 600 else 90) if unpaid is None else unpaid
+    double = max(0, paid - 720) if double is None else double  # past 12 hours; a seventh day in a row says its own
+    return {'technicianId': tech, 'holds': holds, 'visits': visits, 'paidMinutes': paid, 'overtimeMinutes': overtime, 'doubleTimeMinutes': double, 'unpaidMinutes': unpaid, 'driveMinutes': drive,
             'meters': meters, 'latenessSeconds': lateness, 'lateVisits': late, 'availabilitySeconds': availability, 'unavailableRoads': 0,
             'qualifications': 0, 'capacityMinutes': 0, 'waitingMinutes': 0, 'bufferSeconds': 0, 'arrivals': {}}
 
@@ -20,7 +22,7 @@ def row(routes, cost, regular, overtime_cents, mileage):
     total = lambda name: sum(r[name] for r in routes)
     return {'feasible': all(r['holds'] for r in routes), 'routesHold': all(r['holds'] for r in routes), 'costCents': cost, 'regularCents': regular,
             'overtimeCents': overtime_cents, 'mileageCents': mileage, 'paidMinutes': total('paidMinutes'), 'overtimeMinutes': total('overtimeMinutes'),
-            'unpaidMinutes': total('unpaidMinutes'), 'driveMinutes': total('driveMinutes'), 'meters': total('meters'), 'latenessSeconds': total('latenessSeconds'), 'lateVisits': total('lateVisits'),
+            'doubleTimeMinutes': total('doubleTimeMinutes'), 'unpaidMinutes': total('unpaidMinutes'), 'driveMinutes': total('driveMinutes'), 'meters': total('meters'), 'latenessSeconds': total('latenessSeconds'), 'lateVisits': total('lateVisits'),
             'availabilitySeconds': total('availabilitySeconds'), 'pastShiftMinutes': -(-total('availabilitySeconds') // 60), 'unreachableLegs': 0,
             'routes': routes, 'datasetHash': 'h', 'planHash': 'p'}
 
@@ -29,13 +31,13 @@ def visit(code, lead, sales=False):
     return {'tags': [code], 'salesCall': sales, 'requestLeadDays': lead, 'technician': 't01', 'flags': []}
 
 
-# Three service dates: a Monday in March 2024, a Friday in April 2024 and a Monday in January 2025. The Friday runs an
-# hour past 17:00, which is time outside the shift and not overtime: no week here reaches 40 paid hours.
+# Three service dates: a Monday in March 2024, a Friday in April 2024 and a Monday in January 2025. The Friday is 10
+# paid hours, 2 of them past 8 and so overtime; its hour past 17:00 is time outside the shift, not overtime in itself.
 DAYS = {
     '2024-03-04': ([route('t01', 2, 480, 0, 60, 40000), route('t02', 1, 300, 0, 30, 20000)], (16000, 15000, 0, 1000),
                    {'wo-2': visit('R15', 3), 'wo-3': visit('P02', 0), 'wo-4': visit('X01', 10, sales=True)}),
-    '2024-04-05': ([route('t01', 1, 600, 0, 90, 80000, late=1, lateness=900, holds=False, availability=3600), route('t02', 0, 0, 0, 0, 0)],
-                   (31000, 29500, 0, 1500), {'wo-5': visit('R11', 1)}),
+    '2024-04-05': ([route('t01', 1, 600, 120, 90, 80000, late=1, lateness=900, holds=False, availability=3600), route('t02', 0, 0, 0, 0, 0)],
+                   (34500, 24000, 9000, 1500), {'wo-5': visit('R11', 1)}),
     '2025-01-06': ([route('t01', 1, 200, 0, 20, 10000)], (6000, 5500, 0, 500), {'wo-6': visit('R15', 3)}),
 }
 DEPOTS = {'2024-03-04': {'t01': 'paso-robles', 't02': 'santa-maria'}, '2024-04-05': {'t01': 'santa-maria', 't02': 'santa-maria'},
@@ -44,10 +46,17 @@ DEPOTS = {'2024-03-04': {'t01': 'paso-robles', 't02': 'santa-maria'}, '2024-04-0
 
 # Saturday 2024-03-09 as the scorer prices it: 300 paid minutes, all of them overtime at $45 an hour, and $10 of mileage.
 SATURDAY = {'2024-03-09': ([route('t01', 1, 300, 300, 30, 20000)], (23500, 0, 22500, 1000), {'wo-7': visit('R15', 1)})}
-# Monday 2024-03-11 to Friday 2024-03-15 as the scorer pays them: t01 is out 700 minutes a day, 640 of them paid, so the
-# week's 3,200 paid minutes pass 2,400 on the Thursday: 160 minutes of overtime there and all 640 on the Friday.
+# Monday 2024-03-11 to Friday 2024-03-15 as the scorer pays them: t01 is out 730 minutes a day, 640 of them paid, 160
+# past 8 hours. Its 480 regular minutes a day make 2,400 in the week, so the week adds no overtime.
 WEEK = {f'2024-03-{11 + index}': ([route('t01', 1, 640, overtime, 60, 16093)], (50 * (640 - overtime) + 75 * overtime + 1000, 50 * (640 - overtime), 75 * overtime, 1000),
-                                  {f'wo-1{index}': visit('R15', 1)}) for index, overtime in enumerate((0, 0, 0, 160, 640))}
+                                  {f'wo-1{index}': visit('R15', 1)}) for index, overtime in enumerate((160,) * 5)}
+# Monday 2024-03-18 to Sunday 2024-03-24: t01 works all seven days. The Monday is 780 paid minutes (240 past 8 hours, 60 of
+# them past 12 at double time, $60 an hour); the Saturday is all overtime; the Sunday, its seventh day in a row, is all
+# overtime with double time past 8 hours.
+SEVEN = {'2024-03-18': ([route('t01', 1, 780, 300, 60, 16093)], (24000 + 24000 + 1000, 24000, 24000, 1000), {'wo-30': visit('R15', 1)}),
+         **{f'2024-03-{day}': ([route('t01', 1, 480, 0, 60, 16093)], (25000, 24000, 0, 1000), {f'wo-{day}': visit('R15', 1)}) for day in range(19, 23)},
+         '2024-03-23': ([route('t01', 1, 480, 480, 60, 16093)], (37000, 0, 36000, 1000), {'wo-23': visit('R15', 1)}),
+         '2024-03-24': ([route('t01', 1, 600, 600, 60, 16093, double=120)], (49000, 0, 48000, 1000), {'wo-24': visit('R15', 1)})}
 
 
 def write_run(directory, rule='as-run', drop=None, extra=None, change=None, more=None, marked=True, pay_rule=None):
@@ -103,12 +112,12 @@ class DispatcherSummaryTest(unittest.TestCase):
         self.assertEqual(3, route['study']['days'])
         self.assertEqual(5, route['study']['jobs'])
         self.assertEqual(4, route['study']['technicianDays'], 'an empty route is not a technician-day with work')
-        self.assertEqual(0, route['study']['overtimeTechnicianDays'], 'an hour past 17:00 is not overtime')
-        self.assertEqual(0, route['2024-Q2']['overtimeMinutes'])
-        self.assertEqual(0, route['2024']['overtimeCents'])
+        self.assertEqual(1, route['study']['overtimeTechnicianDays'], 'the Friday of 10 paid hours')
+        self.assertEqual(120, route['2024-Q2']['overtimeMinutes'], 'the 2 paid hours past 8, not the hour past 17:00')
+        self.assertEqual(9000, route['2024']['overtimeCents'])
         self.assertEqual(120, route['study']['unpaidMinutes'], 'the lunch of the two technician-days longer than 6 hours')
         self.assertEqual(60, route['2024-04']['unpaidMinutes'])
-        self.assertEqual(53000, route['study']['costCents'])
+        self.assertEqual(56500, route['study']['costCents'])
         self.assertEqual(route['study']['regularCents'] + route['study']['overtimeCents'] + route['study']['mileageCents'], route['study']['costCents'])
         self.assertEqual(200, route['study']['driveMinutes'])
         self.assertEqual(180, route['2024']['driveMinutes'])
@@ -149,28 +158,51 @@ class DispatcherSummaryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as other:
             result = bd.summarize(*write_run(other, more=SATURDAY))
         self.assertEqual({'days': 1, 'jobs': 1, 'technicianDays': 1, 'paidMinutes': 300, 'overtimeMinutes': 300, 'costCents': 23500}, result['weekend'])
-        self.assertEqual(1, result['route']['study']['overtimeTechnicianDays'], 'the Saturday, and not the Friday past 17:00')
-        self.assertEqual(300, result['route']['study']['overtimeMinutes'])
+        self.assertEqual(2, result['route']['study']['overtimeTechnicianDays'], 'the Friday past 8 paid hours and the Saturday')
+        self.assertEqual(420, result['route']['study']['overtimeMinutes'])
         text = bd.report(result)
-        self.assertIn('on a Saturday or a Sunday it is every paid minute', text)
+        self.assertIn('On a Saturday or a Sunday it is every paid minute', text)
         self.assertIn("Of the study's overtime, 5.0 hours are weekend work: 1 technician-days on 1 Saturdays and Sundays with 1 jobs, costing $235.00", text)
 
-    def test_weekday_overtime_is_the_paid_time_past_40_hours_in_the_technicians_week(self):
+    def test_weekday_overtime_is_the_paid_time_past_8_hours_in_the_day(self):
         with tempfile.TemporaryDirectory() as other:
             result = bd.summarize(*write_run(other, more=WEEK))
         route = result['route']
-        self.assertEqual(800, route['study']['overtimeMinutes'], '3,200 paid minutes in the week, 2,400 of them regular')
-        self.assertEqual(2, route['study']['overtimeTechnicianDays'], 'the Thursday and the Friday')
+        self.assertEqual(920, route['study']['overtimeMinutes'], '160 on each of the five days and the 120 of 2024-04-05')
+        self.assertEqual(6, route['study']['overtimeTechnicianDays'])
         self.assertEqual(60000, route['2024-03']['overtimeCents'], '800 minutes at $45 an hour')
-        self.assertEqual(420, route['study']['unpaidMinutes'], 'five more lunches')
+        self.assertEqual(0, route['study']['doubleTimeMinutes'])
+        self.assertEqual(570, route['study']['unpaidMinutes'], 'five more days with both meal periods')
         week = next(w for w in result['weeks'] if w['week'] == '2024-03-11')
-        self.assertEqual((3200, 800, 300), (week['paidMinutes'], week['overtimeMinutes'], week['unpaidMinutes']))
-        self.assertEqual((800, 2), (result['technicians']['t01']['overtimeMinutes'], result['technicians']['t01']['overtimeTechnicianDays']))
+        self.assertEqual((3200, 800, 450), (week['paidMinutes'], week['overtimeMinutes'], week['unpaidMinutes']))
+        self.assertEqual((920, 6), (result['technicians']['t01']['overtimeMinutes'], result['technicians']['t01']['overtimeTechnicianDays']))
         text = bd.report(result)
-        self.assertIn("Overtime on a weekday is the technician's paid minutes past 40 hours in the Monday-to-Friday week, counted on the day they fall", text)
+        self.assertIn("Overtime on a weekday is the technician's paid time past 8 hours in the day, with double time past 12, as California law sets it", text)
+        self.assertIn('| Double time (h) |', text)
         self.assertIn('Work after 17:00 is not overtime in itself', text)
-        self.assertIn('Paid hours leave out the unpaid lunch, 7.0 hours in the study.', text)
+        self.assertIn('Paid hours leave out the unpaid meal periods, 9.5 hours in the study.', text)
+        self.assertIn('unpaid meal periods as California law sets them, with no waiver', text)
         self.assertNotIn('from 17:00 until the technician is back', text)
+
+    def test_double_time_is_paid_past_12_hours_and_past_8_on_a_seventh_day_in_a_row(self):
+        with tempfile.TemporaryDirectory() as other:
+            result = bd.summarize(*write_run(other, more=SEVEN))
+        totals = result['route']
+        self.assertEqual(180, totals['study']['doubleTimeMinutes'], '60 on the Monday and 120 on the seventh day')
+        self.assertEqual(120 + 300 + 480 + 600, totals['study']['overtimeMinutes'])
+        week = next(w for w in result['weeks'] if w['week'] == '2024-03-18')
+        self.assertEqual((1380, 180), (week['overtimeMinutes'], week['doubleTimeMinutes']))
+        # The same Sunday after a Saturday off is not a seventh day in a row: it has no double time.
+        rested = {day: value for day, value in SEVEN.items() if day != '2024-03-23'}
+        rested['2024-03-24'] = ([route('t01', 1, 600, 600, 60, 16093)], (46000, 0, 45000, 1000), {'wo-24': visit('R15', 1)})
+        with tempfile.TemporaryDirectory() as other:
+            self.assertEqual(60, bd.summarize(*write_run(other, more=rested))['route']['study']['doubleTimeMinutes'])
+        with tempfile.TemporaryDirectory() as other:
+            with self.assertRaisesRegex(bd.SummaryError, re.escape('2024-03-24: t01 has 600 overtime minutes (120 double time) where the rule gives 600 (0)')):
+                bd.summarize(*write_run(other, more=dict(rested, **{'2024-03-24': SEVEN['2024-03-24']})))
+        with tempfile.TemporaryDirectory() as other:
+            with self.assertRaisesRegex(bd.SummaryError, re.escape('2024-03-24: t01 has 600 overtime minutes (0 double time) where the rule gives 600 (120)')):
+                bd.summarize(*write_run(other, more=dict(SEVEN, **{'2024-03-24': rested['2024-03-24']})))
 
     def test_rows_that_do_not_hold_the_pay_rule_are_refused(self):
         # A row file without the scorer's mark or with another rule's, and marked ones whose minutes the rule does not give.
@@ -186,19 +218,22 @@ class DispatcherSummaryTest(unittest.TestCase):
         cases = [
             # The engine's reading, before any pay: no lunch on a day of 480 minutes.
             ('2024-03-04', lambda r: r['routes'][0].__setitem__('unpaidMinutes', 0), '2024-03-04: t01 has 0 unpaid minutes on a day of 480 minutes depot to depot'),
-            # A lunch on a day of 6 hours or less.
+            # A lunch on a day of 5 hours or less.
             ('2025-01-06', both('unpaidMinutes', 60), '2025-01-06: t01 has 60 unpaid minutes on a day of 260 minutes depot to depot'),
-            # Overtime after 17:00, as the scorer counted it before the rule.
-            ('2024-04-05', both('overtimeMinutes', 60), '2024-04-05: t01 has 60 overtime minutes where the week gives 0'),
-            # The week's overtime left off the day it falls on, and put on a day before the week reaches 40 hours.
-            ('2024-03-14', both('overtimeMinutes', 0), '2024-03-14: t01 has 0 overtime minutes where the week gives 160'),
-            ('2024-03-12', both('overtimeMinutes', 160), '2024-03-12: t01 has 160 overtime minutes where the week gives 0'),
+            # Overtime after 17:00, as the scorer counted it before the rule, instead of the time past 8 hours.
+            ('2024-04-05', both('overtimeMinutes', 60), '2024-04-05: t01 has 60 overtime minutes (0 double time) where the rule gives 120 (0)'),
+            # The lunch alone on a day whose work after it still passes 10 hours: the second meal period is missing.
+            ('2024-03-15', both('unpaidMinutes', 60), '2024-03-15: t01 has 60 unpaid minutes on a day of 700 minutes depot to depot'),
+            # The day's overtime left off, and double time on a day of less than 12 paid hours.
+            ('2024-03-14', both('overtimeMinutes', 0), '2024-03-14: t01 has 0 overtime minutes (0 double time) where the rule gives 160 (0)'),
+            ('2024-03-12', both('doubleTimeMinutes', 10), '2024-03-12: t01 has 160 overtime minutes (10 double time) where the rule gives 160 (0)'),
+            ('2024-03-15', lambda r: r.__setitem__('doubleTimeMinutes', 5), "2024-03-15: the routes do not sum to the day's doubleTimeMinutes"),
             ('2024-03-15', lambda r: r.__setitem__('paidMinutes', 641), "2024-03-15: the routes do not sum to the day's paidMinutes"),
             ('2024-03-15', lambda r: r.__setitem__('overtimeMinutes', 0), "2024-03-15: the routes do not sum to the day's overtimeMinutes"),
             ('2024-03-15', lambda r: r['routes'].append(dict(r['routes'][0], visits=0)), '2024-03-15: two routes of t01')]
         for day, change, message in cases:
             with tempfile.TemporaryDirectory() as other:
-                with self.assertRaisesRegex(bd.SummaryError, message):
+                with self.assertRaisesRegex(bd.SummaryError, re.escape(message)):
                     bd.summarize(*write_run(other, more=WEEK, change={day: change}))
         # A Saturday still priced as a weekday.
         weekday = lambda r: (r.__setitem__('overtimeMinutes', 0), r['routes'][0].__setitem__('overtimeMinutes', 0), r.__setitem__('regularCents', 15000))
@@ -219,6 +254,8 @@ class DispatcherSummaryTest(unittest.TestCase):
                  dict(change={'2024-03-04': lambda r: r.pop('mileageCents')}),
                  dict(change={'2024-03-04': lambda r: r.pop('unpaidMinutes')}),
                  dict(change={'2024-03-04': lambda r: r['routes'][0].pop('unpaidMinutes')}),
+                 dict(change={'2024-03-04': lambda r: r.pop('doubleTimeMinutes')}),
+                 dict(change={'2024-03-04': lambda r: r['routes'][0].pop('doubleTimeMinutes')}),
                  dict(change={'2024-03-04': lambda r: r['routes'][0].__setitem__('unpaidMinutes', None)}),
                  dict(change={'2024-03-04': lambda r: r['routes'][0].__setitem__('visits', 5)})]
         for case in cases:

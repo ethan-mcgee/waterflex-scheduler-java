@@ -307,9 +307,10 @@ def report(result, title=TITLE):
              + (', cut short: a smoke or calibration run, not the study result' if result['partial'] else '') + '). '
              'Part 1 is the dispatcher\'s schedule as it ran, on the jobs Part 2 also served; Part 2 is the product booking every request through the public API '
              'and optimizing every night. Both are scored by the same scorer, on booked durations, with each technician-day starting and ending at its depot. '
-             'Paid hours leave out a 1 hour unpaid lunch on each technician-day longer than 6 hours depot to depot. Overtime is a technician\'s paid time past '
-             '40 hours in a Monday-to-Friday week, counted on the day it falls, and every paid minute of a Saturday or a Sunday. Work after 17:00 is not overtime '
-             'in itself; it is the `outsideShiftMinutes` bar. '
+             'Paid hours leave out the unpaid meal periods California law requires, with no waiver: a 1 hour lunch once a technician-day passes 5 hours of work, '
+             'and 30 minutes more once it passes 10. Overtime is as California law sets it: a technician\'s paid time past 8 hours in a day, with double time '
+             'past 12, regular time past 40 hours in a Monday-to-Friday week, and double time past 8 hours on a seventh day in a row; and every paid minute of a '
+             'Saturday or a Sunday, by the dealership\'s rule. Work after 17:00 is not overtime in itself; it is the `outsideShiftMinutes` bar. '
              f'The history ends on {last.isoformat()}; Part 2\'s days after it use the repeated roster and have no dispatcher counterpart.', '',
              ' '.join(design), '',
              '## Validity', '',

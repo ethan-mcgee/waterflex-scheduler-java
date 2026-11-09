@@ -6,9 +6,11 @@ in numbers; this script writes that job and then summarizes its rows with each d
 overtime and its cost, customer windows, and promptness from the request date, for the full study, each year, quarter
 and month.
 
-Pay is the scorer's, by the dealership's rule (owner, 2026-11-09): a 1 hour unpaid lunch on a technician-day longer than
-6 hours depot to depot, overtime for a technician's paid minutes past 40 hours in a Monday-to-Friday week, and every paid
-minute of a Saturday or a Sunday as overtime. Rows paid under another rule, or under none, are refused, and the rule is
+Pay is the scorer's, by the dealership's rule (owner, 2026-11-09): unpaid meal periods as California Labor Code section
+512 sets them, with no waiver (a 1 hour lunch once a technician-day's work passes 5 hours, 30 minutes more once it passes
+10); overtime as section 510 sets it (paid time past 8 hours in a day, double time past 12, a technician's regular time
+past 40 hours in a Monday-to-Friday week, and double time past 8 hours on a seventh day in a row); and every paid minute
+of a Saturday or a Sunday as overtime. Rows paid under another rule, or under none, are refused, and the rule is
 checked again on the rows read.
 
     python infra/backtest_dispatcher.py job --run <as-run variant dir> --rows <rows.json> --job <job.json>
@@ -31,13 +33,25 @@ METERS_PER_MILE = Decimal('1609.344')
 # Owner, 2026-11-04: same-day emergencies, reported apart from the rest.
 EMERGENCY_CODES = ('P02', 'P03', 'R02')
 GROUPS = ('all', 'emergency', 'sales', 'other')
-ROUTE_FIELDS = ('technicianId', 'holds', 'visits', 'paidMinutes', 'overtimeMinutes', 'unpaidMinutes', 'driveMinutes', 'meters', 'latenessSeconds',
+ROUTE_FIELDS = ('technicianId', 'holds', 'visits', 'paidMinutes', 'overtimeMinutes', 'doubleTimeMinutes', 'unpaidMinutes', 'driveMinutes', 'meters', 'latenessSeconds',
                 'lateVisits', 'availabilitySeconds', 'unavailableRoads')
-ROW_FIELDS = ('feasible', 'routesHold', 'costCents', 'regularCents', 'overtimeCents', 'mileageCents', 'paidMinutes', 'overtimeMinutes', 'unpaidMinutes',
+ROW_FIELDS = ('feasible', 'routesHold', 'costCents', 'regularCents', 'overtimeCents', 'mileageCents', 'paidMinutes', 'overtimeMinutes', 'doubleTimeMinutes',
+              'unpaidMinutes',
               'driveMinutes', 'meters', 'latenessSeconds', 'lateVisits', 'availabilitySeconds', 'pastShiftMinutes', 'unreachableLegs', 'routes')
-# The scorer's pay rule (BacktestTool.PAY_RULE), as its rows file names it: 2,400 regular minutes in a technician's
-# Monday-to-Friday week, 60 unpaid minutes on a technician-day longer than 360 minutes depot to depot, weekends overtime.
-PAY_RULE = {'weeklyRegularMinutes': 2400, 'unpaidBreakMinutes': 60, 'unpaidBreakOverMinutes': 360, 'weekendOvertime': True}
+# The scorer's pay rule (BacktestTool.PAY_RULE), as its rows file names it: 480 regular minutes a day with double time
+# past 720 (past 480 on a seventh day in a row) at twice the regular rate, 2,400 regular minutes in a technician's
+# Monday-to-Friday week; 60 unpaid minutes once a technician-day's work passes 300 and 30 more once the work after them
+# passes 600 (California's meal periods); weekends overtime.
+PAY_RULE = {'dailyRegularMinutes': 480, 'dailyDoubleTimeAfterMinutes': 720, 'seventhDayDoubleTimeAfterMinutes': 480, 'weeklyRegularMinutes': 2400,
+            'doubleTimeMultiple': 2, 'firstMealMinutes': 60, 'firstMealAfterMinutes': 300, 'secondMealMinutes': 30,
+            'secondMealAfterMinutes': 600, 'weekendOvertime': True}
+
+
+def meals(span):
+    """The unpaid meal minutes of a technician-day span minutes long from depot to depot (PayRule.meals)."""
+    first = PAY_RULE['firstMealMinutes'] if span > PAY_RULE['firstMealAfterMinutes'] else 0
+    second = PAY_RULE['secondMealMinutes'] if first and span - first > PAY_RULE['secondMealAfterMinutes'] else 0
+    return first + second
 
 
 class SummaryError(ValueError):
@@ -117,9 +131,11 @@ def checked_row(day, row):
 
 def check_pay(by_day):
     """The rows hold the pay rule they are marked with. The scorer paid every technician's week over the days of its
-    file, so the same walk over the same rows must give the same minutes: the lunch of each route, the overtime of each
-    weekday route from the technician's paid minutes of the week so far, and every paid weekend minute as overtime."""
+    file, so the same walk over the same rows must give the same minutes: the meal periods of each route; on a weekday
+    the overtime past 8 hours, the double time past 12 and the regular time past the week's 40 hours so far; on a
+    weekend every paid minute as overtime, with double time past 12 hours, or past 8 on a seventh day in a row."""
     weeks = defaultdict(int)
+    worked = defaultdict(int)
     for day in sorted(by_day):
         row = by_day[day]
         weekend = is_weekend(day)
@@ -131,20 +147,29 @@ def check_pay(by_day):
             if technician in technicians:
                 raise SummaryError(f'{day}: two routes of {technician}')
             technicians.add(technician)
-            lunch = PAY_RULE['unpaidBreakMinutes'] if paid + unpaid > PAY_RULE['unpaidBreakOverMinutes'] else 0
-            if unpaid != lunch:
+            if unpaid != meals(paid + unpaid):
                 raise SummaryError(f'{day}: {technician} has {unpaid} unpaid minutes on a day of {paid + unpaid} minutes depot to depot')
-            if weekend:
+            key = (technician, monday)
+            seventh = date.weekday() == 6 and worked[key] == 6
+            if (weekend and PAY_RULE['weekendOvertime']) or seventh:
                 if route['overtimeMinutes'] != paid:
                     raise SummaryError(f'{day}: a weekend day whose paid minutes are not all overtime')
-                continue
-            weeks[(technician, monday)] += paid
-            overtime = max(0, min(paid, weeks[(technician, monday)] - PAY_RULE['weeklyRegularMinutes']))
-            if route['overtimeMinutes'] != overtime:
-                raise SummaryError(f'{day}: {technician} has {route["overtimeMinutes"]} overtime minutes where the week gives {overtime}')
+                overtime = paid
+                double = max(0, paid - PAY_RULE['seventhDayDoubleTimeAfterMinutes' if seventh else 'dailyDoubleTimeAfterMinutes'])
+            else:
+                double = max(0, paid - PAY_RULE['dailyDoubleTimeAfterMinutes'])
+                daily = max(0, min(paid, PAY_RULE['dailyDoubleTimeAfterMinutes']) - PAY_RULE['dailyRegularMinutes'])
+                regular = paid - daily - double
+                weeks[key] += regular
+                overtime = daily + double + max(0, min(regular, weeks[key] - PAY_RULE['weeklyRegularMinutes']))
+            if paid > 0:
+                worked[key] += 1
+            if (route['overtimeMinutes'], route['doubleTimeMinutes']) != (overtime, double):
+                raise SummaryError(f'{day}: {technician} has {route["overtimeMinutes"]} overtime minutes ({route["doubleTimeMinutes"]} double time) '
+                                   f'where the rule gives {overtime} ({double})')
         if weekend and (row['overtimeMinutes'] != row['paidMinutes'] or row['regularCents'] != 0):
             raise SummaryError(f'{day}: a weekend day whose paid minutes are not all overtime')
-        for name in ('paidMinutes', 'unpaidMinutes', 'overtimeMinutes'):
+        for name in ('paidMinutes', 'unpaidMinutes', 'overtimeMinutes', 'doubleTimeMinutes'):
             if row[name] != sum(route[name] for route in row['routes']):
                 raise SummaryError(f"{day}: the routes do not sum to the day's {name}")
 
@@ -158,7 +183,7 @@ def load(run, rows_path, rule='as-run', plan='as-planned.plan.json', directories
         raise SummaryError(f'The rows are not a backtest-score-days reading of {plan}')
     # Compared as written, so a rule of another type (1 for true) is another rule.
     if json.dumps(scored.get('payRule'), sort_keys=True) != json.dumps(PAY_RULE, sort_keys=True):
-        raise SummaryError('The rows were not paid under the weekly pay rule (40 hours a week, a 1 hour unpaid lunch, weekends as overtime); '
+        raise SummaryError('The rows were not paid under the weekly pay rule (California overtime and meal periods, weekends as overtime); '
                            'score the days again')
     by_day = {}
     for item in scored['rows']:
@@ -247,12 +272,12 @@ def route_measures(days):
             t['technicianDays'] += len(worked)
             t['overtimeTechnicianDays'] += sum(1 for route in worked if route['overtimeMinutes'] > 0)
             t['routesNotHolding'] += sum(1 for route in worked if not route['holds'])
-            for name in ('costCents', 'regularCents', 'overtimeCents', 'mileageCents', 'paidMinutes', 'overtimeMinutes', 'unpaidMinutes', 'driveMinutes',
+            for name in ('costCents', 'regularCents', 'overtimeCents', 'mileageCents', 'paidMinutes', 'overtimeMinutes', 'doubleTimeMinutes', 'unpaidMinutes', 'driveMinutes',
                          'meters', 'latenessSeconds', 'lateVisits', 'pastShiftMinutes', 'unreachableLegs'):
                 t[name] += row[name]
             technician_days[key] += [(route['paidMinutes'], route['driveMinutes'], route['overtimeMinutes']) for route in worked]
         week = weeks[monday.isoformat()]
-        for name in ('costCents', 'paidMinutes', 'overtimeMinutes', 'unpaidMinutes', 'driveMinutes', 'meters'):
+        for name in ('costCents', 'paidMinutes', 'overtimeMinutes', 'doubleTimeMinutes', 'unpaidMinutes', 'driveMinutes', 'meters'):
             week[name] += row[name]
         week['jobs'] += entry['jobs']
     return totals, technician_days, weeks
@@ -388,9 +413,9 @@ def report(result, title=TITLE):
                f'{number(w["days"])} Saturdays and Sundays with {number(w["jobs"])} jobs, costing ${dollars(w["costCents"])} with their mileage.'
                if w['days'] else 'No job was served on a Saturday or a Sunday.')
     lines = [f'# {checked_title(title)}', '',
-             f'Generated by `infra/backtest_dispatcher.py` from run `{result["runId"]}` (rule set `{result["ruleSet"]}`, routing identity `{result["routingIdentity"][:12]}`). Every kept job is scored at its booked time in the dispatcher\'s order, each technician-day starting and ending at its technician\'s depot, shifts 08:00 to 17:00, with lateness and work past 17:00 measured rather than refused. Pay follows the dealership\'s rule: a 1 hour unpaid lunch on a technician-day longer than 6 hours depot to depot, overtime for a technician\'s paid hours past 40 in a Monday-to-Friday week, and overtime for every paid minute of a Saturday or a Sunday. Job lengths are the booked durations, which can run longer than the work took, so overtime here is the booked load, not the hours paid. Route measures fall in the period of the service date; promptness falls in the period of the request date. The data ends on {last.isoformat()}, so that year, quarter and month are partial.', '',
+             f'Generated by `infra/backtest_dispatcher.py` from run `{result["runId"]}` (rule set `{result["ruleSet"]}`, routing identity `{result["routingIdentity"][:12]}`). Every kept job is scored at its booked time in the dispatcher\'s order, each technician-day starting and ending at its technician\'s depot, shifts 08:00 to 17:00, with lateness and work past 17:00 measured rather than refused. Pay follows the dealership\'s rule: unpaid meal periods as California law sets them, with no waiver (a 1 hour lunch once a technician-day passes 5 hours of work, and 30 minutes more once it passes 10), overtime as California sets it (paid time past 8 hours in a day, double time past 12, regular time past 40 hours in a Monday-to-Friday week, and double time past 8 hours on a seventh day in a row), and overtime for every paid minute of a Saturday or a Sunday. Job lengths are the booked durations, which can run longer than the work took, so overtime here is the booked load, not the hours paid. Route measures fall in the period of the service date; promptness falls in the period of the request date. The data ends on {last.isoformat()}, so that year, quarter and month are partial.', '',
              '## Routes', '',
-             f'The table shows the dispatcher\'s days, technician-days with work, jobs, driving, miles and paid hours in each period. Paid hours leave out the unpaid lunch, {number(r["study"]["unpaidMinutes"] / 60)} hours in the study.', '',
+             f'The table shows the dispatcher\'s days, technician-days with work, jobs, driving, miles and paid hours in each period. Paid hours leave out the unpaid meal periods, {number(r["study"]["unpaidMinutes"] / 60)} hours in the study.', '',
              table(['Period', 'Days', 'Tech-days', 'Jobs', 'Drive (h)', 'Miles', 'Paid (h)', 'Paid per tech-day (min)'],
                    [[label(k, last), number(r[k]['days']), number(r[k]['technicianDays']), number(r[k]['jobs']), number(r[k]['driveMinutes'] / 60),
                      number(miles(r[k]['meters']), 0), number(r[k]['paidMinutes'] / 60), number(r[k]['medianPaidPerTechnicianDay'], 0)] for k in keys], text=(0,)), '',
@@ -399,9 +424,10 @@ def report(result, title=TITLE):
                    [[label(k, last), number(r[k]['driveMinutes'] / r[k]['jobs']), number(miles(r[k]['meters']) / r[k]['jobs']),
                      dollars(round(Decimal(r[k]['costCents']) / r[k]['jobs'])), number(r[k]['medianDrivePerTechnicianDay'], 0)] for k in keys], text=(0,)), '',
              '## Overtime and cost', '',
-             'The table shows overtime, how many technician-days had any, and the day cost. Overtime on a weekday is the technician\'s paid minutes past 40 hours in the Monday-to-Friday week, counted on the day they fall, so a week\'s overtime sits on its last days; on a Saturday or a Sunday it is every paid minute, since weekend work is overtime under the dealership\'s rule, and those minutes stay out of the week\'s 40 hours. Work after 17:00 is not overtime in itself; it is counted under customer windows and timing. The day cost is split into regular time, overtime ($45 an hour) and mileage. Each part is priced and rounded on its own, so the parts can differ from the total by a cent or two per day.', '',
-             table(['Period', 'Overtime tech-days', 'Overtime (h)', 'Overtime ($)', 'Regular ($)', 'Mileage ($)', 'Total ($)'],
-                   [[label(k, last), number(r[k]['overtimeTechnicianDays']), number(r[k]['overtimeMinutes'] / 60), dollars(r[k]['overtimeCents']),
+             'The table shows overtime, the double time within it, how many technician-days had any, and the day cost. Overtime on a weekday is the technician\'s paid time past 8 hours in the day, with double time past 12, as California law sets it; the regular time left would be overtime past 40 hours in the Monday-to-Friday week, which five days of at most 8 regular hours never pass. On a Saturday or a Sunday it is every paid minute, since weekend work is overtime under the dealership\'s rule, with double time past 12 hours, or past 8 on a technician\'s seventh day of work in a row; those minutes stay out of the week\'s 40 hours. Work after 17:00 is not overtime in itself; it is counted under customer windows and timing. The day cost is split into regular time, overtime ($45 an hour, double time $60) and mileage. Each part is priced and rounded on its own, so the parts can differ from the total by a cent or two per day.', '',
+             table(['Period', 'Overtime tech-days', 'Overtime (h)', 'Double time (h)', 'Overtime ($)', 'Regular ($)', 'Mileage ($)', 'Total ($)'],
+                   [[label(k, last), number(r[k]['overtimeTechnicianDays']), number(r[k]['overtimeMinutes'] / 60), number(r[k]['doubleTimeMinutes'] / 60),
+                     dollars(r[k]['overtimeCents']),
                      dollars(r[k]['regularCents']), dollars(r[k]['mileageCents']), dollars(r[k]['costCents'])] for k in keys], text=(0,)), '',
              weekend, '',
              '## Customer windows and timing', '',

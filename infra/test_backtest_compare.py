@@ -1,5 +1,6 @@
 """Regression coverage for infra/backtest_compare.py on a hand-built scored export with known numbers."""
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -198,8 +199,8 @@ class CompareTest(unittest.TestCase):
         rows = {cells[0]: cells[1:] for line in text.splitlines() if line.startswith('|') and len(cells := [c.strip() for c in line.strip('|').split('|')]) == 3}
         self.assertEqual((['1', '0'], ['5.0', '0.0'], ['5.0', '0.0'], ['235.00', '0.00']), (rows['Jobs'], rows['Paid (h)'], rows['Overtime (h)'], rows['Cost ($)']))
         self.assertIn('every paid minute of a Saturday or a Sunday at the overtime rate in both parts', text)
-        self.assertIn("Overtime is a technician's paid time past 40 hours in a Monday-to-Friday week", text)
-        self.assertIn('Paid hours leave out a 1 hour unpaid lunch on each technician-day longer than 6 hours depot to depot.', text)
+        self.assertIn("Overtime is as California law sets it: a technician's paid time past 8 hours in a day, with double time past 12", text)
+        self.assertIn('Paid hours leave out the unpaid meal periods California law requires, with no waiver: a 1 hour lunch once a technician-day passes 5 hours of work, and 30 minutes more once it passes 10.', text)
         self.assertNotIn('from 17:00 until the technician is back', text)
         # Part 2 with wo-3 on Sunday 2024-03-10: one scored weekend job and one weekend booking, each its own bar.
         with tempfile.TemporaryDirectory() as broken:
@@ -229,22 +230,21 @@ class CompareTest(unittest.TestCase):
         with self.assertRaisesRegex(bd.SummaryError, 'not paid under the weekly pay rule'):
             bc.compare(sim)
 
-    def test_weekly_overtime_in_part2_fails_the_overtime_bar(self):
-        # Two days of 1,300 paid minutes for Part 2's t01, longer than any technician works, so that the week passes
-        # 2,400 paid minutes on its second day: 200 of the Wednesday's minutes are overtime, none of them after 17:00.
-        long_week = dict(PART2, **{'2024-03-05': ([route('t01', 2, 1300, 0, 70, 40000)], (67000, 65000, 0, 2000), ['wo-1', 'wo-2']),
-                                   '2024-03-06': ([route('t01', 1, 1300, 200, 25, 15000)], (71000, 55000, 15000, 1000), ['wo-3'])})
+    def test_daily_overtime_in_part2_fails_the_overtime_bar(self):
+        # Part 2's t01 paid 10 hours on 2024-03-05 (an 11 hour day less its lunch): 2 hours past 8 are overtime, though
+        # none of it falls after 17:00.
+        long_day = dict(PART2, **{'2024-03-05': ([route('t01', 2, 600, 120, 70, 40000)], (35000, 24000, 9000, 2000), ['wo-1', 'wo-2'])})
         with tempfile.TemporaryDirectory() as other:
-            result = bc.compare(build(other, part2=long_week))
+            result = bc.compare(build(other, part2=long_day))
         self.assertFalse(result['validity']['valid'])
-        self.assertEqual(200, result['validity']['bars']['overtimeMinutes'])
+        self.assertEqual(120, result['validity']['bars']['overtimeMinutes'])
         self.assertEqual(0, result['validity']['bars']['outsideShiftMinutes'], 'the 17:00 guard is its own bar')
-        self.assertEqual((0, 200), (result['part1']['study']['overtimeMinutes'], result['part2']['study']['overtimeMinutes']))
-        self.assertEqual((60, 120), (result['part1']['study']['unpaidMinutes'], result['part2']['study']['unpaidMinutes']))
-        # The same rows with the Wednesday's overtime left off are not the rule's.
-        flat = dict(long_week, **{'2024-03-06': ([route('t01', 1, 1300, 0, 25, 15000)], (66000, 65000, 0, 1000), ['wo-3'])})
+        self.assertEqual((0, 120), (result['part1']['study']['overtimeMinutes'], result['part2']['study']['overtimeMinutes']))
+        self.assertEqual((60, 60), (result['part1']['study']['unpaidMinutes'], result['part2']['study']['unpaidMinutes']), 'one lunch in each part')
+        # The same rows with the day's overtime left off are not the rule's.
+        flat = dict(long_day, **{'2024-03-05': ([route('t01', 2, 600, 0, 70, 40000)], (32000, 30000, 0, 2000), ['wo-1', 'wo-2'])})
         with tempfile.TemporaryDirectory() as other:
-            with self.assertRaisesRegex(bd.SummaryError, '2024-03-06: t01 has 0 overtime minutes where the week gives 200'):
+            with self.assertRaisesRegex(bd.SummaryError, re.escape('2024-03-05: t01 has 0 overtime minutes (0 double time) where the rule gives 120 (0)')):
                 bc.compare(build(other, part2=flat))
 
     def test_weekend_days_count_in_days_to_service_for_both_parts(self):
