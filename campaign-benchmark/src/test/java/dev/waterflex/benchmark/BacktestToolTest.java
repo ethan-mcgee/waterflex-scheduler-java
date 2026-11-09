@@ -248,12 +248,200 @@ class BacktestToolTest {
         assertEquals("2026-09-22", first.day(), "the job's order, not the calendar's");
         assertFalse(first.row().feasible()); assertEquals(everyVisit.size(), first.row().unassigned());
         assertEquals("2026-09-21", second.day());
-        assertEquals(BacktestTool.score(dataset, booked, CalculationJson.hash(CalculationJson.write(Required.value(booked)))), second.row());
+        // The rows are paid: the engine's reading of the booked day, by the pay rule.
+        var engine = new BacktestTool.DayRow("2026-09-21", "as-planned.plan.json", BacktestTool.score(dataset, booked, CalculationJson.hash(CalculationJson.write(Required.value(booked)))));
+        assertEquals(BacktestTool.pay(Required.value(List.of(engine)), Required.value(List.of(BacktestTool.Rates.of(dataset.toDayPlan())))), List.of(second));
         String repeated = Required.value(job.replace("2026-09-22", "2026-09-21"));
         assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(repeated)));
         String path = Required.value(job.replace("\"plan\":\"as-planned.plan.json\"", "\"plan\":\"../as-planned.plan.json\""));
         assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(path)));
         String none = Required.value(job.replaceFirst("\"days\":\\[.*\\],", "\"days\":[],"));
         assertThrows(IllegalArgumentException.class, () -> DatasetTool.execute(CalculationJson.tree(none)));
+    }
+
+    private static final BacktestTool.Rates RATES = new BacktestTool.Rates(new BigDecimal("30"), new BigDecimal("45"), new BigDecimal("0.67"));
+
+    /** A route as the engine reads it: {@code minutes} from depot to depot, no overtime, 16,093 m driven. */
+    private static BacktestTool.RouteRow span(String technician, long minutes) {
+        return new BacktestTool.RouteRow(technician, true, 1, 0, 0, 0, 0, 0, 0, minutes, 0, 0, 30, 0, 16093, 0, Required.value(Map.<String,String>of()));
+    }
+    /** A day as the engine reads it, with {@code paid} minutes over its routes and no overtime. */
+    private static BacktestTool.DayRow reading(String day, long paid, BacktestTool.RouteRow... routes) {
+        long meters = 16093L * routes.length;
+        return new BacktestTool.DayRow(day, "plan", new BacktestTool.Row("facts", "plan", true, true, 0, 0,
+                RATES.cents(paid, 0, meters), RATES.cents(paid, 0, 0), 0, RATES.cents(0, 0, meters), paid, 0, 0, 30L * routes.length, 0, meters, 0,
+                0, 0, 0, 0, 0, 0, 0, new BigDecimal("0.25"), new BigDecimal("1"), Required.value(List.of(routes))));
+    }
+    private static BacktestTool.DayRow worked(String day, BacktestTool.RouteRow... routes) {
+        long paid = 0;
+        for (var route : routes) paid += route.paidMinutes();
+        return reading(day, paid, routes);
+    }
+    /** The days paid at the fixture's rates, in the order given. */
+    private static List<BacktestTool.DayRow> paid(BacktestTool.DayRow... days) {
+        List<BacktestTool.Rates> rates = new java.util.ArrayList<>();
+        for (int index = 0; index < days.length; index++) rates.add(RATES);
+        return BacktestTool.pay(Required.value(List.of(days)), rates);
+    }
+    private static BacktestTool.RouteRow route(BacktestTool.DayRow day, String technician) {
+        for (var route : day.row().routes()) if (route.technicianId().equals(technician)) return route;
+        throw new AssertionError(technician + " has no route on " + day.day());
+    }
+    private static void refused(String message, org.junit.jupiter.api.function.Executable action) {
+        String actual = Required.value(assertThrows(IllegalArgumentException.class, action).getMessage());
+        assertTrue(actual.contains(message), actual);
+    }
+
+    @Test void theUnpaidLunchComesOffATechnicianDayLongerThanSixHoursDepotToDepot() {
+        var engine = worked("2026-09-21", span("six", 360), span("over", 361), span("idle", 0));
+        var monday = Required.value(paid(engine).get(0));
+        assertEquals(360, route(monday, "six").paidMinutes()); assertEquals(0, route(monday, "six").unpaidMinutes());
+        assertEquals(301, route(monday, "over").paidMinutes()); assertEquals(60, route(monday, "over").unpaidMinutes());
+        assertEquals(0, route(monday, "idle").paidMinutes()); assertEquals(0, route(monday, "idle").unpaidMinutes());
+        var row = monday.row();
+        assertEquals(661, row.paidMinutes()); assertEquals(60, row.unpaidMinutes()); assertEquals(0, row.overtimeMinutes());
+        // 661 minutes at $30 an hour; the lunch hour is paid at no rate.
+        assertEquals(33050, row.regularCents()); assertEquals(0, row.overtimeCents());
+        assertEquals(engine.row().mileageCents(), row.mileageCents());
+        assertEquals(RATES.cents(661, 0, row.meters()), row.costCents());
+        assertEquals(engine.row().costCents() - 3000, row.costCents(), "one unpaid hour at the regular rate");
+    }
+
+    @Test void theMinutesPastFortyPaidHoursInAWeekAreOvertimeOnTheDayTheyFall() {
+        // Given out of date order, with the Monday of the next week in the middle. "long" works 700 minutes a day
+        // depot to depot (640 paid, 3,200 in the week), "short" 500 (440 paid, 2,200 in the week).
+        List<String> given = Required.value(List.of("2026-09-25", "2026-09-21", "2026-09-24", "2026-09-28", "2026-09-22", "2026-09-23"));
+        Map<String,Long> overtime = Required.value(Map.of("2026-09-21", 0L, "2026-09-22", 0L, "2026-09-23", 0L, "2026-09-24", 160L, "2026-09-25", 640L, "2026-09-28", 0L));
+        BacktestTool.DayRow[] days = new BacktestTool.DayRow[given.size()];
+        for (int index = 0; index < days.length; index++) days[index] = worked(Required.value(given.get(index)), span("long", 700), span("short", 500));
+        var rows = paid(days);
+        assertEquals(given.size(), rows.size());
+        for (int index = 0; index < days.length; index++) {
+            var day = Required.value(rows.get(index));
+            assertEquals(given.get(index), day.day(), "the order given, not the calendar's");
+            long expected = Required.value(overtime.get(day.day()));
+            assertEquals(640, route(day, "long").paidMinutes(), day.day()); assertEquals(60, route(day, "long").unpaidMinutes(), day.day());
+            assertEquals(expected, route(day, "long").overtimeMinutes(), day.day());
+            assertEquals(440, route(day, "short").paidMinutes(), day.day());
+            assertEquals(0, route(day, "short").overtimeMinutes(), "one technician's hours are not another's: " + day.day());
+            var row = day.row();
+            assertEquals(1080, row.paidMinutes(), day.day()); assertEquals(120, row.unpaidMinutes(), day.day());
+            assertEquals(expected, row.overtimeMinutes(), day.day());
+            // $30 an hour is 50 cents a minute and $45 an hour is 75.
+            assertEquals((1080 - expected) * 50, row.regularCents(), day.day()); assertEquals(expected * 75, row.overtimeCents(), day.day());
+            assertEquals(RATES.cents(1080, expected, row.meters()), row.costCents(), day.day());
+        }
+    }
+
+    @Test void everyPaidMinuteOfAWeekendIsOvertimeAndStaysOutOfTheWeeksForty() {
+        // "short" has 2,200 paid minutes in its weekdays, so a Saturday counted in the week would give 100 minutes of overtime.
+        List<BacktestTool.DayRow> days = new java.util.ArrayList<>();
+        for (String day : List.of("2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25")) days.add(worked(Required.value(day), span("short", 500)));
+        days.add(worked("2026-09-26", span("short", 300)));
+        days.add(worked("2026-09-27", span("long", 400)));
+        var rows = paid(Required.value(days.toArray(new BacktestTool.DayRow[0])));
+        for (int index = 0; index < 5; index++) assertEquals(0, Required.value(rows.get(index)).row().overtimeMinutes());
+        var saturday = Required.value(rows.get(5)).row();
+        assertEquals(300, saturday.paidMinutes()); assertEquals(0, saturday.unpaidMinutes()); assertEquals(300, saturday.overtimeMinutes());
+        assertEquals(0, saturday.regularCents(), "no minute of a weekend is paid at the regular rate"); assertEquals(22500, saturday.overtimeCents());
+        assertEquals(RATES.cents(300, 300, saturday.meters()), saturday.costCents());
+        // A weekend day longer than six hours has its lunch too: 340 paid minutes, every one overtime.
+        var sunday = Required.value(rows.get(6)).row();
+        assertEquals(340, sunday.paidMinutes()); assertEquals(60, sunday.unpaidMinutes()); assertEquals(340, sunday.overtimeMinutes());
+        assertEquals(0, sunday.regularCents()); assertEquals(25500, sunday.overtimeCents());
+        for (var route : sunday.routes()) assertEquals(route.paidMinutes(), route.overtimeMinutes());
+    }
+
+    @Test void workPastTheShiftEndIsNoLongerOvertimeAndOnlyThePayMoves() {
+        var plan = day(at("16:50:00"), at("18:00:00"));
+        var engine = BacktestTool.score(plan, "facts", "evening");
+        assertTrue(engine.overtimeMinutes() > 0, "the engine counts the minutes after the shift end");
+        assertEquals(0, engine.unpaidMinutes(), "the engine has no lunch");
+        var row = Required.value(BacktestTool.pay(Required.value(List.of(new BacktestTool.DayRow("2026-09-21", "plan", engine))), Required.value(List.of(BacktestTool.Rates.of(plan)))).get(0)).row();
+        assertEquals(60, row.unpaidMinutes(), "longer than six hours depot to depot");
+        assertEquals(engine.paidMinutes() - 60, row.paidMinutes());
+        assertEquals(0, row.overtimeMinutes(), "one day is inside the week's 40 hours"); assertEquals(0, row.overtimeCents());
+        assertEquals(RATES.cents(row.paidMinutes(), 0, row.meters()), row.costCents());
+        assertTrue(row.costCents() < engine.costCents(), "no premium and one hour less");
+        // Only the pay moves: the other times, the violations, both verdicts and the fairness reading are the engine's.
+        assertEquals(engine.driveMinutes(), row.driveMinutes()); assertEquals(engine.waitingMinutes(), row.waitingMinutes());
+        assertEquals(engine.meters(), row.meters()); assertEquals(engine.mileageCents(), row.mileageCents());
+        assertEquals(engine.feasible(), row.feasible()); assertEquals(engine.routesHold(), row.routesHold());
+        assertEquals(engine.hardPenalty(), row.hardPenalty()); assertEquals(engine.latenessSeconds(), row.latenessSeconds());
+        assertEquals(engine.availabilitySeconds(), row.availabilitySeconds()); assertEquals(engine.pastShiftMinutes(), row.pastShiftMinutes());
+        assertEquals(engine.capacityExcessMinutes(), row.capacityExcessMinutes());
+        assertEquals(engine.fairnessVariance(), row.fairnessVariance()); assertEquals(engine.maximumUtilization(), row.maximumUtilization());
+        assertEquals(Required.value(engine.routes().get(0)).arrivals(), Required.value(row.routes().get(0)).arrivals());
+        // A weekday of six hours or less with no weekly overtime is the engine's reading, to the cent.
+        var inside = day(at("13:00:00"), at("15:00:00"));
+        var short_ = new BacktestTool.DayRow("2026-09-21", "plan", BacktestTool.score(inside, "facts", "inside"));
+        assertTrue(short_.row().paidMinutes() <= 360, short_.toString());
+        assertEquals(List.of(short_), BacktestTool.pay(Required.value(List.of(short_)), Required.value(List.of(BacktestTool.Rates.of(inside)))));
+    }
+
+    @Test void payRefusesADayItCannotPlaceATechnicianTwiceAndMinutesThatDoNotAddUp() {
+        refused("ISO date", () -> paid(worked("monday", span("a", 100))));
+        refused("A day is paid once", () -> paid(worked("2026-09-21", span("a", 100)), worked("2026-09-21", span("a", 100))));
+        refused("Two routes of a on 2026-09-21", () -> paid(worked("2026-09-21", span("a", 100), span("a", 100))));
+        refused("do not sum", () -> paid(reading("2026-09-21", 150, span("a", 100))));
+        // Rows that already carry their lunch are not paid again, which would take a second hour.
+        var once = paid(worked("2026-09-21", span("a", 700)));
+        refused("A route is paid once: a on 2026-09-21", () -> BacktestTool.pay(once, Required.value(List.of(RATES))));
+        refused("its own rates", () -> BacktestTool.pay(Required.value(List.of(worked("2026-09-21", span("a", 100)))), Required.value(List.<BacktestTool.Rates>of())));
+    }
+
+    @Test void aScoreDayIsPlacedInItsWeekByItsIsoDateOrRefused() {
+        assertEquals(java.time.LocalDate.of(2026, 9, 26), BacktestTool.date("2026-09-26"));
+        for (String day : List.of("saturday", "2026-02-30", "2026-9-26", "20260926", "2026-09-26T08:00:00Z", ""))
+            refused("ISO date", () -> BacktestTool.date(Required.value(day)));
+    }
+
+    @Test void scoreDaysPaysItsRowsByThePayRuleAndNamesTheRule() throws Exception {
+        var dataset = dataset();
+        var draft = (com.fasterxml.jackson.databind.node.ObjectNode) CalculationJson.tree(dataset.json(DailyDataset.Encoding.SPARSE));
+        draft.putNull("contentHash");
+        var booked = BacktestTool.Plan.of(dataset.toDayPlan());
+        var engine = BacktestTool.score(dataset, booked, CalculationJson.hash(CalculationJson.write(Required.value(booked))));
+        StringBuilder days = new StringBuilder();
+        List<BacktestTool.DayRow> scored = new java.util.ArrayList<>();
+        List<BacktestTool.Rates> rates = new java.util.ArrayList<>();
+        for (String name : List.of("2026-09-25", "2026-09-26", "2026-09-27")) {
+            Path day = Required.value(directory().resolve(name));
+            Files.createDirectories(day);
+            Files.writeString(Required.value(day.resolve("facts.json")), CalculationJson.write(draft));
+            Files.writeString(Required.value(day.resolve("as-planned.plan.json")), CalculationJson.write(Required.value(booked)));
+            if (!days.isEmpty()) days.append(',');
+            days.append("{\"day\":\"").append(name).append("\",\"directory\":").append(CalculationJson.write(Required.value(day.toString()))).append('}');
+            scored.add(new BacktestTool.DayRow(Required.value(name), "as-planned.plan.json", engine));
+            rates.add(BacktestTool.Rates.of(dataset.toDayPlan()));
+        }
+        Path output = Required.value(directory().resolve("rows.json"));
+        String job = "{\"version\":1,\"kind\":\"backtest-score-days\",\"dataset\":\"facts.json\",\"plan\":\"as-planned.plan.json\",\"days\":[" + days
+                + "],\"output\":" + CalculationJson.write(Required.value(output.toString())) + "}";
+        DatasetTool.execute(CalculationJson.tree(job));
+        var written = CalculationJson.tree(Required.value(Files.readString(output)));
+        assertEquals(BacktestTool.PAY_RULE, CalculationJson.read(CalculationJson.write(Required.value(written.get("payRule"))), BacktestTool.PayRule.class));
+        assertEquals(new BacktestTool.PayRule(2400, 60, 360, true), BacktestTool.PAY_RULE, "40 hours a week, a 1 hour lunch on days over 6 hours, weekends overtime");
+        assertNull(written.get("weekendOvertime"), "the mark of the weekend-only pricing is gone");
+        var rows = Required.value(written.get("rows"));
+        var expected = BacktestTool.pay(scored, rates);
+        assertEquals(3, rows.size());
+        for (int index = 0; index < 3; index++)
+            assertEquals(expected.get(index), CalculationJson.read(CalculationJson.write(Required.value(rows.get(index))), BacktestTool.DayRow.class));
+        var friday = Required.value(expected.get(0)).row();
+        assertEquals(0, friday.overtimeMinutes(), "one day is inside the week's 40 hours");
+        assertEquals(engine.paidMinutes(), friday.paidMinutes() + friday.unpaidMinutes(), "the lunch comes off the engine's depot-to-depot span");
+        assertTrue(friday.paidMinutes() > 0, friday.toString());
+        for (int index : List.of(1, 2)) {
+            var weekend = Required.value(expected.get(index)).row();
+            assertEquals(friday.paidMinutes(), weekend.paidMinutes()); assertEquals(friday.unpaidMinutes(), weekend.unpaidMinutes());
+            assertEquals(weekend.paidMinutes(), weekend.overtimeMinutes());
+            assertEquals(0, weekend.regularCents());
+            assertTrue(weekend.costCents() > friday.costCents(), "the premium is on every paid minute");
+            assertEquals(friday.feasible(), weekend.feasible(), "the same day holds or not whatever its pay");
+        }
+        // A day that is not a date cannot be placed in its week: refused before any file is read, never paid as a weekday.
+        String unnamed = Required.value(job.replace("\"day\":\"2026-09-25\"", "\"day\":\"friday\""));
+        refused("ISO date", () -> DatasetTool.execute(CalculationJson.tree(unnamed)));
     }
 }

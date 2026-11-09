@@ -7,7 +7,14 @@ selected and confirmed, the receipt written by compare-and-set), then at 01:00 o
 overnight run and commits each IMPROVED proposal. A checkpoint after every date lets a stopped run resume: request ids,
 shuffles and versions are deterministic, so a resumed segment sends the same calls and the API replays its answers.
 
+A plan also fixes two things about the product's side (run_options): whether its roster keeps the history's weekend
+technician-days (--no-weekend-work leaves them out, so nothing is booked or moved onto a Saturday or Sunday), and how
+many of a night's proposals are in flight at once (--overnight-in-flight). A night's dates are independent of each
+other: each proposal reads one date's snapshot and its commit writes that date only, so the answers are applied in date
+order and the book ends the same whatever the number in flight.
+
     python infra/backtest_simulate.py plan --run <run dir> --out <simulation dir> --segments 4 --warmup-weeks 3 [--until <date>]
+                                           [--no-weekend-work] [--overnight-in-flight 4]
     python infra/backtest_simulate.py window --run <run dir> --out <simulation dir> --first <date> --end <date> --copies a:3,b:3,c:6,d:6
     python infra/backtest_simulate.py busiest --run <run dir> --year 2024
     python infra/backtest_simulate.py run --config <simulation dir>/simulation.json --url http://127.0.0.1:18080 [--only s1,s2]
@@ -27,6 +34,7 @@ import threading
 import re
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import backtest_api as ba
@@ -35,6 +43,7 @@ import backtest_host as bh
 GATE = 2  # booking calls in flight across every segment: the booking pool's capacity, so nothing waits in its queue
 OVERNIGHT_MINUTE = 60  # the overnight run starts at 01:00 local on the day after the request date
 STEPS = ('offers', 'select', 'confirm', 'daily', 'commit')
+MAX_IN_FLIGHT = 8  # a night's proposals in flight at once; more than the daily pool can run only wait in its queue
 TENANT = re.compile('[a-z0-9][a-z0-9-]{0,62}')
 
 
@@ -95,24 +104,56 @@ def inputs_of(run):
             bh.load_json(run / 'study-config.json'))
 
 
-def document_of(run, out, config, inputs, requests, availability, segments, seed, warmup, today, until, kind):
-    return {'version': 1, 'kind': kind, 'simulationId': Path(out).name, 'run': str(Path(run).resolve()), 'inputs': inputs['files'],
+def check_options(weekend_work, in_flight):
+    if not isinstance(weekend_work, bool):
+        raise SimulationError(f'weekendWork is {weekend_work!r}, not true or false')
+    if not isinstance(in_flight, int) or isinstance(in_flight, bool) or not 1 <= in_flight <= MAX_IN_FLIGHT:
+        raise SimulationError(f'overnightInFlight is {in_flight!r}, not 1 to {MAX_IN_FLIGHT}')
+    return weekend_work, in_flight
+
+
+def run_options(config):
+    """(weekend work, overnight proposals in flight) of a plan. A version 1 plan was written before either could be
+    chosen and ran with the history's weekend technician-days, one proposal at a time; a version 2 plan states both."""
+    version = config.get('version')
+    if version == 1:
+        return True, 1
+    if version != 2:
+        raise SimulationError(f'simulation.json has version {version!r}; this simulator reads versions 1 and 2')
+    # A version 2 plan without one of the two is refused by name rather than read as a default.
+    return check_options(config.get('weekendWork'), config.get('overnightInFlight'))
+
+
+def roster_end_of(availability, weekend_work):
+    """The last date of the roster the product books on."""
+    dates = [d['date'] for d in availability['technicianDays'] if weekend_work or bh.is_weekday(d['date'])]
+    if not dates:
+        raise SimulationError('The roster has no technician-day the product may book')
+    return max(dates)
+
+
+def document_of(run, out, config, inputs, requests, availability, segments, seed, warmup, today, until, kind, weekend_work=True, in_flight=1):
+    weekend_work, in_flight = check_options(weekend_work, in_flight)
+    return {'version': 2, 'kind': kind, 'simulationId': Path(out).name, 'run': str(Path(run).resolve()), 'inputs': inputs['files'],
             'routingIdentity': inputs['routingIdentity'], 'metroId': config['metroId'], 'timeZone': config['timeZone'], 'seed': seed, 'warmupWeeks': warmup,
             'plannedOn': today, 'horizonRule': dict(bh.HORIZON_RULE), 'bookingGate': GATE, 'retryWeekdays': bh.RETRY_WEEKDAYS,
+            'weekendWork': weekend_work, 'overnightInFlight': in_flight,
             'settings': {'rates': dict(config['rates']), 'policy': dict(config['policy']), 'offerLimit': 1, 'windowHours': 2,
                          'services': sorted({r['serviceId'] for r in requests['requests']})},
-            'historyLastDate': availability['lastHistoryDate'], 'rosterEnd': max(d['date'] for d in availability['technicianDays']), 'until': until,
+            'historyLastDate': availability['lastHistoryDate'], 'rosterEnd': roster_end_of(availability, weekend_work), 'until': until,
             'segments': segments}
 
 
-def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=None):
-    """simulation.json for the run directory's Part 2 inputs. until cuts the simulation short (smoke, calibration)."""
+def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=None, weekend_work=True, in_flight=1):
+    """simulation.json for the run directory's Part 2 inputs. until cuts the simulation short (smoke, calibration). One
+    segment is the whole study from the dispatcher's backlog on its first date: no warm-up applies, and none is recorded."""
     run, out = Path(run), Path(out)
     inputs, requests, availability, config = inputs_of(run)
+    weekend_work, in_flight = check_options(weekend_work, in_flight)
     history_last = availability['lastHistoryDate']
     first_service = min(r['dispatcher']['serviceDate'] for r in requests['requests'])
     bounds = segment_bounds(first_service, history_last, count)
-    roster_end = max(d['date'] for d in availability['technicianDays'])
+    roster_end = roster_end_of(availability, weekend_work)
     segments = []
     for number, (first, end) in enumerate(bounds, start=1):
         start = first if number == 1 else bh.add_days(first, -7 * warmup_weeks)
@@ -127,7 +168,8 @@ def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=N
                          'tenantId': tenant_of(out.name, f's{number}')})
     if only_first is not None:
         segments = segments[:only_first]
-    document = document_of(run, out, config, inputs, requests, availability, segments, seed, warmup_weeks, today, until, 'study')
+    document = document_of(run, out, config, inputs, requests, availability, segments, seed, None if count == 1 else warmup_weeks, today, until, 'study',
+                           weekend_work, in_flight)
     write_json(out / 'simulation.json', document)
     return document
 
@@ -174,6 +216,7 @@ class Segment:
         self.name, self.shift = segment['name'], segment['shiftDays']
         self.settings = dict(config['settings'], metroId=config['metroId'])
         self.rule = config['horizonRule']
+        self.weekend_work, self.in_flight = run_options(config)
         self.requests = {r['id']: r for r in requests['requests']}
         start = segment['start']
         # Requests dated before the first simulated date that the dispatcher served on or after it are carried in: they
@@ -194,11 +237,17 @@ class Segment:
                 raise SimulationError(f'{checkpoint} belongs to another plan of segment {self.name}')
             self.cursor, self.book, self.desk = saved['cursor'], bh.Book.from_json(saved['book']), bh.Desk.from_json(saved['desk'])
             self.elapsed = saved['elapsedSeconds']
-            self.trim_logs(self.cursor)
         else:
             self.cursor, self.elapsed = start, 0.0
-            self.book = bh.Book.from_availability(availability, first=start)
+            self.book = bh.Book.from_availability(availability, first=start, weekends=self.weekend_work)
             self.desk = bh.Desk(seed=config['seed'])
+        # A segment stopped before its first checkpoint starts again here with that date's lines already logged.
+        self.trim_logs(self.cursor)
+        if not self.weekend_work:
+            # A checkpoint names its segment, not its roster, so a book saved under a plan with weekend work is caught here.
+            weekend = sorted({day.date for day in self.book.days.values() if not bh.is_weekday(day.date)})
+            if weekend:
+                raise SimulationError(f'Segment {self.name}: the plan has no weekend work, but its book has technician-days on {weekend[0]}')
 
     # -- records ------------------------------------------------------------------------------------------------------
 
@@ -272,20 +321,34 @@ class Segment:
 
     # -- overnight ----------------------------------------------------------------------------------------------------
 
+    def proposed(self, bodies):
+        """Each body's (proposal, timing), in the order of bodies, with at most in_flight proposals waiting on the API at once.
+        A failed proposal is raised once the ones already sent have answered; the date is then redone from its checkpoint."""
+        limit = ba.proposal_limit_ms(self.settings['policy'])
+        if self.in_flight == 1 or len(bodies) < 2:
+            return [self.api.propose(body, limit) for body in bodies]
+        with ThreadPoolExecutor(max_workers=self.in_flight, thread_name_prefix=f'{self.name}-night') as pool:
+            return list(pool.map(lambda body: self.api.propose(body, limit), bodies))
+
     def overnight(self, night):
-        """The overnight run at 01:00 on night: every date of its range proposed, each IMPROVED proposal committed."""
+        """The overnight run at 01:00 on night: every date of its range proposed, each IMPROVED proposal committed. Every
+        proposal is asked from the book as the day's bookings left it, then the answers are written in date order."""
         now = bh.parse_instant(bh.local_instant(night, OVERNIGHT_MINUTE, self.book.zone))
+        records, asked = [], []
         for date in bh.overnight_plan(self.book, now, self.rule):
             record = {'date': bh.add_days(night, -1), 'night': night, 'serviceDate': date}
+            records.append(record)
             if not self.book.on(date):
-                self.append('proposals.jsonl', dict(record, outcome='NO_TECHNICIANS'))
-                continue
-            if not self.book.booked_on(date):
-                self.append('proposals.jsonl', dict(record, outcome='EMPTY'))
-                continue
-            versions = self.book.versions([date], self.shift)
-            body = {'requestId': self.rid(night, 'daily', date), 'serviceDate': self.api_date(date), 'snapshot': self.book.snapshot([date], self.settings, self.shift)}
-            proposal, timing = self.api.propose(body, ba.proposal_limit_ms(self.settings['policy']))
+                record['outcome'] = 'NO_TECHNICIANS'
+            elif not self.book.booked_on(date):
+                record['outcome'] = 'EMPTY'
+            else:
+                body = {'requestId': self.rid(night, 'daily', date), 'serviceDate': self.api_date(date),
+                        'snapshot': self.book.snapshot([date], self.settings, self.shift)}
+                asked.append((record, self.book.versions([date], self.shift), body))
+        answers = self.proposed([body for _, _, body in asked])
+        for (record, versions, _), (proposal, timing) in zip(asked, answers, strict=True):
+            date = record['serviceDate']
             record.update({'outcome': 'PROPOSED', 'decision': proposal['decision'], 'reason': proposal['reason'], 'costCents': proposal['costCents'],
                            'unresolved': len(proposal['unresolvedAppointmentIds']), **timing})
             if proposal['decision'] == 'IMPROVED':
@@ -293,6 +356,7 @@ class Segment:
                 before = {a.id: (a.technician, a.sequence) for a in self.book.booked_on(date)}
                 self.book.apply_commit(receipt, self.shift)
                 record.update({'committed': True, 'moved': sum(1 for a in self.book.booked_on(date) if before[a.id] != (a.technician, a.sequence))})
+        for record in records:
             self.append('proposals.jsonl', record)
 
     # -- the walk -----------------------------------------------------------------------------------------------------
@@ -374,6 +438,8 @@ def main(argv=None):
     planner.add_argument('--warmup-weeks', type=int, default=3)
     planner.add_argument('--until')
     planner.add_argument('--only-first', type=int)
+    planner.add_argument('--no-weekend-work', action='store_true', help="leave the history's weekend technician-days out of the product's roster")
+    planner.add_argument('--overnight-in-flight', type=int, default=1, help="a night's proposals in flight at once")
     planner.add_argument('--today', default=dt.date.today().isoformat())
     windowed = commands.add_parser('window')
     windowed.add_argument('--run', required=True)
@@ -391,8 +457,10 @@ def main(argv=None):
     runner.add_argument('--only')
     args = parser.parse_args(argv)
     if args.command == 'plan':
-        document = plan(args.run, args.out, args.segments, args.warmup_weeks, args.today, args.until, only_first=args.only_first)
-        print(json.dumps([{k: s[k] for k in ('name', 'start', 'first', 'end', 'stop', 'shiftDays')} for s in document['segments']]))
+        document = plan(args.run, args.out, args.segments, args.warmup_weeks, args.today, args.until, only_first=args.only_first,
+                        weekend_work=not args.no_weekend_work, in_flight=args.overnight_in_flight)
+        print(json.dumps({'weekendWork': document['weekendWork'], 'overnightInFlight': document['overnightInFlight'], 'rosterEnd': document['rosterEnd'],
+                          'segments': [{k: s[k] for k in ('name', 'start', 'first', 'end', 'stop', 'shiftDays')} for s in document['segments']]}))
         return 0
     if args.command == 'window':
         copies = [(item.split(':')[0], int(item.split(':')[1])) for item in args.copies.split(',')]

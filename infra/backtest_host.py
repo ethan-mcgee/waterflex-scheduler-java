@@ -292,11 +292,14 @@ class Book:
         return ZoneInfo(self.time_zone)
 
     @classmethod
-    def from_availability(cls, availability, first=None, last=None):
-        """The technician-days of availability.json (backtest_import.py, Part 2 inputs) from first through last."""
+    def from_availability(cls, availability, first=None, last=None, weekends=True):
+        """The technician-days of availability.json (backtest_import.py, Part 2 inputs) from first through last. Without
+        weekends, the Saturday and Sunday technician-days are left out: the product has nobody to book or move there."""
         book = cls(time_zone=availability['timeZone'])
         for item in availability['technicianDays']:
             if (first is not None and item['date'] < first) or (last is not None and item['date'] > last):
+                continue
+            if not weekends and not is_weekday(item['date']):
                 continue
             key = (item['technicianId'], item['date'])
             if key in book.days:

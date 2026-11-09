@@ -250,6 +250,17 @@ class BookTest(unittest.TestCase):
             bh.parse_instant('2025-02-11T16:00:00')
         self.assertEqual(1440, bh.local_minute('2025-02-12T08:00:00Z', '2025-02-11', LA), 'the next midnight closes the date')
 
+    def test_a_roster_without_weekends_leaves_out_saturday_and_sunday_technician_days(self):
+        dates = [bh.add_days('2024-10-28', n) for n in range(0, 14)]
+        whole = bh.Book.from_availability(availability(dates))
+        self.assertEqual(dates, whole.dates(), 'by default the roster is the history, weekends included')
+        weekdays = bh.Book.from_availability(availability(dates), weekends=False)
+        self.assertEqual([d for d in dates if bh.is_weekday(d)], weekdays.dates())
+        self.assertEqual(20, len(weekdays.days))
+        self.assertEqual([], weekdays.on('2024-11-02'), 'nobody is on the roster that Saturday')
+        horizon = bh.booking_dates(weekdays, '2024-11-01')
+        self.assertEqual(['2024-11-04', '2024-11-05'], [d for d in horizon['dates'] if weekdays.on(d)], 'a Friday request is offered Monday and Tuesday')
+
     def test_the_book_horizon_and_overnight_plan_follow_the_portal_rules(self):
         dates = [bh.add_days('2024-10-28', n) for n in range(0, 28)]
         book = bh.Book.from_availability(availability([d for d in dates if bh.is_weekday(d)]))

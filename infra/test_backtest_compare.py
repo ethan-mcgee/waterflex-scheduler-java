@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import backtest_compare as bc
+import backtest_dispatcher as bd
 import backtest_import as bi
 from test_backtest_dispatcher import route, row
 
@@ -19,7 +20,7 @@ def request(identifier, requested, served, code='R15', sales=False):
 REQUESTS = [request('wo-1', '2024-03-01', '2024-03-04'), request('wo-2', '2024-03-04', '2024-03-04', 'P02'), request('wo-3', '2024-03-04', '2024-03-05'),
             request('wo-4', '2024-03-27', '2024-03-28', sales=True), request('wo-5', '2024-02-01', '2024-03-05')]
 # Part 1 (the dispatcher on Part 2's jobs; wo-5 was turned away by Part 2, so it is gone): driving 60 + 40 and 30.
-PART1 = {'2024-03-04': ([route('t01', 2, 480, 60, 100, 50000)], (20000, 15000, 3000, 2000), ['wo-1', 'wo-2']),
+PART1 = {'2024-03-04': ([route('t01', 2, 480, 0, 100, 50000)], (20000, 18000, 0, 2000), ['wo-1', 'wo-2']),
          '2024-03-05': ([route('t01', 1, 300, 0, 30, 20000)], (9000, 8000, 0, 1000), ['wo-3']),
          '2024-03-28': ([route('t01', 1, 200, 0, 20, 10000, late=1, lateness=600, holds=False)], (7000, 6000, 0, 1000), ['wo-4'])}
 # Part 2: the same three jobs a day later, with less driving, and wo-4 after the data.
@@ -44,7 +45,8 @@ def write_part(out, part, days, rule, plan):
         job.append({'day': day, 'directory': str(directory)})
     bi.write_json(out / part / 'index.json', {'runId': part, 'ruleSet': rule, 'routingIdentity': 'abc123def456', 'days': entries,
                                               'ledger': {'rows': 5, 'kept': 5, 'excludedRows': 0, 'reasons': {'exclude': {}, 'flag': {}}}})
-    bi.write_json(out / part / 'rows.json', {'version': 1, 'kind': 'backtest-score-days', 'dataset': 'facts.json', 'plan': plan, 'rows': rows})
+    bi.write_json(out / part / 'rows.json', {'version': 1, 'kind': 'backtest-score-days', 'dataset': 'facts.json', 'plan': plan, 'payRule': bd.PAY_RULE,
+                                             'rows': rows})
     bi.write_json(out / f'{part}-job.json', {'version': 1, 'kind': 'backtest-score-days', 'dataset': 'facts.json', 'plan': plan, 'days': job, 'output': ''})
 
 
@@ -55,16 +57,34 @@ def booking(request, outcome='BOOKED', **changes):
     return dict(record, **changes)
 
 
-def build(directory, shed=False, slow=False):
+def moved(days, old, new):
+    """The days with the one on old served on new instead, priced as it was."""
+    return {new if day == old else day: value for day, value in days.items()}
+
+
+def on_weekend(days, old, new):
+    """The days with the one on old served on the weekend date new, priced as the scorer prices a weekend: every paid
+    minute overtime at $45 an hour (75 cents a minute), no regular time, the same mileage."""
+    routes, (_, _, _, mileage), ids = days[old]
+    routes = [dict(r, overtimeMinutes=r['paidMinutes']) for r in routes]
+    labor = 75 * sum(r['paidMinutes'] for r in routes)
+    return {new if day == old else day: ((routes, (labor + mileage, 0, labor, mileage), ids) if day == old else value) for day, value in days.items()}
+
+
+def build(directory, shed=False, slow=False, options=None, part1=None, part2=None, served=None):
+    """A scored export of one segment. options are a version 2 plan's (weekend work, proposals in flight); without them
+    the plan is a version 1 one. served moves requests' Part 2 service dates."""
     sim = Path(directory) / 'sim'
     run = Path(directory) / 'run'
     bi.write_json(run / 'part2' / 'requests.json', {'requests': REQUESTS})
-    bi.write_json(sim / 'simulation.json', {'simulationId': 'sim-test', 'routingIdentity': 'abc123def456', 'historyLastDate': LAST, 'run': str(run),
-                                            'segments': [{'name': 's1'}], 'settings': {}})
+    plan = {'version': 1} if options is None else {'version': 2, 'weekendWork': options[0], 'overnightInFlight': options[1]}
+    bi.write_json(sim / 'simulation.json', dict(plan, simulationId='sim-test', routingIdentity='abc123def456', historyLastDate=LAST, run=str(run),
+                                                segments=[{'name': 's1'}], settings={'offerLimit': 1}))
     out = sim / 'export'
-    write_part(out, 'part1', PART1, 'as-run', 'as-planned.plan.json')
-    write_part(out, 'part2', PART2, 'part2', 'plan.json')
-    outcomes = {i: {'outcome': o, 'segment': 's1', 'serviceDate': d, 'technician': 't01' if d else None, 'attempts': a} for i, (o, d, a) in OUTCOMES.items()}
+    write_part(out, 'part1', part1 or PART1, 'as-run', 'as-planned.plan.json')
+    write_part(out, 'part2', part2 or PART2, 'part2', 'plan.json')
+    outcomes = {i: {'outcome': o, 'segment': 's1', 'serviceDate': (served or {}).get(i, d), 'technician': 't01' if d else None, 'attempts': a}
+                for i, (o, d, a) in OUTCOMES.items()}
     bi.write_json(out / 'outcomes.json', {'partial': False, 'outcomes': outcomes, 'undecided': [], 'counts': {'BOOKED': 4, 'TURNED_AWAY': 1},
                                           'boundaries': {'scoredTwice': [], 'bookedNotScored': [], 'bookedOutsideTheStudy': []}})
     segment = sim / 'segments' / 's1'
@@ -151,9 +171,110 @@ class CompareTest(unittest.TestCase):
         night = self.result['overnight']
         self.assertEqual((1, 1, 2, {'IMPROVED': 1}, {'EMPTY': 1}), (night['proposals'], night['committed'], night['moved'], night['decisions'], night['skipped']))
 
+    def test_a_plan_from_before_the_options_keeps_its_bars_and_shows_both_parts_weekends(self):
+        self.assertEqual((True, 1), (self.result['weekendWork'], self.result['overnightInFlight']))
+        self.assertNotIn('weekendJobs', self.result['validity']['bars'])
+        empty = {'days': 0, 'jobs': 0, 'technicianDays': 0, 'paidMinutes': 0, 'overtimeMinutes': 0, 'costCents': 0}
+        self.assertEqual({'part1': empty, 'part2': empty}, self.result['weekends'])
+        text = bc.report(self.result)
+        self.assertIn('Every booking search asked for 1 offer, the window that adds the least cost for the dealership without new overtime', text)
+        self.assertIn('Saturdays and Sundays included where a technician worked', text)
+        self.assertIn('one continuous segment, one overnight proposal at a time', text)
+
+    def test_without_weekend_work_a_part2_job_on_a_weekend_fails_the_run(self):
+        # The dispatcher served wo-3 on Saturday 2024-03-09; a clean Part 2 serves nothing that weekend.
+        saturday = on_weekend(PART1, '2024-03-05', '2024-03-09')
+        with tempfile.TemporaryDirectory() as clean:
+            result = bc.compare(build(clean, options=(False, 4), part1=saturday))
+        self.assertTrue(result['validity']['valid'], result['validity'])
+        self.assertEqual((0, 0), (result['validity']['bars']['weekendJobs'], result['validity']['bars']['weekendBookings']))
+        self.assertEqual({'days': 1, 'jobs': 1, 'technicianDays': 1, 'paidMinutes': 300, 'overtimeMinutes': 300, 'costCents': 23500}, result['weekends']['part1'])
+        self.assertEqual(bd.PAY_RULE, result['payRule'])
+        self.assertEqual(0, result['weekends']['part2']['jobs'])
+        text = bc.report(result)
+        self.assertIn('books and moves nothing onto a weekend', text)
+        self.assertIn("with up to 4 of a night's proposals in flight at once", text)
+        self.assertIn('| weekendJobs ', text)
+        rows = {cells[0]: cells[1:] for line in text.splitlines() if line.startswith('|') and len(cells := [c.strip() for c in line.strip('|').split('|')]) == 3}
+        self.assertEqual((['1', '0'], ['5.0', '0.0'], ['5.0', '0.0'], ['235.00', '0.00']), (rows['Jobs'], rows['Paid (h)'], rows['Overtime (h)'], rows['Cost ($)']))
+        self.assertIn('every paid minute of a Saturday or a Sunday at the overtime rate in both parts', text)
+        self.assertIn("Overtime is a technician's paid time past 40 hours in a Monday-to-Friday week", text)
+        self.assertIn('Paid hours leave out a 1 hour unpaid lunch on each technician-day longer than 6 hours depot to depot.', text)
+        self.assertNotIn('from 17:00 until the technician is back', text)
+        # Part 2 with wo-3 on Sunday 2024-03-10: one scored weekend job and one weekend booking, each its own bar.
+        with tempfile.TemporaryDirectory() as broken:
+            bars = bc.compare(build(broken, options=(False, 4), part2=on_weekend(PART2, '2024-03-06', '2024-03-10'), served={'wo-3': '2024-03-10'}))['validity']
+        self.assertFalse(bars['valid'])
+        self.assertEqual((1, 1), (bars['bars']['weekendJobs'], bars['bars']['weekendBookings']))
+        # The same Part 2 under a plan with weekend work has no weekend bar, and still fails: its Sunday is 280 minutes of overtime.
+        with tempfile.TemporaryDirectory() as allowed:
+            result = bc.compare(build(allowed, options=(True, 1), part2=on_weekend(PART2, '2024-03-06', '2024-03-10'), served={'wo-3': '2024-03-10'}))
+        self.assertNotIn('weekendJobs', result['validity']['bars'])
+        self.assertFalse(result['validity']['valid'])
+        self.assertEqual(280, result['validity']['bars']['overtimeMinutes'])
+        self.assertEqual({'jobs': 1, 'paidMinutes': 280, 'overtimeMinutes': 280, 'costCents': 22000},
+                         {name: result['weekends']['part2'][name] for name in ('jobs', 'paidMinutes', 'overtimeMinutes', 'costCents')})
+
+    def test_rows_that_do_not_hold_the_pay_rule_are_refused(self):
+        # A Saturday still priced as a weekday (regular time, no overtime) in either part, and rows without the scorer's mark.
+        for case in (dict(part1=moved(PART1, '2024-03-05', '2024-03-09')), dict(part2=moved(PART2, '2024-03-06', '2024-03-09'), served={'wo-3': '2024-03-09'})):
+            with tempfile.TemporaryDirectory() as old:
+                with self.assertRaisesRegex(bd.SummaryError, '2024-03-09: a weekend day whose paid minutes are not all overtime'):
+                    bc.compare(build(old, options=(True, 1), **case))
+        sim = build(Path(self.directory.name) / 'unmarked')
+        path = sim / 'export' / 'part2' / 'rows.json'
+        rows = json.loads(path.read_text(encoding='utf-8'))
+        del rows['payRule']
+        bi.write_json(path, rows)
+        with self.assertRaisesRegex(bd.SummaryError, 'not paid under the weekly pay rule'):
+            bc.compare(sim)
+
+    def test_weekly_overtime_in_part2_fails_the_overtime_bar(self):
+        # Two days of 1,300 paid minutes for Part 2's t01, longer than any technician works, so that the week passes
+        # 2,400 paid minutes on its second day: 200 of the Wednesday's minutes are overtime, none of them after 17:00.
+        long_week = dict(PART2, **{'2024-03-05': ([route('t01', 2, 1300, 0, 70, 40000)], (67000, 65000, 0, 2000), ['wo-1', 'wo-2']),
+                                   '2024-03-06': ([route('t01', 1, 1300, 200, 25, 15000)], (71000, 55000, 15000, 1000), ['wo-3'])})
+        with tempfile.TemporaryDirectory() as other:
+            result = bc.compare(build(other, part2=long_week))
+        self.assertFalse(result['validity']['valid'])
+        self.assertEqual(200, result['validity']['bars']['overtimeMinutes'])
+        self.assertEqual(0, result['validity']['bars']['outsideShiftMinutes'], 'the 17:00 guard is its own bar')
+        self.assertEqual((0, 200), (result['part1']['study']['overtimeMinutes'], result['part2']['study']['overtimeMinutes']))
+        self.assertEqual((60, 120), (result['part1']['study']['unpaidMinutes'], result['part2']['study']['unpaidMinutes']))
+        # The same rows with the Wednesday's overtime left off are not the rule's.
+        flat = dict(long_week, **{'2024-03-06': ([route('t01', 1, 1300, 0, 25, 15000)], (66000, 65000, 0, 1000), ['wo-3'])})
+        with tempfile.TemporaryDirectory() as other:
+            with self.assertRaisesRegex(bd.SummaryError, '2024-03-06: t01 has 0 overtime minutes where the week gives 200'):
+                bc.compare(build(other, part2=flat))
+
+    def test_weekend_days_count_in_days_to_service_for_both_parts(self):
+        # wo-3, requested Monday 2024-03-04: the dispatcher's Saturday is 5 days out, Part 2's next Monday is 7.
+        requests = {'x': request('x', '2024-03-04', '2024-03-09')}
+        outcomes = {'x': {'outcome': 'BOOKED', 'serviceDate': '2024-03-11', 'attempts': 1}}
+        self.assertEqual(5, bc.part1_promptness(outcomes, requests)['study']['all']['medianDays'])
+        self.assertEqual(7, bc.part2_promptness(outcomes, requests)['study']['all']['medianDays'])
+        self.assertEqual(2, bc.paired_leads(outcomes, requests)['study']['median'])
+
+    def test_a_plan_that_does_not_state_its_options_is_refused(self):
+        sim = build(Path(self.directory.name) / 'bad', options=(False, 4))
+        path = sim / 'simulation.json'
+        plan = json.loads(path.read_text(encoding='utf-8'))
+        del plan['weekendWork']
+        bi.write_json(path, plan)
+        with self.assertRaisesRegex(bc.CompareError, 'weekendWork is None'):
+            bc.compare(sim)
+        with self.assertRaisesRegex(bc.CompareError, 'none were given'):
+            bc.validity([], [], [], weekend_work=False)
+        with self.assertRaisesRegex(bc.CompareError, 'booked without a service date'):
+            bc.weekend_bookings({'x': {'outcome': 'BOOKED', 'serviceDate': None}})
+
     def test_the_report_is_aligned_marks_the_tail_and_has_no_em_dash(self):
         text = bc.report(self.result)
         self.assertTrue(text.startswith('# Paso Robles backtest, Part 2: the product simulated\n'))
+        titled = bc.report(self.result, 'Paso Robles backtest 2, Part 2: the product simulated')
+        self.assertEqual(text.split('\n', 1)[1], titled.split('\n', 1)[1], 'the title is the only change')
+        with self.assertRaisesRegex(bd.SummaryError, 'A report title is one trimmed line'):
+            bc.report(self.result, '# Part 2')
         self.assertNotIn('—', text)
         self.assertIn('2024-04 (after the data)', text)
         self.assertIn('2024-Q1 (to 2024-03-29)', text)
