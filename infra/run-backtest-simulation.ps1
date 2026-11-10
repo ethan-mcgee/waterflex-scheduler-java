@@ -14,6 +14,10 @@
 #   -Full         the whole history in -Segments segments with a -WarmupWeeks warm-up (take both from the calibration)
 #   -DryRun       checks the inputs and prints the plan; builds, starts and writes nothing
 #
+# Two options of the plan (smoke and full; a plan that exists must already have them, or the run is refused):
+#   -NoWeekendWork        the product's roster leaves out Saturday and Sunday technician-days
+#   -OvernightInFlight n  up to n of a night's proposals wait on the API at once (the daily pool solves four at a time)
+#
 #   powershell -ExecutionPolicy Bypass -File infra/run-backtest-simulation.ps1 -Smoke -RunDir experiments/runs/<run-id> -Revision <sha> -ReportDir research/<study>
 param(
     [switch]$Smoke,
@@ -27,6 +31,14 @@ param(
     [ValidatePattern('^[a-z0-9][a-z0-9-]{0,30}$')][string]$Name = '',
     [ValidateRange(1, 8)][int]$Segments = 4,
     [ValidateRange(1, 8)][int]$WarmupWeeks = 3,
+    [switch]$NoWeekendWork,
+    [ValidateRange(1, 8)][int]$OvernightInFlight = 1,
+    # The simulated weeks of a smoke.
+    [ValidateRange(1, 8)][int]$SmokeWeeks = 1,
+    # The comparison's directory under -ReportDir: <ReportName> for a full run, <ReportName>-smoke-<Name> for a smoke.
+    [ValidatePattern('^[a-z0-9][a-z0-9-]{0,30}$')][string]$ReportName = 'part2',
+    # The comparison's H1 (infra/backtest_compare.py's own title when empty), for a backtest other than the first.
+    [string]$Title = '',
     [string]$Url = 'http://127.0.0.1:18080',
     [string]$RoutingUrl = 'http://127.0.0.1:18001',
     [string]$RehearsalEnv = 'deploy/vm/rehearsal.env',
@@ -39,6 +51,9 @@ $ErrorActionPreference = 'Stop'
 $modes = @($Smoke, $Calibration, $Full) | Where-Object { $_ }
 if ($modes.Count -ne 1) { throw 'Choose exactly one of -Smoke, -Calibration or -Full' }
 $mode = if ($Smoke) { 'smoke' } elseif ($Calibration) { 'calibration' } else { 'full' }
+if ($Calibration -and ($NoWeekendWork -or $OvernightInFlight -ne 1)) { throw 'The calibration plans take neither -NoWeekendWork nor -OvernightInFlight' }
+$planOptions = @('--overnight-in-flight', "$OvernightInFlight")
+if ($NoWeekendWork) { $planOptions += '--no-weekend-work' }
 
 function Invoke-Native($program, [string[]]$arguments, $log) {
     $previous = $ErrorActionPreference
@@ -86,7 +101,8 @@ $image = "waterflex-scheduler-engine:backtest-$sha"
 Write-Output "Part 2 $mode of $run at $Revision; simulation $Name; image $image; routing $identity"
 if ($DryRun) {
     if ($Calibration) { Write-Output "calibration month: $(& python (Join-Path $repository 'infra/backtest_simulate.py') busiest --run $run --year 2024)" }
-    Write-Output "segments $Segments, warm-up $WarmupWeeks weeks (full); reports to $reports"
+    Write-Output "segments $Segments, warm-up $WarmupWeeks weeks (full); weekend work $(-not $NoWeekendWork); overnight proposals in flight $OvernightInFlight; smoke weeks $SmokeWeeks"
+    Write-Output "reports to $(Join-Path $reports $(if ($Smoke) { "$ReportName-smoke-$Name" } else { $ReportName }))"
     return
 }
 
@@ -130,15 +146,26 @@ if ((Invoke-Output docker @('images', '-q', $image)).Trim() -eq '') {
 $imageId = (Invoke-Output docker @('images', '--no-trunc', '-q', $image)).Trim()
 
 # The simulations of the mode, planned once; a rerun resumes the plan it finds.
+# A plan that exists is run as it was written, so one written with other options than this command's is refused
+# rather than resumed under the wrong name (a version 1 plan has weekend work and one proposal at a time).
+function Assert-PlanOptions([string]$directory) {
+    $config = Get-Content -LiteralPath (Join-Path $directory 'simulation.json') -Raw | ConvertFrom-Json
+    $weekendWork = if ($config.version -eq 1) { $true } else { $config.weekendWork }
+    $inFlight = if ($config.version -eq 1) { 1 } else { $config.overnightInFlight }
+    if ($weekendWork -isnot [bool] -or $weekendWork -ne (-not $NoWeekendWork) -or $inFlight -ne $OvernightInFlight) {
+        throw "The plan in $directory has weekendWork '$weekendWork' and overnightInFlight '$inFlight'; this command asks for $(-not $NoWeekendWork) and $OvernightInFlight. Choose another -Name for a new plan."
+    }
+}
 $plans = @()
 if ($Smoke) {
     $directory = Join-Path $simulations $Name
     if (-not (Test-Path -LiteralPath (Join-Path $directory 'simulation.json'))) {
         $first = ((Get-Content -LiteralPath (Join-Path $run 'part2\requests.json') -Raw | ConvertFrom-Json).requests | ForEach-Object { $_.dispatcher.serviceDate } | Sort-Object | Select-Object -First 1)
         $monday = ([datetime]$first).AddDays(-(([int]([datetime]$first).DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd')
-        Invoke-Tool 'backtest_simulate.py' @('plan', '--run', $run, '--out', $directory, '--segments', "$Segments", '--warmup-weeks', "$WarmupWeeks", '--only-first', '1',
-            '--until', ([datetime]$monday).AddDays(6).ToString('yyyy-MM-dd'), '--today', $today) (Join-Path $logs 'plan.log') | Out-Null
+        Invoke-Tool 'backtest_simulate.py' (@('plan', '--run', $run, '--out', $directory, '--segments', "$Segments", '--warmup-weeks', "$WarmupWeeks", '--only-first', '1',
+            '--until', ([datetime]$monday).AddDays(7 * $SmokeWeeks - 1).ToString('yyyy-MM-dd'), '--today', $today) + $planOptions) (Join-Path $logs 'plan.log') | Out-Null
     }
+    Assert-PlanOptions $directory
     $plans += @{ directory = $directory; label = 'smoke'; partial = $true; copies = @($null) }
 } elseif ($Calibration) {
     $month = (Invoke-Tool 'backtest_simulate.py' @('busiest', '--run', $run, '--year', '2024') (Join-Path $logs 'busiest.log')) | ConvertFrom-Json
@@ -152,8 +179,9 @@ if ($Smoke) {
 } else {
     $directory = Join-Path $simulations $Name
     if (-not (Test-Path -LiteralPath (Join-Path $directory 'simulation.json'))) {
-        Invoke-Tool 'backtest_simulate.py' @('plan', '--run', $run, '--out', $directory, '--segments', "$Segments", '--warmup-weeks', "$WarmupWeeks", '--today', $today) (Join-Path $logs 'plan.log') | Out-Null
+        Invoke-Tool 'backtest_simulate.py' (@('plan', '--run', $run, '--out', $directory, '--segments', "$Segments", '--warmup-weeks', "$WarmupWeeks", '--today', $today) + $planOptions) (Join-Path $logs 'plan.log') | Out-Null
     }
+    Assert-PlanOptions $directory
     $plans += @{ directory = $directory; label = 'full'; partial = $false; copies = @($null) }
 }
 
@@ -215,13 +243,14 @@ try {
             $exportArguments = @('export', '--simulation', $plan.directory, '--roads', $RoutingUrl)
             $scoreArguments = @('score', '--simulation', $plan.directory, '--jar', $jar, '--java', $java)
             $compareArguments = @('compare', '--simulation', $plan.directory)
+            if ($Title) { $compareArguments += @('--title', $Title) }
             $suffix = $plan.label
             if ($plan.partial) { $exportArguments += '--partial' }
             if ($null -ne $copy) { $exportArguments += @('--segment', $copy); $scoreArguments += @('--segment', $copy); $compareArguments += @('--segment', $copy); $suffix = "$($plan.label)-$copy" }
             Invoke-Tool 'backtest_export.py' $exportArguments (Join-Path $logs "export-$suffix.log") | Out-Null
             Invoke-Tool 'backtest_export.py' $scoreArguments (Join-Path $logs "score-$suffix.log") | Out-Null
             if (-not $Calibration) {
-                $target = Join-Path $reports $(if ($Smoke) { "part2-smoke-$Name" } else { 'part2' })
+                $target = Join-Path $reports $(if ($Smoke) { "$ReportName-smoke-$Name" } else { $ReportName })
                 Write-Output (Invoke-Tool 'backtest_compare.py' ($compareArguments + @('--out', $target)) (Join-Path $logs "compare-$suffix.log"))
             }
         }

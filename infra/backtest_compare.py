@@ -5,7 +5,9 @@ Reads a scored export (backtest_export.py): Part 1 is the dispatcher's as-run da
 simulated book; both scored by the same scorer. Every measure is the Part 1 summary's own (backtest_dispatcher.py), so
 the two parts are read the same way. Promptness is read per request, on the same set for both: every request Part 2
 booked (its outcome from the segment that owns its request date), Part 1 at the dispatcher's service date and Part 2 at
-the booked date, with the paired difference per request.
+the booked date, with the paired difference per request. Days to service are calendar days in both parts, weekends
+included. A plan without weekend work (backtest_simulate.py, run_options) adds two bars: no Part 2 job on a Saturday or
+Sunday, on the scored days and in the booked outcomes.
 
     python infra/backtest_compare.py compare --simulation <dir> --out research/<study>/part2 [--segment <copy>]
     python infra/backtest_compare.py calibration --alone <run A dir> --together <run B dir> --out research/<study>/calibration
@@ -24,6 +26,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import backtest_dispatcher as bd
+import backtest_simulate as bs
 from load_balance_study import interval
 from markdown_tables import table
 
@@ -67,8 +70,26 @@ def load(sim_dir, only=None):
 # Readings
 
 
-def validity(part2, bookings, proposals):
-    """Each bar of the plan with its count of failures; the run is valid when every count is zero."""
+is_weekend = bd.is_weekend
+# What a part served on Saturdays and Sundays. bd.load has already refused rows that do not hold the pay rule.
+weekend_reading = bd.weekend_reading
+
+
+def weekend_bookings(outcomes):
+    """The booked requests whose Part 2 service date is a Saturday or Sunday."""
+    found = []
+    for identifier, outcome in outcomes.items():
+        if outcome['outcome'] == 'BOOKED':
+            if not outcome.get('serviceDate'):
+                raise CompareError(f'{identifier} is booked without a service date')
+            if is_weekend(outcome['serviceDate']):
+                found.append(identifier)
+    return sorted(found)
+
+
+def validity(part2, bookings, proposals, outcomes=None, weekend_work=True):
+    """Each bar of the plan with its count of failures; the run is valid when every count is zero. A plan without weekend
+    work adds its two bars, which need the outcomes."""
     refinements = Counter(b.get('refinement') for b in bookings)
     bars = {
         'bookingShed': refinements.get('SHED', 0),
@@ -83,6 +104,11 @@ def validity(part2, bookings, proposals):
         'outsideShiftMinutes': sum(row['pastShiftMinutes'] for _, row, _ in part2),
         'overtimeMinutes': sum(row['overtimeMinutes'] for _, row, _ in part2),
     }
+    if not weekend_work:
+        if outcomes is None:
+            raise CompareError('A plan without weekend work is checked against the outcomes, and none were given')
+        bars['weekendJobs'] = weekend_reading(part2)['jobs']
+        bars['weekendBookings'] = len(weekend_bookings(outcomes))
     return {'bars': bars, 'valid': all(v == 0 for v in bars.values()),
             'capStops': sum(1 for b in bookings if b.get('refinementStop') == 'CAP')}
 
@@ -184,6 +210,10 @@ def overnight(proposals):
 
 def compare(sim_dir, only=None):
     config, outcomes, part1, part2, bookings, proposals, requests = load(sim_dir, only)
+    try:
+        weekend_work, in_flight = bs.run_options(config)
+    except bs.SimulationError as error:
+        raise CompareError(str(error)) from error
     history_last = config['historyLastDate']
     totals1, techdays1, weeks1 = bd.route_measures(part1)
     totals2, techdays2, weeks2 = bd.route_measures(part2)
@@ -195,7 +225,9 @@ def compare(sim_dir, only=None):
     decided = outcomes['outcomes']
     return {'simulationId': config['simulationId'], 'partial': outcomes['partial'], 'routingIdentity': config['routingIdentity'],
             'historyLastDate': history_last, 'segments': config['segments'], 'settings': config['settings'],
-            'validity': validity(part2, bookings, proposals),
+            'weekendWork': weekend_work, 'overnightInFlight': in_flight, 'payRule': dict(bd.PAY_RULE),
+            'validity': validity(part2, bookings, proposals, decided, weekend_work),
+            'weekends': {'part1': weekend_reading(part1), 'part2': weekend_reading(part2)},
             'periods': bd.period_order(set(totals1) | set(totals2)),
             'part1': {k: dict(v) for k, v in totals1.items()}, 'part2': {k: dict(v) for k, v in totals2.items()},
             'part2WithinData': {k: dict(v) for k, v in within.items()}, 'tail': dict(tail_totals) if tail_totals else None,
@@ -247,18 +279,40 @@ def signed(value, places=1):
     return 'n/a' if value is None else f'{value:+,.{places}f}'
 
 
-def report(result):
+TITLE = 'Paso Robles backtest, Part 2: the product simulated'
+
+
+def report(result, title=TITLE):
     last = dt.date.fromisoformat(result['historyLastDate'])
     keys = result['periods']
     p1, p2 = result['part1'], result['part2']
     label = lambda k: period_label(k, last)
     v = result['validity']
-    lines = ['# Paso Robles backtest, Part 2: the product simulated', '',
+    w1, w2 = result['weekends']['part1'], result['weekends']['part2']
+    one_segment = len(result['segments']) == 1
+    offers = result['settings'].get('offerLimit')
+    design = []
+    if offers is not None:
+        # One offer is the search's first choice: the least added cost with no new overtime, ties to the earlier window
+        # (BoundedBookingSearch.choose). Several come back in window order, so the first of them is the earliest.
+        design.append('Every booking search asked for 1 offer, the window that adds the least cost for the dealership without new overtime, and the customer took it.'
+                      if offers == 1 else f'Every booking search asked for {offers} offers and the customer took the earliest of them.')
+    design.append('The product\'s roster is the history\'s technician-days, Saturdays and Sundays included where a technician worked.' if result['weekendWork'] else
+                  'The product\'s roster leaves out the history\'s Saturday and Sunday technician-days, so it books and moves nothing onto a weekend; '
+                  'the dispatcher\'s weekend work stays in Part 1 as it ran.')
+    design.append(f'The simulation ran as {"one continuous segment" if one_segment else str(len(result["segments"])) + " segments at once"}, '
+                  + ('one overnight proposal at a time.' if result['overnightInFlight'] == 1 else f'with up to {result["overnightInFlight"]} of a night\'s proposals in flight at once.'))
+    lines = [f'# {bd.checked_title(title)}', '',
              f'Generated by `infra/backtest_compare.py` from simulation `{result["simulationId"]}` (routing identity `{result["routingIdentity"][:12]}`'
              + (', cut short: a smoke or calibration run, not the study result' if result['partial'] else '') + '). '
              'Part 1 is the dispatcher\'s schedule as it ran, on the jobs Part 2 also served; Part 2 is the product booking every request through the public API '
              'and optimizing every night. Both are scored by the same scorer, on booked durations, with each technician-day starting and ending at its depot. '
+             'Paid hours leave out the unpaid meal periods California law requires, with no waiver: a 1 hour lunch once a technician-day passes 5 hours of work, '
+             'and 30 minutes more once it passes 10. Overtime is as California law sets it: a technician\'s paid time past 8 hours in a day, with double time '
+             'past 12, regular time past 40 hours in a Monday-to-Friday week, and double time past 8 hours on a seventh day in a row; and every paid minute of a '
+             'Saturday or a Sunday, by the dealership\'s rule. Work after 17:00 is not overtime in itself; it is the `outsideShiftMinutes` bar. '
              f'The history ends on {last.isoformat()}; Part 2\'s days after it use the repeated roster and have no dispatcher counterpart.', '',
+             ' '.join(design), '',
              '## Validity', '',
              f'The run is {"valid" if v["valid"] else "NOT valid"}: the table shows each bar of the plan and how many times it failed.', '',
              table(['Bar', 'Failures'], [[name, number(count)] for name, count in v['bars'].items()]), '',
@@ -278,7 +332,17 @@ def report(result):
              '## Customer windows', '',
              'The table shows arrivals after the end of the 2-hour window and the technician-days whose route does not hold, in each part.', '',
              table(['Period', 'Late visits P1', 'Late visits P2', 'Routes not holding P1', 'Routes not holding P2'],
-                   [[label(k)] + both(p1, p2, k, 'lateVisits') + both(p1, p2, k, 'routesNotHolding') for k in keys], text=(0,)), '']
+                   [[label(k)] + both(p1, p2, k, 'lateVisits') + both(p1, p2, k, 'routesNotHolding') for k in keys], text=(0,)), '',
+             '## Weekends', '',
+             'The table shows what each part served on Saturdays and Sundays. Weekend work is overtime under the dealership\'s rule, so the scorer prices every '
+             'paid minute of a Saturday or a Sunday at the overtime rate in both parts, and a weekend\'s paid hours and overtime hours are equal.'
+             + ('' if result['weekendWork'] else ' Part 2 has no weekend roster in this run, so its column is zero unless a bar above failed.'), '',
+             table(['Reading', 'Part 1', 'Part 2'],
+                   [['Dates with jobs', number(w1['days']), number(w2['days'])], ['Jobs', number(w1['jobs']), number(w2['jobs'])],
+                    ['Technician-days', number(w1['technicianDays']), number(w2['technicianDays'])],
+                    ['Paid (h)', number(w1['paidMinutes'] / 60), number(w2['paidMinutes'] / 60)],
+                    ['Overtime (h)', number(w1['overtimeMinutes'] / 60), number(w2['overtimeMinutes'] / 60)],
+                    ['Cost ($)', dollars(w1['costCents']), dollars(w2['costCents'])]]), '']
     tail = result['tail']
     if tail:
         lines += ['## After the data', '',
@@ -305,7 +369,9 @@ def report(result):
                          number(r['better']), number(r['tied']), number(r['worse'])])
         lines += [f'Weekly difference in {title.lower()}:', '', table(['Period', 'Weeks', f'Median {title}', '95% interval', 'Lower', 'Equal', 'Higher'], rows, text=(0,)), '']
     lines += ['## Promptness', '',
-              'Each table shows, by the period of the request date, the days from request to service of the same requests, every one Part 2 booked: Part 1 at the dispatcher\'s service date, Part 2 at the date Part 2 booked it for. Part 2 books from the day after the request, so same-day service is not possible for it.', '']
+              'Each table shows, by the period of the request date, the days from request to service of the same requests, every one Part 2 booked: Part 1 at the dispatcher\'s service date, Part 2 at the date Part 2 booked it for. Part 2 books from the day after the request, so same-day service is not possible for it. '
+              'Days are calendar days in both parts, weekends included: a request the dispatcher served on a Saturday is read at that Saturday'
+              + ('.' if result['weekendWork'] else ', and a request Part 2 holds over a weekend carries those two days.'), '']
     names = {'all': 'Every job', 'emergency': 'Emergencies (' + ', '.join(bd.EMERGENCY_CODES) + ')', 'sales': 'Sales calls', 'other': 'Other jobs'}
     prompt = result['promptness']
     for group in bd.GROUPS:
@@ -355,7 +421,9 @@ def report(result):
     night += [['Cents the commits saved', 'not measured']]
     lines += ['## Overnight', '', 'The table shows the overnight runs: proposals, decisions and commits.', '', table(['Reading', 'Value'], night), '']
     lines += ['## Segment boundaries', '',
-              'Segments run at once and each scores only its own service dates, so a job requested near a boundary is simulated twice. The table counts the jobs that two segments both scored and the booked jobs no scored day holds.', '',
+              ('The run is one segment from the dispatcher\'s backlog on its first date, so no job is simulated twice. The table counts the jobs scored twice and the booked jobs no scored day holds.'
+               if one_segment else
+               'Segments run at once and each scores only its own service dates, so a job requested near a boundary is simulated twice. The table counts the jobs that two segments both scored and the booked jobs no scored day holds.'), '',
               table(['Reading', 'Jobs'], [[k, number(n)] for k, n in result['boundaries'].items()]), '']
     return '\n'.join(lines).rstrip('\n') + '\n'
 
@@ -419,6 +487,7 @@ def main(argv=None):
     single.add_argument('--simulation', required=True)
     single.add_argument('--out', required=True)
     single.add_argument('--segment')
+    single.add_argument('--title', default=TITLE, help='the report\'s H1, for a backtest other than the first')
     calibrate = commands.add_parser('calibration')
     calibrate.add_argument('--alone', required=True)
     calibrate.add_argument('--together', required=True)
@@ -432,10 +501,11 @@ def main(argv=None):
         bd.write_json(out / 'evidence.json', result)
         print(json.dumps({'segments': result['segments'], 'warmupWeeks': result['warmupWeeks'], 'report': str(out / 'report.md')}))
         return 0
+    title = bd.checked_title(args.title)
     result = compare(args.simulation, args.segment)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'report.md').write_text(report(result), encoding='utf-8', newline='\n')
+    (out / 'report.md').write_text(report(result, title), encoding='utf-8', newline='\n')
     bd.write_json(out / 'evidence.json', result)
     print(json.dumps({'valid': result['validity']['valid'], 'report': str(out / 'report.md')}))
     return 0

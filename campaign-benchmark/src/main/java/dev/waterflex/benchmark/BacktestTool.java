@@ -8,8 +8,12 @@ import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.optimizer.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +24,10 @@ import java.util.concurrent.TimeUnit;
  * {@code backtest-score-days} reads one plan file of many days in one JVM, and
  * {@code backtest-solve} runs the production daily calculation on the dataset's own assignment. Road legs come from
  * the dataset alone, so a day reads the same on every machine that has the file.
+ * <p>{@code backtest-score-days} names each day by its local date, so it alone can place a day in its week, and pays
+ * its rows by the dealership's {@link PayRule} (owner, 2026-11-09): unpaid meal periods and daily and weekly overtime as
+ * California law sets them, and weekend work as overtime. A dataset holds instants and no time zone, so the other jobs, which name no
+ * date, keep the engine's pay: every minute from depot to depot, with the minutes after the shift end as overtime.
  */
 public final class BacktestTool {
     /** The plan shape the importer and the replay write: each route's visit ids in order, plus the unassigned ids. */
@@ -35,11 +43,73 @@ public final class BacktestTool {
             return new Plan(1, proposal.routes(), proposal.unassigned());
         }
     }
-    /** One route's reading; {@code arrivals} are ISO instants by visit id, empty when a road is missing. */
+    /**
+     * The pay rule of {@code backtest-score-days} (owner, 2026-11-09), in three parts.
+     * <p>Meal periods follow California Labor Code section 512 on every day of the week, with no waiver assumed: a
+     * technician-day whose work would pass {@code firstMealAfterMinutes} without a meal has {@code firstMealMinutes}
+     * unpaid (the owner's 1 hour lunch), and one whose work after that meal would still pass
+     * {@code secondMealAfterMinutes} has {@code secondMealMinutes} more. The engine's route has no break, so the work is
+     * its depot-to-depot span and the meals are taken inside it.
+     * <p>Overtime follows Labor Code section 510 on a weekday: paid minutes past {@code dailyRegularMinutes} in the day
+     * are overtime, those past {@code dailyDoubleTimeAfterMinutes} double time, and the regular minutes left are
+     * overtime once a technician's Monday-to-Friday week passes {@code weeklyRegularMinutes}, on the day they fall. A
+     * weekday holds at most {@code dailyRegularMinutes} of regular time, so five of them never pass the week's 40 hours.
+     * <p>With {@code weekendOvertime} every paid minute of a Saturday or a Sunday is overtime (the dealership's rule)
+     * and stays out of the week's count, with double time past {@code dailyDoubleTimeAfterMinutes}. A Sunday that is a
+     * technician's seventh day of work in a row in its Monday-to-Sunday week has double time past
+     * {@code seventhDayDoubleTimeAfterMinutes}. Double time is paid at {@code doubleTimeMultiple} times the regular rate.
+     * <p>The rows file carries the rule it was paid under, so a reader can refuse rows paid under another.
+     */
+    public record PayRule(long dailyRegularMinutes, long dailyDoubleTimeAfterMinutes, long seventhDayDoubleTimeAfterMinutes,
+            long weeklyRegularMinutes, long doubleTimeMultiple, long firstMealMinutes, long firstMealAfterMinutes, long secondMealMinutes,
+            long secondMealAfterMinutes, boolean weekendOvertime) {
+        /** The unpaid meal minutes of a technician-day {@code span} minutes long from depot to depot. */
+        long meals(long span) {
+            long first = span > firstMealAfterMinutes ? firstMealMinutes : 0;
+            long second = first > 0 && span - first > secondMealAfterMinutes ? secondMealMinutes : 0;
+            return first + second;
+        }
+    }
+    public static final PayRule PAY_RULE = new PayRule(480, 720, 480, 2400, 2, 60, 300, 30, 600, true);
+    /** The common denominator of {@link Monetary#numerator}: minutes per hour times meters per mile. */
+    private static final BigDecimal CENTS_DENOMINATOR = Required.value(new BigDecimal("60").multiply(new BigDecimal("1609.344")));
+
+    /** The rates one day is priced at: the dataset's own, by the engine's fleet formula. */
+    public record Rates(BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile) {
+        public Rates { Required.value(regularHourly); Required.value(overtimeHourly); Required.value(mileagePerMile); }
+        public static Rates of(DayPlan plan) { return new Rates(plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile()); }
+        long cents(long paid, long overtime, long meters) { return Monetary.cents(paid, overtime, meters, regularHourly, overtimeHourly, mileagePerMile); }
+        /**
+         * The cents of {@code paid} minutes of which {@code overtime} are overtime and {@code doubleTime} of those are
+         * double time, plus {@code meters}: the engine's exact numerator with the double-time minutes' extra over the
+         * overtime rate added, rounded half up once. With no double time it is {@link #cents(long, long, long)}.
+         */
+        long cents(long paid, long overtime, long doubleTime, long meters) {
+            if (doubleTime < 0 || doubleTime > overtime) throw new IllegalArgumentException("Double time is part of the overtime");
+            BigDecimal doubleRate = Required.value(regularHourly.multiply(BigDecimal.valueOf(PAY_RULE.doubleTimeMultiple())));
+            BigDecimal extra = Required.value(doubleRate.subtract(overtimeHourly));
+            if (extra.signum() < 0) throw new IllegalArgumentException("Double time is paid at no less than the overtime rate");
+            BigDecimal zero = Required.value(BigDecimal.ZERO);
+            BigDecimal numerator = Required.value(Monetary.numerator(paid, overtime, meters, regularHourly, overtimeHourly, mileagePerMile)
+                    .add(Monetary.numerator(doubleTime, doubleTime, 0, zero, extra, zero)));
+            return numerator.divide(CENTS_DENOMINATOR, 0, RoundingMode.HALF_UP).longValueExact();
+        }
+    }
+
+    /**
+     * One route's reading; {@code arrivals} are ISO instants by visit id, empty when a road is missing.
+     * {@code unpaidMinutes} is zero and {@code paidMinutes} runs from depot to depot until a {@link PayRule} is applied.
+     */
     public record RouteRow(String technicianId, boolean holds, int visits, long qualifications, long unavailableRoads,
             long latenessSeconds, long lateVisits, long availabilitySeconds, long capacityMinutes, long paidMinutes,
-            long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds, Map<String,String> arrivals) {
+            long overtimeMinutes, long doubleTimeMinutes, long unpaidMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds,
+            Map<String,String> arrivals) {
         public RouteRow { Required.value(technicianId); arrivals = Required.value(Map.copyOf(arrivals)); }
+        /** This route with its pay replaced; everything else stays the engine's. */
+        RouteRow paid(long unpaid, long paid, long overtime, long doubleTime) {
+            return new RouteRow(technicianId, holds, visits, qualifications, unavailableRoads, latenessSeconds, lateVisits, availabilitySeconds,
+                    capacityMinutes, paid, overtime, doubleTime, unpaid, driveMinutes, waitingMinutes, meters, bufferSeconds, arrivals);
+        }
     }
     /**
      * One plan's reading. {@code feasible} is the independent evaluator's verdict on the assigned work with every
@@ -48,15 +118,29 @@ public final class BacktestTool {
      * from the same timing whether or not the plan holds, since {@link SchedulingPolicy#measure} refuses an infeasible day.
      * {@code regularCents}, {@code overtimeCents} and {@code mileageCents} price the fleet's regular minutes, overtime
      * minutes and meters each on its own, rounded half up once each, so their sum may differ from {@code costCents} (the
-     * fleet's exact total, rounded once) by a cent or two.
+     * fleet's exact total, rounded once) by a cent or two. As {@link #score} reads it, the pay is the engine's:
+     * {@code paidMinutes} from depot to depot, {@code overtimeMinutes} after the shift end, {@code unpaidMinutes} zero.
+     * In a {@code backtest-score-days} file the pay is the {@link PayRule}'s instead ({@link #pay}): {@code paidMinutes}
+     * leave out {@code unpaidMinutes} of meal periods, {@code overtimeMinutes} are the rule's with
+     * {@code doubleTimeMinutes} of them at double time, and the four cost fields are priced on those
+     * ({@code overtimeCents} holds the double time too). The other times, the violations, both verdicts and the fairness reading stay the engine's.
      */
     public record Row(String datasetHash, String planHash, boolean feasible, boolean routesHold, long unassigned, long hardPenalty,
-            long costCents, long regularCents, long overtimeCents, long mileageCents, long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters, long bufferSeconds,
+            long costCents, long regularCents, long overtimeCents, long mileageCents, long paidMinutes, long overtimeMinutes, long doubleTimeMinutes,
+            long unpaidMinutes,
+            long driveMinutes, long waitingMinutes, long meters, long bufferSeconds,
             long qualifications, long unreachableLegs, long latenessSeconds, long lateVisits, long availabilitySeconds,
             long pastShiftMinutes, long capacityExcessMinutes, BigDecimal fairnessVariance, BigDecimal maximumUtilization, List<RouteRow> routes) {
         public Row {
             Required.value(datasetHash); Required.value(planHash); Required.value(fairnessVariance); Required.value(maximumUtilization);
             routes = Required.value(List.copyOf(routes));
+        }
+        /** This reading with its pay and its price replaced; everything else stays the engine's. */
+        Row paid(long unpaid, long paid, long overtime, long doubleTime, Rates rates, List<RouteRow> paidRoutes) {
+            return new Row(datasetHash, planHash, feasible, routesHold, unassigned, hardPenalty,
+                    rates.cents(paid, overtime, doubleTime, meters), rates.cents(paid - overtime, 0, 0, 0), rates.cents(overtime, overtime, doubleTime, 0),
+                    rates.cents(0, 0, 0, meters), paid, overtime, doubleTime, unpaid, driveMinutes, waitingMinutes, meters, bufferSeconds, qualifications, unreachableLegs, latenessSeconds, lateVisits,
+                    availabilitySeconds, pastShiftMinutes, capacityExcessMinutes, fairnessVariance, maximumUtilization, paidRoutes);
         }
     }
     private BacktestTool() { }
@@ -155,7 +239,8 @@ public final class BacktestTool {
     /**
      * Many days in one JVM: seals each day's {@code dataset} draft in memory and reads its {@code plan} file (for Part 1,
      * the dispatcher's day as booked), in the job's day order. A day that does not hold is read in numbers, never
-     * refused; a missing or malformed file is. Writes the rows to {@code output} and nothing beside the importer's files.
+     * refused; a missing or malformed file is. The rows are then paid across the days by the {@link PayRule}, which
+     * the output names. Writes the rows to {@code output} and nothing beside the importer's files.
      */
     private static Object scoreDaysJob(JsonNode job) {
         fields(job,"version","kind","dataset","plan","days","output");
@@ -165,24 +250,105 @@ public final class BacktestTool {
             if (!name.matches("[A-Za-z0-9.-]+\\.json")) throw new IllegalArgumentException("A score-days file is a plain JSON file name: " + name);
         JsonNode days = get(job,"days");
         if (!days.isArray() || days.isEmpty()) throw new IllegalArgumentException("A score-days run needs at least one day");
-        List<DayRow> rows = new ArrayList<>();
+        List<DayRow> scored = new ArrayList<>();
+        List<Rates> rates = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (JsonNode element : days) {
             JsonNode entry = Required.value(element, "score day");
             fields(entry,"day","directory");
             String day = text(get(entry,"day"));
             if (!seen.add(day)) throw new IllegalArgumentException("Day scored twice: " + day);
+            date(day);
             Path directory = Required.value(Path.of(text(get(entry,"directory"))));
             DailyDataset dataset = DailyDataset.parse(DailyDataset.seal(SnapshotFileIO.readText(directory.resolve(datasetName).toFile())));
             String planJson = SnapshotFileIO.readText(directory.resolve(planName).toFile());
-            rows.add(new DayRow(day, planName, score(dataset, CalculationJson.read(planJson, Plan.class), CalculationJson.hash(planJson))));
+            rates.add(Rates.of(dataset.toDayPlan()));
+            scored.add(new DayRow(day, planName, score(dataset, CalculationJson.read(planJson, Plan.class), CalculationJson.hash(planJson))));
         }
+        List<DayRow> rows = pay(scored, rates);
+        // payRule names the rule the rows are paid under, so a reader can refuse rows paid under another or under none.
         String json = CalculationJson.write(Required.value(Map.<String,@org.jspecify.annotations.NonNull Object>of(
-                "version",1,"kind","backtest-score-days","dataset",datasetName,"plan",planName,"rows",rows)));
+                "version",1,"kind","backtest-score-days","dataset",datasetName,"plan",planName,"payRule",PAY_RULE,"rows",rows)));
         SnapshotFileIO.writeText(Path.of(text(get(job,"output"))).toFile(), json);
         long holding = 0;
         for (DayRow row : rows) if (row.row().feasible()) holding++;
         return document(Map.of("kind","backtest-score-days","days",rows.size(),"holding",holding,"sha256",CalculationJson.hash(json)));
+    }
+
+    /**
+     * A score day's date. The day is the local service date as an ISO date; anything else is refused, since a day that
+     * cannot be placed in its week cannot be paid.
+     */
+    static LocalDate date(String day) {
+        try { return Required.value(LocalDate.parse(day)); }
+        catch (DateTimeParseException failure) { throw new IllegalArgumentException("A score day is an ISO date: " + day, failure); }
+    }
+
+    /** One technician's week, named by its Monday: the Monday-to-Friday count of regular time and the days worked to Sunday. */
+    private record Week(String technicianId, LocalDate monday) { }
+
+    /**
+     * The engine's rows paid by the {@link PayRule}, returned in the order given. Each technician's week is walked in
+     * date order whatever the order of {@code scored}, so the minutes past the weekly limit are overtime on the day they
+     * fall and a period's overtime is the sum of its days. {@code rates} are each day's own. A technician is told from
+     * one day to the next by the route's technician id, which must name one route a day. Days missing from
+     * {@code scored} are days without work: the week's count runs over the days given.
+     */
+    static List<DayRow> pay(List<DayRow> scored, List<Rates> rates) {
+        if (scored.size() != rates.size()) throw new IllegalArgumentException("Each scored day is priced at its own rates");
+        List<LocalDate> dates = new ArrayList<>();
+        List<Integer> order = new ArrayList<>();
+        for (DayRow day : scored) { order.add(dates.size()); dates.add(date(day.day())); }
+        if (new HashSet<>(dates).size() != dates.size()) throw new IllegalArgumentException("A day is paid once");
+        order.sort((first, second) -> dates.get(first).compareTo(dates.get(second)));
+        Map<Week,Long> weeks = new HashMap<>();
+        Map<Week,Long> worked = new HashMap<>();
+        List<DayRow> paid = new ArrayList<>(scored);
+        for (int index : order) {
+            DayRow day = scored.get(index);
+            paid.set(index, new DayRow(day.day(), day.plan(), pay(day.row(), Required.value(dates.get(index)), Required.value(rates.get(index), "day rates"), weeks, worked)));
+        }
+        return Required.value(List.copyOf(paid));
+    }
+
+    /**
+     * One day paid. {@code weeks} holds each technician's regular weekday minutes of the week so far and {@code worked}
+     * the days of the week so far with paid minutes; both gain this day's.
+     */
+    private static Row pay(Row row, LocalDate date, Rates rates, Map<Week,Long> weeks, Map<Week,Long> worked) {
+        DayOfWeek weekday = Required.value(date.getDayOfWeek());
+        boolean weekend = weekday == DayOfWeek.SATURDAY || weekday == DayOfWeek.SUNDAY;
+        LocalDate monday = Required.value(date.minusDays(weekday.getValue() - 1L));
+        List<RouteRow> routes = new ArrayList<>();
+        Set<String> technicians = new HashSet<>();
+        long span = 0, unpaid = 0, paid = 0, overtime = 0, doubleTime = 0;
+        for (RouteRow route : row.routes()) {
+            if (!technicians.add(route.technicianId())) throw new IllegalArgumentException("Two routes of " + route.technicianId() + " on " + date);
+            if (route.unpaidMinutes() != 0) throw new IllegalArgumentException("A route is paid once: " + route.technicianId() + " on " + date);
+            long lunch = PAY_RULE.meals(route.paidMinutes());
+            long routePaid = route.paidMinutes() - lunch, routeOvertime, routeDouble;
+            Week week = new Week(route.technicianId(), monday);
+            Long daysBefore = worked.get(week);
+            boolean seventh = weekday == DayOfWeek.SUNDAY && daysBefore != null && daysBefore == 6;
+            if ((weekend && PAY_RULE.weekendOvertime()) || seventh) {
+                routeOvertime = routePaid;
+                routeDouble = Math.max(0, routePaid - (seventh ? PAY_RULE.seventhDayDoubleTimeAfterMinutes() : PAY_RULE.dailyDoubleTimeAfterMinutes()));
+            } else {
+                routeDouble = Math.max(0, routePaid - PAY_RULE.dailyDoubleTimeAfterMinutes());
+                long daily = Math.max(0, Math.min(routePaid, PAY_RULE.dailyDoubleTimeAfterMinutes()) - PAY_RULE.dailyRegularMinutes());
+                long regular = routePaid - daily - routeDouble;
+                Long before = weeks.get(week);
+                long through = Math.addExact(before == null ? 0 : before, regular);
+                weeks.put(week, through);
+                routeOvertime = daily + routeDouble + Math.max(0, Math.min(regular, through - PAY_RULE.weeklyRegularMinutes()));
+            }
+            if (routePaid > 0) worked.put(week, (daysBefore == null ? 0 : daysBefore) + 1);
+            routes.add(route.paid(lunch, routePaid, routeOvertime, routeDouble));
+            span = Math.addExact(span, route.paidMinutes()); unpaid = Math.addExact(unpaid, lunch);
+            paid = Math.addExact(paid, routePaid); overtime = Math.addExact(overtime, routeOvertime); doubleTime = Math.addExact(doubleTime, routeDouble);
+        }
+        if (span != row.paidMinutes() || row.unpaidMinutes() != 0) throw new IllegalArgumentException("The routes of " + date + " do not sum to the day's paid minutes");
+        return row.paid(unpaid, paid, overtime, doubleTime, rates, routes);
     }
 
     /** The draft {@code <name>.json} of the day sealed into the output as {@code <name>.sealed.json}, reusing a seal already there. */
@@ -217,6 +383,7 @@ public final class BacktestTool {
         return score(restored, dataset.contentHash(), planHash);
     }
 
+    /** The plan read in numbers, with the engine's pay: every minute from depot to depot, overtime after the shift end. */
     public static Row score(DayPlan plan, String datasetHash, String planHash) {
         var evaluation = DayScoreCalculator.evaluate(plan);
         var independent = RouteEvaluator.evaluateAssigned(plan);
@@ -241,7 +408,7 @@ public final class BacktestTool {
             }
             rows.add(new RouteRow(reading.technicianId(), reading.holds(), route.getVisits().size(), reading.qualifications(),
                     reading.unavailableRoads(), reading.latenessSeconds(), lateHere, reading.availabilitySeconds(), reading.capacityMinutes(),
-                    reading.paidMinutes(), reading.overtimeMinutes(), reading.driveMinutes(), reading.waitingMinutes(), reading.meters(),
+                    reading.paidMinutes(), reading.overtimeMinutes(), 0, 0, reading.driveMinutes(), reading.waitingMinutes(), reading.meters(),
                     reading.bufferSeconds(), arrivals));
             hold &= reading.holds();
             qualifications = Math.addExact(qualifications, reading.qualifications()); unreachable = Math.addExact(unreachable, reading.unavailableRoads());
@@ -255,11 +422,10 @@ public final class BacktestTool {
         var fairness = SchedulingPolicy.fairness(workloads);
         long unassigned = plan.getUnassignedVisitIds().size();
         long paid = evaluation.paidMinutes(), overtime = evaluation.overtimeMinutes(), meters = evaluation.meters();
-        long regularCents = Monetary.cents(paid - overtime, 0, 0, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
-        long overtimeCents = Monetary.cents(overtime, overtime, 0, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
-        long mileageCents = Monetary.cents(0, 0, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
+        Rates rates = Rates.of(plan);
         return new Row(datasetHash, planHash, independent.feasible() && unassigned == 0, hold, unassigned, evaluation.hardPenalty(),
-                evaluation.costCents(), regularCents, overtimeCents, mileageCents, evaluation.paidMinutes(), evaluation.overtimeMinutes(), evaluation.driveMinutes(), evaluation.waitingMinutes(),
+                evaluation.costCents(), rates.cents(paid - overtime, 0, 0), rates.cents(overtime, overtime, 0), rates.cents(0, 0, meters),
+                paid, overtime, 0, 0, evaluation.driveMinutes(), evaluation.waitingMinutes(),
                 evaluation.meters(), evaluation.bufferSeconds(), qualifications, unreachable, lateness, late, availability,
                 Math.floorDiv(Math.addExact(availability, 59), 60), capacity, fairness.variance(), fairness.maximumUtilization(), rows);
     }

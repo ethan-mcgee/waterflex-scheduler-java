@@ -3,13 +3,15 @@
 # the as-run rule set, score every day's as-planned plan in one JVM, then summarize the rows into the report.
 # Scoring times nothing, so running containers are allowed. A rerun scores again and overwrites the rows and the report.
 # Output: <RunDir>/part1/{job.json, rows.json, receipt.json, logs/}; the report and its evidence go to -ReportDir.
-#   powershell -ExecutionPolicy Bypass -File infra/run-backtest-dispatcher.ps1 -RunDir experiments/runs/<run-id>/variants/as-run -Revision <sha> -ReportDir research/<study>/part1 [-DryRun]
+#   powershell -ExecutionPolicy Bypass -File infra/run-backtest-dispatcher.ps1 -RunDir experiments/runs/<run-id>/variants/as-run -Revision <sha> -ReportDir research/<study>/part1 [-Title <title>] [-DryRun]
 param(
     [Parameter(Mandatory)][string]$RunDir,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$Revision,
     [Parameter(Mandatory)][string]$ReportDir,
     [string]$TreeRoot = 'C:\Projects\waterflex-worktrees\backtest-tree',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
+    # The report's H1 (infra/backtest_dispatcher.py's own title when empty), for a backtest other than the first.
+    [string]$Title = '',
     # Checks the inputs and prints the plan without building, scoring or summarizing.
     [switch]$DryRun
 )
@@ -52,7 +54,7 @@ $jobFile = Join-Path $part 'job.json'
 $rows = Join-Path $part 'rows.json'
 $jobs = ($index.days | Measure-Object -Property jobs -Sum).Sum
 Write-Output "Part 1: $($index.days.Count) days, $jobs jobs of $($index.runId), scored in one JVM (a few minutes), plus the build when the tree is not at $Revision"
-Write-Output "Rows: $rows; report: $report"
+Write-Output "Rows: $rows; report: $report$(if ($Title) { " ($Title)" })"
 if ($DryRun) { return }
 
 # The frozen tree, as infra/run-backtest-convergence.ps1 builds it; a tree already built from the revision is reused.
@@ -79,5 +81,7 @@ Write-Output (Invoke-Python @($tool, 'job', '--run', $run, '--rows', $rows, '--j
 $code = Invoke-Native $java @('-Xmx3g', '-XX:+UseSerialGC', '-jar', $jar, $jobFile, (Join-Path $part 'receipt.json')) (Join-Path $logs 'score.log')
 if ($code -ne 0 -or -not (Test-Path -LiteralPath $rows)) { throw 'Scoring failed (see part1/logs/score.log)' }
 Write-Output "$(Get-Date -Format s) scored in $([math]::Round(((Get-Date) - $started).TotalMinutes, 1)) minutes: $(Get-Content -LiteralPath (Join-Path $part 'receipt.json') -Raw)"
-Write-Output (Invoke-Python @($tool, 'summarize', '--run', $run, '--rows', $rows, '--out', $report))
+$summarize = @($tool, 'summarize', '--run', $run, '--rows', $rows, '--out', $report)
+if ($Title) { $summarize += @('--title', $Title) }
+Write-Output (Invoke-Python $summarize)
 Write-Output "Report: $report\report.md. The tree stays in $TreeRoot; remove it with: git -C $main worktree remove $TreeRoot"
