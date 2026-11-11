@@ -1,6 +1,6 @@
 """Regression coverage for infra/backtest_simulate.py with a fake scheduler: a three-day run, a run killed in the
-middle of a date that resumes from its checkpoint to the same end state, a night's proposals in flight together, and a
-roster without weekend work. No real row appears here."""
+middle of a date that resumes from its checkpoint to the same end state, a night's proposals in flight together, a
+roster without weekend work, and a client that picks one of several offers at random. No real row appears here."""
 import datetime as dt
 import json
 import tempfile
@@ -28,16 +28,18 @@ class Killed(Exception):
 class FakeScheduler:
     """Answers like the API for the simulator's calls, storing every answer by requestId: a replay with the same body
     gets the same answer, one with another body is refused, as the API's claim does. Up to three jobs a technician-day,
-    offered on the first open technician-day of the horizon, or with spread on each open one in turn."""
+    offered on the first open technician-days of the horizon (up to offerLimit of them, or most), or with spread starting
+    from each open one in turn; several offers come back sorted by window start, as the API sorts them. With
+    overshoot, one more offer than the limit comes back."""
 
-    def __init__(self, store=None, kill_after=None, stagger=False, spread=False):
+    def __init__(self, store=None, kill_after=None, stagger=False, spread=False, most=None, overshoot=False):
         self.store = {} if store is None else store
         self.kill_after, self.calls = kill_after, 0
         self.lock = threading.Lock()
         # stagger holds back the first proposal to arrive while others are in flight, so a later date answers first.
         self.stagger, self.in_flight, self.most_in_flight = stagger, 0, 0
-        self.spread = spread
-        self.arrived, self.answered, self.commits = [], [], []
+        self.spread, self.most, self.overshoot = spread, most, overshoot
+        self.arrived, self.answered, self.commits, self.limits = [], [], [], []
 
     def answer(self, request_id, body, make):
         with self.lock:
@@ -67,17 +69,24 @@ class FakeScheduler:
                 count = sum(1 for a in snapshot['appointments'] if a['technicianId'] == day['technicianId'] and a['serviceDate'] == day['serviceDate'])
                 if count < 3:
                     places.append((day, count))
+            self.limits.append(body['offerLimit'])
             if not places:
                 return {'offerSetId': 'os-' + body['requestId'], 'expiresAt': '2030-01-01T00:00:00Z', 'searchComplete': True, 'offers': [], 'skippedTechnicianDays': []}
-            # The turn is counted from the stored offers, so a resumed run takes up the turns where the stopped one left them.
-            day, count = places[sum(1 for key in self.store if key.startswith('offer:')) % len(places)] if self.spread else places[0]
-            start = 8 * 60 + 120 * count
-            window = {'start': bh.local_instant(day['serviceDate'], start, LA), 'end': bh.local_instant(day['serviceDate'], start + 120, LA)}
-            offer = {'offerId': f'of-{body["requestId"]}', 'serviceDate': day['serviceDate'], 'window': window, 'technicianId': day['technicianId']}
-            self.store['offer:' + offer['offerId']] = (None, offer)
-            self.store['job:h-' + offer['offerId']] = (None, body['job'])
+            # The turn is counted from the stored offer sets, so a resumed run takes up the turns where the stopped one left them.
+            turn = sum(1 for key in self.store if key.startswith('set:')) % len(places) if self.spread else 0
+            self.store['set:' + body['requestId']] = (None, None)
+            wanted = min(body['offerLimit'], self.most or body['offerLimit']) + (1 if self.overshoot else 0)
+            offers = []
+            for k, (day, count) in enumerate((places[turn:] + places[:turn])[:wanted]):
+                start = 8 * 60 + 120 * count
+                window = {'start': bh.local_instant(day['serviceDate'], start, LA), 'end': bh.local_instant(day['serviceDate'], start + 120, LA)}
+                offer = {'offerId': f'of-{body["requestId"]}-{k}', 'serviceDate': day['serviceDate'], 'window': window, 'technicianId': day['technicianId']}
+                self.store['offer:' + offer['offerId']] = (None, offer)
+                self.store['job:h-' + offer['offerId']] = (None, body['job'])
+                offers.append(offer)
+            offers.sort(key=lambda o: (o['window']['start'], o['offerId']))
             return {'offerSetId': 'os-' + body['requestId'], 'expiresAt': '2030-01-01T00:00:00Z', 'searchComplete': True, 'refinement': 'COMPLETE',
-                    'offers': [{k: offer[k] for k in ('offerId', 'serviceDate', 'window')}], 'skippedTechnicianDays': []}
+                    'offers': [{k: o[k] for k in ('offerId', 'serviceDate', 'window')} for o in offers], 'skippedTechnicianDays': []}
         return self.answer(body['requestId'], body, make), 1
 
     def select(self, offer_id, request_id):
@@ -353,7 +362,7 @@ class SimulateTest(unittest.TestCase):
         on_weekend = [b for b in stable(worked / 'bookings.jsonl') if b['outcome'] == 'BOOKED' and not bh.is_weekday(b['offer']['date'])]
         self.assertTrue(on_weekend, 'with the history roster, the same requests are booked on its Saturday')
         plan, _, rested, summary = self.simulated('rested', run, until, weekend_work=False)
-        self.assertEqual((2, False), (plan['version'], plan['weekendWork']))
+        self.assertEqual((3, False), (plan['version'], plan['weekendWork']))
         bookings = stable(rested / 'bookings.jsonl')
         booked = [b for b in bookings if b['outcome'] == 'BOOKED']
         self.assertEqual(31, len(booked), 'every request is still booked')
@@ -370,7 +379,8 @@ class SimulateTest(unittest.TestCase):
     def test_the_plan_records_its_roster_and_overnight_options(self):
         run = write_run(Path(self.directory.name) / 'weekends', weekends=True)
         first = bs.plan(run, Path(self.directory.name) / 'history', 1, 3, today='2026-11-05')
-        self.assertEqual((2, True, 1, '2024-03-17'), (first['version'], first['weekendWork'], first['overnightInFlight'], first['rosterEnd']))
+        self.assertEqual((3, True, 1, '2024-03-17'), (first['version'], first['weekendWork'], first['overnightInFlight'], first['rosterEnd']))
+        self.assertEqual((1, 'first'), (first['settings']['offerLimit'], first['clientPick']), 'by default one offer, which the client takes')
         self.assertIsNone(first['warmupWeeks'], 'one segment starts from the backlog, with no warm-up to record')
         second = bs.plan(run, Path(self.directory.name) / 'weekdays', 1, 3, today='2026-11-05', weekend_work=False, in_flight=4)
         self.assertEqual((False, 4, '2024-03-15'), (second['weekendWork'], second['overnightInFlight'], second['rosterEnd']))
@@ -382,7 +392,7 @@ class SimulateTest(unittest.TestCase):
         self.assertEqual((True, 1), bs.run_options({'version': 1}))
 
     def test_a_plan_without_its_options_or_with_bad_ones_is_refused(self):
-        for config, message in (({}, 'version None'), ({'version': 3}, 'version 3'), ({'version': 2, 'overnightInFlight': 4}, 'weekendWork is None'),
+        for config, message in (({}, 'version None'), ({'version': 4}, 'version 4'), ({'version': 2, 'overnightInFlight': 4}, 'weekendWork is None'),
                                 ({'version': 2, 'weekendWork': False}, 'overnightInFlight is None'),
                                 ({'version': 2, 'weekendWork': 'no', 'overnightInFlight': 4}, "weekendWork is 'no'"),
                                 ({'version': 2, 'weekendWork': False, 'overnightInFlight': 0}, 'overnightInFlight is 0'),
@@ -425,6 +435,112 @@ class SimulateTest(unittest.TestCase):
         no_offer = [b for b in bookings if b['outcome'] == 'NO_OFFER']
         self.assertEqual(2, len([b for b in no_offer if b['date'] == MONDAY]))
         self.assertEqual({bh.add_days(MONDAY, 1)}, {b['date'] for b in bookings if b['attempt'] == 2}, 'they call back the next weekday')
+        self.assertEqual({0}, {b['offersShown'] for b in no_offer}, 'a search with no offer shows none')
+
+    # -- the client's pick --------------------------------------------------------------------------------------------
+
+    def assert_picks(self, bookings, limit):
+        """Every booked request took the seeded pick of the offers shown, and booked that offer's date and window."""
+        booked = [b for b in bookings if b['outcome'] == 'BOOKED']
+        self.assertTrue(booked)
+        for b in booked:
+            self.assertEqual(len(b['offered']), b['offersShown'])
+            self.assertTrue(1 <= b['offersShown'] <= limit)
+            self.assertEqual(bs.pick_of(17, b['date'], b['request'], b['attempt'], b['offersShown']), b['picked'])
+            taken = b['offered'][b['picked']]
+            self.assertEqual((taken['date'], taken['windowStart'], taken['windowEnd']), (b['offer']['date'], b['offer']['windowStart'], b['offer']['windowEnd']))
+        return booked
+
+    def test_a_random_client_takes_the_seeded_one_of_four_offers(self):
+        run = write_run(Path(self.directory.name) / 'busy', per_day=8, days=5)
+        plan, fake, segment, summary = self.simulated('pick', run, bh.add_days(MONDAY, 6), FakeScheduler(spread=True), lead=5, offer_limit=4,
+                                                      client_pick='random')
+        self.assertEqual((3, 4, 'random'), (plan['version'], plan['settings']['offerLimit'], plan['clientPick']))
+        self.assertEqual({4}, set(fake.limits), 'every search asks for four offers')
+        booked = self.assert_picks(stable(segment / 'bookings.jsonl'), 4)
+        self.assertEqual([], summary['waitingAtEnd'])
+        self.assertIn(4, {b['offersShown'] for b in booked})
+        self.assertEqual({0, 1, 2, 3}, {b['picked'] for b in booked if b['offersShown'] == 4}, 'the picks spread over every index')
+        for b in booked:
+            self.assertEqual(sorted(b['offered'], key=lambda o: (o['date'], o['windowStart'])), b['offered'], 'shown in the order the API sorts them')
+        book = bh.Book.from_json(bh.load_json(segment / 'checkpoint.json')['book'])
+        for b in booked:
+            appointment = book.appointments[b['request']]
+            self.assertEqual((b['offer']['date'], b['offer']['windowStart']), (appointment.date, appointment.window_start), 'the book holds the window taken')
+
+    def test_the_pick_is_seeded_by_the_request_and_its_attempt(self):
+        self.assertEqual(bs.pick_of(17, MONDAY, 'wo-2', 1, 4), bs.pick_of(17, MONDAY, 'wo-2', 1, 4))
+        picks = {bs.pick_of(17, MONDAY, f'wo-{n}', 1, 4) for n in range(40)}
+        self.assertEqual({0, 1, 2, 3}, picks)
+        self.assertEqual({0}, {bs.pick_of(17, MONDAY, f'wo-{n}', 1, 1) for n in range(10)}, 'one offer is always the one taken')
+        for count in (0, -1, True, None, '4'):
+            with self.subTest(count=count), self.assertRaisesRegex(bs.SimulationError, 'cannot pick'):
+                bs.pick_of(17, MONDAY, 'wo-2', 1, count)
+
+    def test_a_random_client_killed_mid_date_resumes_to_the_same_picks(self):
+        run = write_run(Path(self.directory.name) / 'busy', per_day=8, days=5)
+        until = bh.add_days(MONDAY, 6)
+        _, _, whole, _ = self.simulated('whole', run, until, FakeScheduler(spread=True), lead=5, offer_limit=4, client_pick='random')
+        _, path, segment = self.plan_of('killed', run, until, lead=5, offer_limit=4, client_pick='random')
+        store = {}
+        with self.assertRaises(Killed):
+            bs.run(path, 'http://stub', client_factory=lambda s: FakeScheduler(store, kill_after=60, spread=True), log=lambda m: None)
+        cursor = bh.load_json(segment / 'checkpoint.json')['cursor']
+        self.assertGreater(cursor, MONDAY, 'the kill came after the first checkpoint')
+        self.assertLess(cursor, until, 'and before the end')
+        bs.run(path, 'http://stub', client_factory=lambda s: FakeScheduler(store, spread=True), log=lambda m: None)
+        self.assertEqual(bh.load_json(whole / 'checkpoint.json')['book'], bh.load_json(segment / 'checkpoint.json')['book'])
+        for name in ('bookings.jsonl', 'proposals.jsonl'):
+            self.assertEqual(stable(whole / name), stable(segment / name), name)
+
+    def test_fewer_offers_than_the_limit_are_picked_among(self):
+        run = write_run(Path(self.directory.name) / 'busy', per_day=8, days=5)
+        _, _, segment, _ = self.simulated('two', run, bh.add_days(MONDAY, 6), FakeScheduler(spread=True, most=2), lead=5, offer_limit=4,
+                                          client_pick='random')
+        booked = self.assert_picks(stable(segment / 'bookings.jsonl'), 2)
+        self.assertEqual({2}, {b['offersShown'] for b in booked})
+        self.assertEqual({0, 1}, {b['picked'] for b in booked})
+
+    def test_more_offers_than_the_limit_stop_the_run(self):
+        with self.assertRaisesRegex(bs.SimulationError, 'for offerLimit 1'):
+            self.simulated('over', None, bh.add_days(MONDAY, 2), FakeScheduler(overshoot=True))
+
+    def test_a_first_client_takes_the_one_offer_of_its_search(self):
+        _, fake, segment, _ = self.simulated('first', None, bh.add_days(MONDAY, 2))
+        self.assertEqual({1}, set(fake.limits))
+        booked = [b for b in stable(segment / 'bookings.jsonl') if b['outcome'] == 'BOOKED']
+        self.assertEqual({(1, 0)}, {(b['offersShown'], b['picked']) for b in booked})
+
+    def test_a_version_2_plan_runs_as_one_offer_taken(self):
+        document, path, segment = self.plan_of('older', None, bh.add_days(MONDAY, 2))
+        document['version'] = 2
+        del document['clientPick']
+        bi.write_json(path, document)
+        self.assertEqual((1, 'first'), bs.offer_options(document))
+        fake = FakeScheduler()
+        bs.run(path, 'http://stub', client_factory=lambda s: fake, log=lambda m: None)
+        self.assertEqual({1}, set(fake.limits))
+        self.assertEqual({0}, {b['picked'] for b in stable(segment / 'bookings.jsonl') if b['outcome'] == 'BOOKED'})
+
+    def test_a_plan_without_its_offer_options_or_with_bad_ones_is_refused(self):
+        settings = {'offerLimit': 4}
+        for config, message in (({'version': 3, 'settings': settings}, 'clientPick is None'),
+                                ({'version': 3, 'settings': {}, 'clientPick': 'random'}, 'offerLimit is None'),
+                                ({'version': 3, 'clientPick': 'random'}, 'settings None'),
+                                ({'version': 3, 'settings': settings, 'clientPick': 'cheapest'}, "clientPick is 'cheapest'"),
+                                ({'version': 3, 'settings': settings, 'clientPick': 'first'}, 'clientPick first takes offerLimit 1, not 4'),
+                                ({'version': 3, 'settings': {'offerLimit': 5}, 'clientPick': 'random'}, 'offerLimit is 5'),
+                                ({'version': 3, 'settings': {'offerLimit': 0}, 'clientPick': 'random'}, 'offerLimit is 0'),
+                                ({'version': 3, 'settings': {'offerLimit': True}, 'clientPick': 'random'}, 'offerLimit is True'),
+                                ({'version': 3, 'settings': {'offerLimit': '4'}, 'clientPick': 'random'}, "offerLimit is '4'"),
+                                ({'version': 2, 'settings': settings}, 'clientPick first takes offerLimit 1, not 4'),
+                                ({'version': 4, 'settings': settings, 'clientPick': 'random'}, 'version 4')):
+            with self.subTest(config=config), self.assertRaisesRegex(bs.SimulationError, message):
+                bs.offer_options(config)
+        self.assertEqual((4, 'random'), bs.offer_options({'version': 3, 'settings': settings, 'clientPick': 'random'}))
+        with self.assertRaisesRegex(bs.SimulationError, 'clientPick first takes offerLimit 1'):
+            bs.plan(self.run, Path(self.directory.name) / 'bad', 1, 3, today='2026-11-05', offer_limit=4)
+        self.assertFalse((Path(self.directory.name) / 'bad' / 'simulation.json').exists(), 'a refused plan is not written')
 
 
 if __name__ == '__main__':

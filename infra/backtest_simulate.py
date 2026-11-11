@@ -13,8 +13,14 @@ many of a night's proposals are in flight at once (--overnight-in-flight). A nig
 other: each proposal reads one date's snapshot and its commit writes that date only, so the answers are applied in date
 order and the book ends the same whatever the number in flight.
 
+It fixes two about the client's side too (offer_options): how many windows a search offers (--offer-limit, 1 to the
+API's 4) and which one the client takes (--client-pick). 'first' takes the one offer of a search with offerLimit 1, the
+least added cost; 'random' takes one of the offers shown, chosen with a seed of the request, its date and its attempt,
+so a resumed run takes the same one. The API sorts several offers by window start, not by cost, so 'first' is refused
+with more than one.
+
     python infra/backtest_simulate.py plan --run <run dir> --out <simulation dir> --segments 4 --warmup-weeks 3 [--until <date>]
-                                           [--no-weekend-work] [--overnight-in-flight 4]
+                                           [--no-weekend-work] [--overnight-in-flight 4] [--offer-limit 4 --client-pick random]
     python infra/backtest_simulate.py window --run <run dir> --out <simulation dir> --first <date> --end <date> --copies a:3,b:3,c:6,d:6
     python infra/backtest_simulate.py busiest --run <run dir> --year 2024
     python infra/backtest_simulate.py run --config <simulation dir>/simulation.json --url http://127.0.0.1:18080 [--only s1,s2]
@@ -29,6 +35,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import random
 import sys
 import threading
 import re
@@ -44,6 +51,9 @@ GATE = 2  # booking calls in flight across every segment: the booking pool's cap
 OVERNIGHT_MINUTE = 60  # the overnight run starts at 01:00 local on the day after the request date
 STEPS = ('offers', 'select', 'confirm', 'daily', 'commit')
 MAX_IN_FLIGHT = 8  # a night's proposals in flight at once; more than the daily pool can run only wait in its queue
+MAX_OFFERS = 4  # the most offers a search returns (the API's BookingOffersRequest.offerLimit)
+PICKS = ('first', 'random')  # how the simulated client chooses among the offers shown
+VERSIONS = (1, 2, 3)
 TENANT = re.compile('[a-z0-9][a-z0-9-]{0,62}')
 
 
@@ -112,16 +122,50 @@ def check_options(weekend_work, in_flight):
     return weekend_work, in_flight
 
 
+def check_offers(offer_limit, client_pick):
+    if not isinstance(offer_limit, int) or isinstance(offer_limit, bool) or not 1 <= offer_limit <= MAX_OFFERS:
+        raise SimulationError(f'offerLimit is {offer_limit!r}, not 1 to {MAX_OFFERS}')
+    if client_pick not in PICKS:
+        raise SimulationError(f'clientPick is {client_pick!r}, not one of {", ".join(PICKS)}')
+    if client_pick == 'first' and offer_limit != 1:
+        raise SimulationError(f'clientPick first takes offerLimit 1, not {offer_limit}: the API sorts several offers by window start, '
+                              'so the first is not the least cost')
+    return offer_limit, client_pick
+
+
+def version_of(config):
+    version = config.get('version')
+    if version not in VERSIONS:
+        raise SimulationError(f'simulation.json has version {version!r}; this simulator reads versions {", ".join(map(str, VERSIONS))}')
+    return version
+
+
 def run_options(config):
     """(weekend work, overnight proposals in flight) of a plan. A version 1 plan was written before either could be
-    chosen and ran with the history's weekend technician-days, one proposal at a time; a version 2 plan states both."""
-    version = config.get('version')
-    if version == 1:
+    chosen and ran with the history's weekend technician-days, one proposal at a time; versions 2 and 3 state both."""
+    if version_of(config) == 1:
         return True, 1
-    if version != 2:
-        raise SimulationError(f'simulation.json has version {version!r}; this simulator reads versions 1 and 2')
-    # A version 2 plan without one of the two is refused by name rather than read as a default.
+    # A plan without one of the two is refused by name rather than read as a default.
     return check_options(config.get('weekendWork'), config.get('overnightInFlight'))
+
+
+def offer_options(config):
+    """(offers a search returns, the client's pick) of a plan. Versions 1 and 2 were written before the pick could be
+    chosen: their settings ask for one offer, and the client takes it. A version 3 plan states both."""
+    version = version_of(config)
+    settings = config.get('settings')
+    if not isinstance(settings, dict):
+        raise SimulationError(f'simulation.json has settings {settings!r}, not an object')
+    if version < 3:
+        return check_offers(settings.get('offerLimit'), 'first')
+    return check_offers(settings.get('offerLimit'), config.get('clientPick'))
+
+
+def pick_of(seed, date, identifier, attempt, count):
+    """The index of the offer a 'random' client takes from count offers, seeded by the request so a rerun takes the same."""
+    if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+        raise SimulationError(f'{identifier}: cannot pick from {count!r} offers')
+    return random.Random(f'{seed}/{date}/{identifier}/{attempt}').randrange(count)
 
 
 def roster_end_of(availability, weekend_work):
@@ -132,24 +176,28 @@ def roster_end_of(availability, weekend_work):
     return max(dates)
 
 
-def document_of(run, out, config, inputs, requests, availability, segments, seed, warmup, today, until, kind, weekend_work=True, in_flight=1):
+def document_of(run, out, config, inputs, requests, availability, segments, seed, warmup, today, until, kind, weekend_work=True, in_flight=1,
+                offer_limit=1, client_pick='first'):
     weekend_work, in_flight = check_options(weekend_work, in_flight)
-    return {'version': 2, 'kind': kind, 'simulationId': Path(out).name, 'run': str(Path(run).resolve()), 'inputs': inputs['files'],
+    offer_limit, client_pick = check_offers(offer_limit, client_pick)
+    return {'version': 3, 'kind': kind, 'simulationId': Path(out).name, 'run': str(Path(run).resolve()), 'inputs': inputs['files'],
             'routingIdentity': inputs['routingIdentity'], 'metroId': config['metroId'], 'timeZone': config['timeZone'], 'seed': seed, 'warmupWeeks': warmup,
             'plannedOn': today, 'horizonRule': dict(bh.HORIZON_RULE), 'bookingGate': GATE, 'retryWeekdays': bh.RETRY_WEEKDAYS,
-            'weekendWork': weekend_work, 'overnightInFlight': in_flight,
-            'settings': {'rates': dict(config['rates']), 'policy': dict(config['policy']), 'offerLimit': 1, 'windowHours': 2,
+            'weekendWork': weekend_work, 'overnightInFlight': in_flight, 'clientPick': client_pick,
+            'settings': {'rates': dict(config['rates']), 'policy': dict(config['policy']), 'offerLimit': offer_limit, 'windowHours': 2,
                          'services': sorted({r['serviceId'] for r in requests['requests']})},
             'historyLastDate': availability['lastHistoryDate'], 'rosterEnd': roster_end_of(availability, weekend_work), 'until': until,
             'segments': segments}
 
 
-def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=None, weekend_work=True, in_flight=1):
+def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=None, weekend_work=True, in_flight=1, offer_limit=1,
+         client_pick='first'):
     """simulation.json for the run directory's Part 2 inputs. until cuts the simulation short (smoke, calibration). One
     segment is the whole study from the dispatcher's backlog on its first date: no warm-up applies, and none is recorded."""
     run, out = Path(run), Path(out)
     inputs, requests, availability, config = inputs_of(run)
     weekend_work, in_flight = check_options(weekend_work, in_flight)
+    offer_limit, client_pick = check_offers(offer_limit, client_pick)
     history_last = availability['lastHistoryDate']
     first_service = min(r['dispatcher']['serviceDate'] for r in requests['requests'])
     bounds = segment_bounds(first_service, history_last, count)
@@ -169,7 +217,7 @@ def plan(run, out, count, warmup_weeks, today, until=None, seed=17, only_first=N
     if only_first is not None:
         segments = segments[:only_first]
     document = document_of(run, out, config, inputs, requests, availability, segments, seed, None if count == 1 else warmup_weeks, today, until, 'study',
-                           weekend_work, in_flight)
+                           weekend_work, in_flight, offer_limit, client_pick)
     write_json(out / 'simulation.json', document)
     return document
 
@@ -217,6 +265,7 @@ class Segment:
         self.settings = dict(config['settings'], metroId=config['metroId'])
         self.rule = config['horizonRule']
         self.weekend_work, self.in_flight = run_options(config)
+        self.offer_limit, self.client_pick = offer_options(config)
         self.requests = {r['id']: r for r in requests['requests']}
         start = segment['start']
         # Requests dated before the first simulated date that the dispatcher served on or after it are carried in: they
@@ -301,13 +350,23 @@ class Segment:
                        'refinement': offer_set.get('refinement'), 'refinementStop': offer_set.get('refinementStop'),
                        'regularWindowsFound': offer_set.get('regularWindowsFound'), 'incompleteDates': offer_set.get('incompleteDates'),
                        'skippedTechnicianDays': len(offer_set['skippedTechnicianDays'])})
-        if not offer_set['offers']:
+        offers = offer_set['offers']
+        if not isinstance(offers, list) or len(offers) > self.offer_limit:
+            raise SimulationError(f'{identifier}: the API answered {offers!r:.200} for offerLimit {self.offer_limit}')
+        record['offersShown'] = len(offers)
+        if not offers:
             record['outcome'] = self.desk.no_offer(identifier, date)
             return record
-        offer = offer_set['offers'][0]
-        study_date = bh.add_days(offer['serviceDate'], -self.shift)
-        if study_date not in dates:
-            raise SimulationError(f'{identifier}: the offer on {offer["serviceDate"]} is outside the horizon sent')
+        offered = []
+        for shown in offers:
+            shown_date = bh.add_days(shown['serviceDate'], -self.shift)
+            if shown_date not in dates:
+                raise SimulationError(f'{identifier}: the offer on {shown["serviceDate"]} is outside the horizon sent')
+            offered.append({'date': shown_date, 'windowStart': bh.local_minute(shown['window']['start'], shown['serviceDate'], self.book.zone),
+                            'windowEnd': bh.local_minute(shown['window']['end'], shown['serviceDate'], self.book.zone)})
+        picked = 0 if self.client_pick == 'first' else pick_of(self.config['seed'], date, identifier, attempt, len(offers))
+        offer, study_date = offers[picked], offered[picked]['date']
+        record.update({'picked': picked, 'offered': offered})
         hold, _ = self.gated(lambda: self.api.select(offer['offerId'], self.rid(date, 'select', identifier, attempt)))
         receipt, _ = self.gated(lambda: self.api.confirm(hold['holdId'], self.rid(date, 'confirm', identifier, attempt),
                                                          self.book.snapshot([study_date], self.settings, self.shift)))
@@ -440,6 +499,8 @@ def main(argv=None):
     planner.add_argument('--only-first', type=int)
     planner.add_argument('--no-weekend-work', action='store_true', help="leave the history's weekend technician-days out of the product's roster")
     planner.add_argument('--overnight-in-flight', type=int, default=1, help="a night's proposals in flight at once")
+    planner.add_argument('--offer-limit', type=int, default=1, help=f'the windows a search offers, 1 to {MAX_OFFERS}')
+    planner.add_argument('--client-pick', choices=PICKS, default='first', help="the offer the client takes: 'first' (offerLimit 1) or 'random'")
     planner.add_argument('--today', default=dt.date.today().isoformat())
     windowed = commands.add_parser('window')
     windowed.add_argument('--run', required=True)
@@ -458,8 +519,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == 'plan':
         document = plan(args.run, args.out, args.segments, args.warmup_weeks, args.today, args.until, only_first=args.only_first,
-                        weekend_work=not args.no_weekend_work, in_flight=args.overnight_in_flight)
-        print(json.dumps({'weekendWork': document['weekendWork'], 'overnightInFlight': document['overnightInFlight'], 'rosterEnd': document['rosterEnd'],
+                        weekend_work=not args.no_weekend_work, in_flight=args.overnight_in_flight, offer_limit=args.offer_limit, client_pick=args.client_pick)
+        print(json.dumps({'weekendWork': document['weekendWork'], 'overnightInFlight': document['overnightInFlight'],
+                          'offerLimit': document['settings']['offerLimit'], 'clientPick': document['clientPick'], 'rosterEnd': document['rosterEnd'],
                           'segments': [{k: s[k] for k in ('name', 'start', 'first', 'end', 'stop', 'shiftDays')} for s in document['segments']]}))
         return 0
     if args.command == 'window':
