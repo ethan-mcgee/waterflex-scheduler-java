@@ -14,9 +14,11 @@
 #   -Full         the whole history in -Segments segments with a -WarmupWeeks warm-up (take both from the calibration)
 #   -DryRun       checks the inputs and prints the plan; builds, starts and writes nothing
 #
-# Two options of the plan (smoke and full; a plan that exists must already have them, or the run is refused):
+# Four options of the plan (smoke and full; a plan that exists must already have them, or the run is refused):
 #   -NoWeekendWork        the product's roster leaves out Saturday and Sunday technician-days
 #   -OvernightInFlight n  up to n of a night's proposals wait on the API at once (the daily pool solves four at a time)
+#   -OfferLimit n         each search offers up to n two-hour windows (1 to the API's 4)
+#   -ClientPick p         the window the client takes: first (the one offer of -OfferLimit 1) or random (one of those shown)
 #
 #   powershell -ExecutionPolicy Bypass -File infra/run-backtest-simulation.ps1 -Smoke -RunDir experiments/runs/<run-id> -Revision <sha> -ReportDir research/<study>
 param(
@@ -33,6 +35,8 @@ param(
     [ValidateRange(1, 8)][int]$WarmupWeeks = 3,
     [switch]$NoWeekendWork,
     [ValidateRange(1, 8)][int]$OvernightInFlight = 1,
+    [ValidateRange(1, 4)][int]$OfferLimit = 1,
+    [ValidateSet('first', 'random')][string]$ClientPick = 'first',
     # The simulated weeks of a smoke.
     [ValidateRange(1, 8)][int]$SmokeWeeks = 1,
     # The comparison's directory under -ReportDir: <ReportName> for a full run, <ReportName>-smoke-<Name> for a smoke.
@@ -51,8 +55,11 @@ $ErrorActionPreference = 'Stop'
 $modes = @($Smoke, $Calibration, $Full) | Where-Object { $_ }
 if ($modes.Count -ne 1) { throw 'Choose exactly one of -Smoke, -Calibration or -Full' }
 $mode = if ($Smoke) { 'smoke' } elseif ($Calibration) { 'calibration' } else { 'full' }
-if ($Calibration -and ($NoWeekendWork -or $OvernightInFlight -ne 1)) { throw 'The calibration plans take neither -NoWeekendWork nor -OvernightInFlight' }
-$planOptions = @('--overnight-in-flight', "$OvernightInFlight")
+if ($Calibration -and ($NoWeekendWork -or $OvernightInFlight -ne 1 -or $OfferLimit -ne 1 -or $ClientPick -ne 'first')) {
+    throw 'The calibration plans take none of -NoWeekendWork, -OvernightInFlight, -OfferLimit or -ClientPick'
+}
+if ($ClientPick -eq 'first' -and $OfferLimit -ne 1) { throw "-ClientPick first takes -OfferLimit 1: the API sorts several offers by window start, so the first is not the least cost" }
+$planOptions = @('--overnight-in-flight', "$OvernightInFlight", '--offer-limit', "$OfferLimit", '--client-pick', $ClientPick)
 if ($NoWeekendWork) { $planOptions += '--no-weekend-work' }
 
 function Invoke-Native($program, [string[]]$arguments, $log) {
@@ -101,7 +108,7 @@ $image = "waterflex-scheduler-engine:backtest-$sha"
 Write-Output "Part 2 $mode of $run at $Revision; simulation $Name; image $image; routing $identity"
 if ($DryRun) {
     if ($Calibration) { Write-Output "calibration month: $(& python (Join-Path $repository 'infra/backtest_simulate.py') busiest --run $run --year 2024)" }
-    Write-Output "segments $Segments, warm-up $WarmupWeeks weeks (full); weekend work $(-not $NoWeekendWork); overnight proposals in flight $OvernightInFlight; smoke weeks $SmokeWeeks"
+    Write-Output "segments $Segments, warm-up $WarmupWeeks weeks (full); weekend work $(-not $NoWeekendWork); overnight proposals in flight $OvernightInFlight; offer limit $OfferLimit; client pick $ClientPick; smoke weeks $SmokeWeeks"
     Write-Output "reports to $(Join-Path $reports $(if ($Smoke) { "$ReportName-smoke-$Name" } else { $ReportName }))"
     return
 }
@@ -147,13 +154,16 @@ $imageId = (Invoke-Output docker @('images', '--no-trunc', '-q', $image)).Trim()
 
 # The simulations of the mode, planned once; a rerun resumes the plan it finds.
 # A plan that exists is run as it was written, so one written with other options than this command's is refused
-# rather than resumed under the wrong name (a version 1 plan has weekend work and one proposal at a time).
+# rather than resumed under the wrong name (a version 1 plan has weekend work and one proposal at a time; versions 1 and
+# 2 ask for one offer, which the client takes).
 function Assert-PlanOptions([string]$directory) {
     $config = Get-Content -LiteralPath (Join-Path $directory 'simulation.json') -Raw | ConvertFrom-Json
     $weekendWork = if ($config.version -eq 1) { $true } else { $config.weekendWork }
     $inFlight = if ($config.version -eq 1) { 1 } else { $config.overnightInFlight }
-    if ($weekendWork -isnot [bool] -or $weekendWork -ne (-not $NoWeekendWork) -or $inFlight -ne $OvernightInFlight) {
-        throw "The plan in $directory has weekendWork '$weekendWork' and overnightInFlight '$inFlight'; this command asks for $(-not $NoWeekendWork) and $OvernightInFlight. Choose another -Name for a new plan."
+    $offers = $config.settings.offerLimit
+    $pick = if ($config.version -lt 3) { 'first' } else { $config.clientPick }
+    if ($weekendWork -isnot [bool] -or $weekendWork -ne (-not $NoWeekendWork) -or $inFlight -ne $OvernightInFlight -or $offers -ne $OfferLimit -or $pick -ne $ClientPick) {
+        throw "The plan in $directory has weekendWork '$weekendWork', overnightInFlight '$inFlight', offerLimit '$offers' and clientPick '$pick'; this command asks for $(-not $NoWeekendWork), $OvernightInFlight, $OfferLimit and $ClientPick. Choose another -Name for a new plan."
     }
 }
 $plans = @()

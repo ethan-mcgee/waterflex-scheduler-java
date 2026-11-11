@@ -185,8 +185,11 @@ def booking_health(bookings):
     searched = [b for b in bookings]
     elapsed = [b['elapsedMs'] for b in searched]
     regular = [b['regularWindowsFound'] for b in searched if b.get('regularWindowsFound') is not None]
-    lead = [b['leadDays'] for b in searched if b['outcome'] == 'BOOKED']
+    booked = [b for b in searched if b['outcome'] == 'BOOKED']
+    lead = [b['leadDays'] for b in booked]
     q = bd.quantile
+    # A run planned before the pick was recorded (version 1 or 2) has no offersShown: its pick is not measured.
+    recorded = booked and all('offersShown' in b and 'picked' in b for b in booked)
     return {'searches': len(searched), 'refinement': dict(sorted(Counter(str(b.get('refinement')) for b in searched).items())),
             'capStops': sum(1 for b in searched if b.get('refinementStop') == 'CAP'),
             'elapsedMs': {'median': statistics.median(elapsed), 'p95': q(elapsed, 0.95), 'max': max(elapsed)} if elapsed else None,
@@ -194,7 +197,9 @@ def booking_health(bookings):
             'offerLeadDays': {'median': statistics.median(lead), 'p90': q(lead, 0.9), 'max': max(lead)} if lead else None,
             'horizonDates': {'median': statistics.median(b['horizon']['dates'] for b in searched), 'capped': sum(1 for b in searched if b['horizon']['capped'])}
             if searched else None,
-            'outcomes': dict(sorted(Counter(b['outcome'] for b in searched).items()))}
+            'outcomes': dict(sorted(Counter(b['outcome'] for b in searched).items())),
+            'windowPick': {'offersShown': {str(k): n for k, n in sorted(Counter(b['offersShown'] for b in booked).items())},
+                           'picked': {str(k): n for k, n in sorted(Counter(b['picked'] for b in booked).items())}} if recorded else None}
 
 
 def overnight(proposals):
@@ -212,6 +217,7 @@ def compare(sim_dir, only=None):
     config, outcomes, part1, part2, bookings, proposals, requests = load(sim_dir, only)
     try:
         weekend_work, in_flight = bs.run_options(config)
+        offer_limit, client_pick = bs.offer_options(config)
     except bs.SimulationError as error:
         raise CompareError(str(error)) from error
     history_last = config['historyLastDate']
@@ -225,7 +231,7 @@ def compare(sim_dir, only=None):
     decided = outcomes['outcomes']
     return {'simulationId': config['simulationId'], 'partial': outcomes['partial'], 'routingIdentity': config['routingIdentity'],
             'historyLastDate': history_last, 'segments': config['segments'], 'settings': config['settings'],
-            'weekendWork': weekend_work, 'overnightInFlight': in_flight, 'payRule': dict(bd.PAY_RULE),
+            'weekendWork': weekend_work, 'overnightInFlight': in_flight, 'offerLimit': offer_limit, 'clientPick': client_pick, 'payRule': dict(bd.PAY_RULE),
             'validity': validity(part2, bookings, proposals, decided, weekend_work),
             'weekends': {'part1': weekend_reading(part1), 'part2': weekend_reading(part2)},
             'periods': bd.period_order(set(totals1) | set(totals2)),
@@ -290,13 +296,15 @@ def report(result, title=TITLE):
     v = result['validity']
     w1, w2 = result['weekends']['part1'], result['weekends']['part2']
     one_segment = len(result['segments']) == 1
-    offers = result['settings'].get('offerLimit')
+    offers, pick = result['offerLimit'], result['clientPick']
     design = []
-    if offers is not None:
-        # One offer is the search's first choice: the least added cost with no new overtime, ties to the earlier window
-        # (BoundedBookingSearch.choose). Several come back in window order, so the first of them is the earliest.
-        design.append('Every booking search asked for 1 offer, the window that adds the least cost for the dealership without new overtime, and the customer took it.'
-                      if offers == 1 else f'Every booking search asked for {offers} offers and the customer took the earliest of them.')
+    # One offer is the search's first choice: the least added cost with no new overtime, ties to the earlier window
+    # (BoundedBookingSearch.choose). Several are the search's best few, returned in window order; a random client takes
+    # one of them with a seed of the request.
+    design.append('Every booking search asked for 1 offer, the window that adds the least cost for the dealership without new overtime, and the customer took it.'
+                  if offers == 1 else
+                  f'Every booking search asked for up to {offers} two-hour windows, the ones that add the least cost for the dealership without new overtime, '
+                  'and the customer took one of the windows shown at random, each equally likely.')
     design.append('The product\'s roster is the history\'s technician-days, Saturdays and Sundays included where a technician worked.' if result['weekendWork'] else
                   'The product\'s roster leaves out the history\'s Saturday and Sunday technician-days, so it books and moves nothing onto a weekend; '
                   'the dispatcher\'s weekend work stays in Part 1 as it ran.')
@@ -410,7 +418,12 @@ def report(result, title=TITLE):
         health += [['Regular windows found, median', number(float(bh_['regularWindowsFound']['median']))]]
     if bh_['offerLeadDays']:
         health += [['Offer lead, median (days)', number(float(bh_['offerLeadDays']['median']))], ['Offer lead, p90 (days)', number(bh_['offerLeadDays']['p90'])]]
-    lines += ['## Booking health', '', 'The table shows how the booking searches ran.', '', table(['Reading', 'Value'], health), '']
+    pick_ = bh_.get('windowPick')
+    if pick_:
+        health += [[f'Booked with {k} offer{"" if k == "1" else "s"} shown', number(n)] for k, n in pick_['offersShown'].items()]
+        health += [[f'Took window {int(k) + 1} of those shown', number(n)] for k, n in pick_['picked'].items()]
+    lines += ['## Booking health', '', 'The table shows how the booking searches ran' + (', and which of the windows shown each booked customer took, counted from the earliest.' if pick_ else '.'),
+              '', table(['Reading', 'Value'], health), '']
     night = [['Nights', number(on['nights'])], ['Proposals', number(on['proposals'])], ['Committed', number(on['committed'])], ['Appointments moved', number(on['moved'])]]
     night += [[f'Decision {k}', number(n)] for k, n in on['decisions'].items()]
     night += [[f'Not proposed, {k}', number(n)] for k, n in on['skipped'].items()]

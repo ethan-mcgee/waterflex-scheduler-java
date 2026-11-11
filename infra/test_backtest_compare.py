@@ -72,15 +72,18 @@ def on_weekend(days, old, new):
     return {new if day == old else day: ((routes, (labor + mileage, 0, labor, mileage), ids) if day == old else value) for day, value in days.items()}
 
 
-def build(directory, shed=False, slow=False, options=None, part1=None, part2=None, served=None):
+def build(directory, shed=False, slow=False, options=None, part1=None, part2=None, served=None, pick=None):
     """A scored export of one segment. options are a version 2 plan's (weekend work, proposals in flight); without them
-    the plan is a version 1 one. served moves requests' Part 2 service dates."""
+    the plan is a version 1 one. pick makes it a version 3 plan of those options whose client picks one of four offers
+    at random, its bookings recording the offers shown and the one taken. served moves requests' Part 2 service dates."""
     sim = Path(directory) / 'sim'
     run = Path(directory) / 'run'
     bi.write_json(run / 'part2' / 'requests.json', {'requests': REQUESTS})
     plan = {'version': 1} if options is None else {'version': 2, 'weekendWork': options[0], 'overnightInFlight': options[1]}
+    if pick is not None:
+        plan.update(version=3, clientPick='random')
     bi.write_json(sim / 'simulation.json', dict(plan, simulationId='sim-test', routingIdentity='abc123def456', historyLastDate=LAST, run=str(run),
-                                                segments=[{'name': 's1'}], settings={'offerLimit': 1}))
+                                                segments=[{'name': 's1'}], settings={'offerLimit': 1 if pick is None else 4}))
     out = sim / 'export'
     write_part(out, 'part1', part1 or PART1, 'as-run', 'as-planned.plan.json')
     write_part(out, 'part2', part2 or PART2, 'part2', 'plan.json')
@@ -92,6 +95,12 @@ def build(directory, shed=False, slow=False, options=None, part1=None, part2=Non
     segment.mkdir(parents=True)
     bookings = [booking('wo-1'), booking('wo-2', refinement='SHED' if shed else 'COMPLETE'), booking('wo-3', refinementStop='CAP', refinement='SHORTENED'),
                 booking('wo-4', leadDays=5), booking('wo-5', outcome='TURNED_AWAY', regularWindowsFound=0)]
+    if pick is not None:
+        # (offers shown, index taken) of each booked request, in order; the turned-away one was shown none.
+        for b, (shown, taken) in zip(bookings, pick + [(0, None)], strict=True):
+            b['offersShown'] = shown
+            if taken is not None:
+                b['picked'] = taken
     proposals = [{'date': '2024-03-04', 'night': '2024-03-05', 'serviceDate': '2024-03-05', 'outcome': 'PROPOSED', 'decision': 'IMPROVED', 'reason': 'COST',
                   'costCents': 15000, 'committed': True, 'moved': 2, 'elapsedMs': 301_000 if slow else 16_000},
                  {'date': '2024-03-04', 'night': '2024-03-05', 'serviceDate': '2024-03-06', 'outcome': 'EMPTY'}]
@@ -171,6 +180,30 @@ class CompareTest(unittest.TestCase):
         self.assertEqual({'median': 1, 'p90': 5, 'max': 5}, booking['offerLeadDays'])
         night = self.result['overnight']
         self.assertEqual((1, 1, 2, {'IMPROVED': 1}, {'EMPTY': 1}), (night['proposals'], night['committed'], night['moved'], night['decisions'], night['skipped']))
+        self.assertIsNone(booking['windowPick'], 'a version 1 run did not record the offers shown')
+        self.assertEqual((1, 'first'), (self.result['offerLimit'], self.result['clientPick']))
+        self.assertNotIn('of those shown', bc.report(self.result))
+
+    def test_a_random_client_is_described_and_its_picks_counted(self):
+        sim = build(Path(self.directory.name) / 'pick', options=(False, 4), pick=[(4, 0), (4, 3), (2, 1), (4, 3)])
+        result = bc.compare(sim)
+        self.assertEqual((4, 'random', 4), (result['offerLimit'], result['clientPick'], result['settings']['offerLimit']))
+        self.assertEqual({'offersShown': {'2': 1, '4': 3}, 'picked': {'0': 1, '1': 1, '3': 2}}, result['booking']['windowPick'])
+        text = bc.report(result)
+        self.assertIn('asked for up to 4 two-hour windows', text)
+        self.assertIn('took one of the windows shown at random, each equally likely', text)
+        self.assertIn('| Booked with 4 offers shown', text)
+        self.assertIn('| Took window 4 of those shown', text)
+        self.assertNotIn('took the earliest', text)
+
+    def test_a_version_3_plan_without_its_pick_is_refused(self):
+        sim = build(Path(self.directory.name) / 'nopick', options=(False, 4), pick=[(4, 0), (4, 1), (4, 2), (4, 3)])
+        path = sim / 'simulation.json'
+        plan = json.loads(path.read_text(encoding='utf-8'))
+        del plan['clientPick']
+        bi.write_json(path, plan)
+        with self.assertRaisesRegex(bc.CompareError, 'clientPick is None'):
+            bc.compare(sim)
 
     def test_a_plan_from_before_the_options_keeps_its_bars_and_shows_both_parts_weekends(self):
         self.assertEqual((True, 1), (self.result['weekendWork'], self.result['overnightInFlight']))
