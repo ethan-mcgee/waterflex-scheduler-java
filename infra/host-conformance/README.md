@@ -27,7 +27,7 @@ npx tsx conformance.ts --url https://scheduler.internal.example --token-file ./c
 The command's options:
 
 - **`--url`:** The scheduler's base URL, without `/api/v1`.
-- **`--token-file`:** File holding the dedicated tenant's token (`wfs_` and 43 characters).
+- **`--token-file`:** File holding the dedicated tenant's token (`wfs_` and 43 characters), or `-` to read it from standard input so it is never written to a file.
 - **`--metro`:** A metro the scheduler routes (one of its `ROUTING_METRO_URLS`).
 - **`--time-zone`:** The metro's IANA time zone; dates and shifts are local to it.
 - **`--area south,west,north,east`:** A box of streets inside the metro, at most one degree each way. The kit places its technicians, visits and jobs at fixed points spread over it, the same on every run. Keep it to an area where any two points are well under an hour's drive apart.

@@ -137,6 +137,8 @@ jobs:
           docker compose --profile map-import config --quiet
           # The scheduler VM file refuses to render without its required settings; dummy values prove the file is valid.
           SCHEDULER_DB_OWNER_PASSWORD=x SCHEDULER_DB_PASSWORD=x SCHEDULER_RETENTION_DAYS=30 SCHEDULER_API_BIND=127.0.0.1             ROUTING_METRO_URLS=metro-omaha=http://routing-omaha:8001 ROUTING_AUTH_TOKEN=x ACTIVE_MAP_VERSION=x             docker compose -f deploy/vm/docker-compose.yml --profile nominatim --profile remote-solver --profile monitoring config --quiet
+          # The developer sandbox (docs/host-sandbox.md) carries its own settings and must render from them alone.
+          docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env config --quiet
       - name: Install report test dependencies
         run: |
           python3 -m pip install matplotlib==3.11.2

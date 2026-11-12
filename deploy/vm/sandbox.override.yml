@@ -1,0 +1,44 @@
+# A sandbox of the scheduler VM for WaterFlex Software developers, on their own machine. It is the real scheduler:
+# the same image, proxy, two pools, database and migrations as deploy/vm/docker-compose.yml. Only the metro's road
+# graph is replaced, by the fixture router (infra/fixture-routing.mjs), so it needs no map, no 6 GB routing service and
+# no five-minute graph load. The fixture router knows only its fixed Omaha points (infra/host-conformance/src/points.ts)
+# and times every leg between two different points at 10 minutes and 3 km. A call with any other coordinate gets 503
+# ROUTING_UNAVAILABLE, which only the sandbox answers for that reason: do not retry it, use a fixture point.
+# docs/host-sandbox.md walks through the first calls.
+#
+#   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env up -d --build
+#
+# It is its own Compose project, so it never shares a database or volume with the VM rehearsal.
+name: scheduler-sandbox
+
+services:
+  routing-omaha:
+    profiles: ["vm-routing"]
+
+  fixture-routing:
+    image: node:26-slim
+    command: ["node", "/srv/fixture-routing.mjs"]
+    environment:
+      FIXTURE_ROUTING_HOST: 0.0.0.0
+      FIXTURE_ROUTING_PORT: "8001"
+    volumes: ["../../infra/fixture-routing.mjs:/srv/fixture-routing.mjs:ro"]
+    expose: ["8001"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8001/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  scheduler-booking:
+    depends_on:
+      fixture-routing: { condition: service_healthy }
+  scheduler-daily:
+    depends_on:
+      fixture-routing: { condition: service_healthy }
+
+volumes:
+  # The fixture router needs no map; the VM file's maps volume is external, so the sandbox names its own empty one.
+  maps:
+    name: scheduler-sandbox-maps
+    external: false

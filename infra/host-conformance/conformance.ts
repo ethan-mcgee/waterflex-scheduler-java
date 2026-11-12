@@ -58,7 +58,8 @@ function options() {
   }
   let token: string;
   try {
-    token = readFileSync(tokenFile, "utf8").trim();
+    // "-" reads standard input, so a token piped from a secret store is never written to a file.
+    token = readFileSync(tokenFile === "-" ? 0 : tokenFile, "utf8").trim();
   } catch (error) {
     throw new UsageError(`Cannot read --token-file: ${error instanceof Error ? error.message : String(error)}`);
   }
