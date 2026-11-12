@@ -268,13 +268,32 @@ public final class PublicResponses {
         }
     }
 
-    public enum ErrorCode { INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED, SERVICE_UNAVAILABLE, CURRENT_ROUTES_INFEASIBLE, INTERNAL_ERROR }
+    /**
+     * The codes a host switches on. Each carries its retry rule (spec 1.11.0): retryable when sending the same call again,
+     * with the same requestId and nothing changed, can succeed after Retry-After. A host that retries automatically
+     * retries exactly these; every other code needs a change, a person or a new requestId first.
+     */
+    public enum ErrorCode {
+        INVALID_REQUEST(false), NOT_FOUND(false), STALE(false), NOT_COMMITTABLE(false), HOLD_UNAVAILABLE(false), INCOMPLETE_FACTS(false),
+        BUSY(true), ROUTING_UNAVAILABLE(true), CALCULATION_UNAVAILABLE(true), CANCELLED(false), SERVICE_UNAVAILABLE(true),
+        CURRENT_ROUTES_INFEASIBLE(false), INTERNAL_ERROR(false);
 
-    public record Problem(ErrorCode error, String message) {
+        private final boolean retryable;
+        ErrorCode(boolean retryable) { this.retryable = retryable; }
+        public boolean retryable() { return retryable; }
+    }
+
+    /**
+     * A refusal. {@code retryable} always follows {@code error} (see {@link ErrorCode}) and is never read from the input,
+     * so an answer stored before spec 1.11.0, which has none, is replayed with the same rule as a new one.
+     */
+    public record Problem(ErrorCode error, String message, Boolean retryable) {
         public Problem {
-            Input.present(error, "error");
+            retryable = Input.present(error, "error").retryable();
             if (Input.present(message, "message").isEmpty()) throw new IllegalArgumentException("Empty message");
         }
+
+        public Problem(ErrorCode error, String message) { this(error, message, Required.value(Boolean.valueOf(error.retryable()))); }
     }
 
     /** How far a daily or repair proposal request has come (spec 1.4.0). */
@@ -312,12 +331,18 @@ public final class PublicResponses {
         }
     }
 
-    public record StaleProblem(String error, String message, List<TechnicianDayVersion> changed) {
+    /** A STALE refusal with the technician-days concerned; never retryable, since only current records can succeed. */
+    public record StaleProblem(String error, String message, Boolean retryable, List<TechnicianDayVersion> changed) {
         public StaleProblem {
             if (!"STALE".equals(error)) throw new IllegalArgumentException("error must be STALE");
             if (Input.present(message, "message").isEmpty()) throw new IllegalArgumentException("Empty message");
+            retryable = Required.value(Boolean.valueOf(ErrorCode.STALE.retryable()));
             changed = Input.list(changed, "changed");
             if (changed.isEmpty()) throw new IllegalArgumentException("changed must not be empty");
+        }
+
+        public StaleProblem(String error, String message, List<TechnicianDayVersion> changed) {
+            this(error, message, Required.value(Boolean.valueOf(ErrorCode.STALE.retryable())), changed);
         }
     }
 }

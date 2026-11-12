@@ -529,12 +529,9 @@ public class DailyProposals {
         return running.compareTo(PublicApiStore.LEASE) > 0 ? running : PublicApiStore.LEASE;
     }
 
-    /** The parser's own first line for malformed JSON, since the wrapper's message alone says only that it was invalid. */
+    /** A 400's message in the host's terms, with the JSON path or position of the fault (see {@link RequestErrors}). */
     static String invalidRequest(IllegalArgumentException invalid) {
-        Throwable cause = invalid.getCause();
-        String detail = cause == null ? null : cause.getMessage();
-        if (detail == null || detail.isBlank()) return message(invalid);
-        return message(invalid) + ": " + Required.value(detail.lines().findFirst().orElse(detail), "parser detail");
+        return RequestErrors.describe(invalid);
     }
 
     private static String message(RuntimeException failure) {

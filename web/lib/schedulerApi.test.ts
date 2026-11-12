@@ -43,7 +43,7 @@ test("a token for another tenant is refused before any booking call, and API ref
       const path = new URL(String(input)).pathname;
       paths.push(path);
       return path === "/api/v1/whoami" ? Response.json({ tenantId: "stub-client" })
-        : Response.json({ error: "BUSY", message: "Search capacity exhausted" }, { status: 429 });
+        : Response.json({ error: "BUSY", message: "Search capacity exhausted", retryable: true }, { status: 429 });
     };
     await assert.rejects(createBookingOffers("stub-client", request), (error: unknown) => error instanceof SchedulerApiError && error.code === "BUSY" && error.status === 429);
     globalThis.fetch = async () => Response.json({ offerSetId: "set", unexpected: true }, { status: 201 });
@@ -119,9 +119,9 @@ test("cancelling answers whether the scheduler is stopping the call, and an empt
     };
     assert.equal(await cancelRequest("cancel-client", id), "CANCELLING");
     assert.deepEqual(calls, [`DELETE /api/v1/requests/${id}`]);
-    answer = () => Response.json({ error: "NOT_FOUND", message: "No calculation with this requestId is running on this scheduler" }, { status: 404 });
+    answer = () => Response.json({ error: "NOT_FOUND", message: "No calculation with this requestId is running on this scheduler", retryable: false }, { status: 404 });
     assert.equal(await cancelRequest("cancel-client", id), "NOT_RUNNING");
-    answer = () => Response.json({ error: "INVALID_REQUEST", message: "requestId must be a lowercase canonical UUID" }, { status: 400 });
+    answer = () => Response.json({ error: "INVALID_REQUEST", message: "requestId must be a lowercase canonical UUID", retryable: false }, { status: 400 });
     await assert.rejects(cancelRequest("cancel-client", id), (error: unknown) => error instanceof SchedulerApiError && error.code === "INVALID_REQUEST");
     answer = () => new Response("oops", { status: 500 });
     await assert.rejects(cancelRequest("cancel-client", id), (error: unknown) => error instanceof SchedulerApiError && error.code === "MALFORMED");

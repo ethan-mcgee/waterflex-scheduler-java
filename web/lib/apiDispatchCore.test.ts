@@ -78,8 +78,10 @@ test("stored proposal JSON is validated before use", () => {
 
 test("a STALE refusal keeps its changed technician-days, and only a STALE refusal may carry them", () => {
   const changed = [{ technicianId: "a", serviceDate: DATE, lastModified: "2026-10-11T21:04:17.123456Z" }];
-  assert.equal(problem.safeParse({ error: "STALE", message: "Technician-day changed", changed }).success, true);
-  assert.equal(problem.safeParse({ error: "STALE", message: "Technician-day changed" }).success, false);
-  assert.equal(problem.safeParse({ error: "BUSY", message: "Busy", changed }).success, false);
-  assert.equal(problem.safeParse({ error: "BUSY", message: "Busy" }).success, true);
+  assert.equal(problem.safeParse({ error: "STALE", message: "Technician-day changed", retryable: false, changed }).success, true);
+  assert.equal(problem.safeParse({ error: "STALE", message: "Technician-day changed", retryable: false }).success, false);
+  assert.equal(problem.safeParse({ error: "BUSY", message: "Busy", retryable: true, changed }).success, false);
+  assert.equal(problem.safeParse({ error: "BUSY", message: "Busy", retryable: true }).success, true);
+  // Every refusal carries its retry rule since spec 1.11.0.
+  assert.equal(problem.safeParse({ error: "BUSY", message: "Busy" }).success, false);
 });

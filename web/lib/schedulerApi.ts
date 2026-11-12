@@ -21,10 +21,13 @@ const window = z.object({ start: instant, end: instant }).strict();
 
 const skippedTechnicianDay = z.object({ technicianId: id, serviceDate, reason: z.enum(["LOCATION_UNRESOLVED"]), message: z.string().min(1) }).strict();
 const technicianDayVersion = z.object({ technicianId: id, serviceDate, lastModified: instant }).strict();
-/** A refusal. Only a STALE commit carries `changed`: the technician-days whose recorded timestamp differs. */
+/**
+ * A refusal. Only a STALE commit carries `changed`: the technician-days whose recorded timestamp differs. `retryable`
+ * (spec 1.11.0) is the code's retry rule: the same call with the same requestId can succeed later unchanged.
+ */
 export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMITTABLE", "HOLD_UNAVAILABLE",
   "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED", "SERVICE_UNAVAILABLE", "CURRENT_ROUTES_INFEASIBLE",
-  "INTERNAL_ERROR"]), message: z.string().min(1),
+  "INTERNAL_ERROR"]), message: z.string().min(1), retryable: z.boolean(),
   changed: z.array(technicianDayVersion).min(1).optional() }).strict()
   .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
 /**

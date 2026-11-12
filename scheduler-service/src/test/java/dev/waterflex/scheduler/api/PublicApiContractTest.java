@@ -124,6 +124,30 @@ class PublicApiContractTest {
         assertEquals(spec, java);
     }
 
+    /** The X-Scheduler-Version header names the contract this build serves (spec 1.11.0). */
+    @Test void theVersionHeaderNamesTheSpecVersion() {
+        assertEquals(map(SPEC.get("info")).get("version"), dev.waterflex.scheduler.ApiVersionHeader.SPEC_VERSION);
+    }
+
+    /** Every error example in the spec, inline or named, carries its code's retry rule (spec 1.11.0). */
+    @Test void everyErrorExampleCarriesItsCodesRetryRule() {
+        List<String> checked = new ArrayList<>();
+        errorExamples(SPEC, "$", checked);
+        assertTrue(checked.size() >= 15, "error examples found: " + checked);
+    }
+
+    private static void errorExamples(@Nullable Object node, String where, List<String> checked) {
+        if (node instanceof Map<?, ?> object) {
+            if (object.get("error") instanceof String code && object.containsKey("message")) {
+                assertEquals(PublicResponses.ErrorCode.valueOf(code).retryable(), object.get("retryable"), where + " retryable");
+                checked.add(where);
+            }
+            object.forEach((key, value) -> errorExamples(value, where + "." + key, checked));
+        } else if (node instanceof List<?> items) {
+            for (int index = 0; index < items.size(); index++) errorExamples(items.get(index), where + "[" + index + "]", checked);
+        }
+    }
+
     static String example(String name) {
         return CalculationJson.write(Required.value(map(EXAMPLES.get(name)).get("value")));
     }
