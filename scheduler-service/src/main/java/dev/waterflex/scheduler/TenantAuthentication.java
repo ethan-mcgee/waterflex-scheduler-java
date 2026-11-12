@@ -50,8 +50,11 @@ public final class TenantAuthentication extends OncePerRequestFilter {
             return;
         }
         if (tenant == null) {
+            // The contract's 401 has no body. Setting the status, rather than sendError, keeps Spring Boot's error page
+            // (a JSON body with its own "error" field) out of the answer.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setHeader("WWW-Authenticate", "Bearer");
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant authentication required");
+            response.setContentLength(0);
             return;
         }
         request.setAttribute(TENANT, tenant);

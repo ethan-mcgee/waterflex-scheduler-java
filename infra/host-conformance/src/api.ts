@@ -12,11 +12,13 @@ export const ERROR_CODES = ["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMIT
   "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED", "SERVICE_UNAVAILABLE", "CURRENT_ROUTES_INFEASIBLE", "INTERNAL_ERROR"] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
-export const Problem = z.strictObject({ error: z.enum(ERROR_CODES), message: z.string().min(1) });
+/** `retryable` (spec 1.11.0) follows the code: true only for BUSY and the three *_UNAVAILABLE codes. */
+export const Problem = z.strictObject({ error: z.enum(ERROR_CODES), message: z.string().min(1), retryable: z.boolean() });
 
 export const TechnicianDayVersion = z.strictObject({ technicianId: Id, serviceDate: ServiceDate, lastModified: Instant });
 
-export const StaleProblem = z.strictObject({ error: z.literal("STALE"), message: z.string().min(1), changed: z.array(TechnicianDayVersion).min(1) });
+export const StaleProblem = z.strictObject({ error: z.literal("STALE"), message: z.string().min(1), retryable: z.literal(false),
+  changed: z.array(TechnicianDayVersion).min(1) });
 
 export const SkippedTechnicianDay = z.strictObject({ technicianId: Id, serviceDate: ServiceDate, reason: z.enum(["LOCATION_UNRESOLVED"]),
   message: z.string().min(1) });

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.10.0
+  version: 1.11.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -15,8 +15,18 @@ info:
     - Every write carries a host `requestId` (UUID) used as an idempotency key across all of the tenant's endpoints.
     - IDs are WaterFlex Software IDs, opaque strings.
     - Money and rates are canonical decimal strings, never JSON numbers.
-    - Instants are RFC 3339 with an offset; service dates are calendar dates in the metro's time zone.
-    - Unknown fields, duplicate keys and missing required values are rejected with 400.
+    - Instants are RFC 3339 with an offset; responses give them in UTC (`Z`). Service dates are calendar dates in
+      the metro's time zone.
+    - Unknown fields, duplicate keys and missing required values are rejected with 400. The message names the
+      field by its JSON path (`$.snapshot.technicians[0]`), or the line and column of malformed JSON.
+    - Every refusal is a Problem with `error`, `message` and `retryable`, except 401, which has no body. Branch on
+      `error`, never on `message`. `retryable` is true exactly when sending the same call again, with the same
+      requestId and nothing changed, can succeed after Retry-After (BUSY, ROUTING_UNAVAILABLE,
+      CALCULATION_UNAVAILABLE, SERVICE_UNAVAILABLE).
+    - A path under /api/v1 that is no operation answers 404 NOT_FOUND, and a method an operation does not take
+      answers 405 INVALID_REQUEST with an `Allow` header. Neither needs to be listed per operation.
+    - Every /api/v1 answer from the scheduler, 401 included, carries `X-Scheduler-Version`: the contract version
+      that answered. The proxy's own refusals (413 past its body limit, 503 when no replica answers) do not.
     - Each technician-day carries the host `lastModified` timestamp. A commit whose timestamps differ from
       the ones a proposal was computed from gets 409, and nothing is changed. A confirm sends the hold's
       date as a new snapshot instead, and the scheduler reconciles its holds with it. A booking search or confirm
@@ -36,6 +46,15 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.11.0 (2026-11-12): Problem and StaleProblem gain `retryable`, each code's retry rule. Every /api/v1 answer
+      from the scheduler carries `X-Scheduler-Version`. A refusal no operation writes is now a Problem too: 404
+      NOT_FOUND for an unknown path, 405 INVALID_REQUEST for a wrong method, 503 SERVICE_UNAVAILABLE (with
+      Retry-After) when the scheduler loses its database during a call or the proxy finds no replica, 413 from the
+      proxy past its body limit, and 500 INTERNAL_ERROR, now listed on every operation, for any other failure inside
+      the scheduler. The 401 has no body, as documented; it had carried a framework error
+      body. A 400's message names the field by its JSON path and no longer quotes parser internals. RequestId
+      states the lowercase canonical form the scheduler has always required. Response examples give instants in
+      UTC, as responses do.
     - 1.10.0 (2026-11-05): the error codes CURRENT_ROUTES_INFEASIBLE and INTERNAL_ERROR, for daily and repair
       proposals. When the snapshot's current routes do not hold (an arrival past its window, work past the shift end
       or during an absence, a leg with no road), the proposal answers 422 CURRENT_ROUTES_INFEASIBLE naming each
@@ -121,6 +140,7 @@ paths:
               examples:
                 tenant: { value: { tenantId: acme-water } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/daily/proposals:
     post:
@@ -192,6 +212,7 @@ paths:
         '409': { $ref: '#/components/responses/CommitConflict' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/routes/evaluate:
     post:
@@ -225,6 +246,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/routes/geometry:
     post:
@@ -258,6 +280,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/offers:
     post:
@@ -291,6 +314,7 @@ paths:
         '409': { $ref: '#/components/responses/StaleOrCancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/offers/{offerId}/select:
     post:
@@ -316,13 +340,14 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Hold' }
               examples:
-                held: { value: { holdId: hold-5f2c, offerId: offer-1, expiresAt: '2026-10-12T15:10:00-05:00' } }
+                held: { value: { holdId: hold-5f2c, offerId: offer-1, expiresAt: '2026-10-12T20:10:00Z' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/HoldUnavailable' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/offers/{offerId}/release:
     post:
@@ -352,6 +377,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/holds/{holdId}/confirm:
     post:
@@ -390,6 +416,7 @@ paths:
         '409': { $ref: '#/components/responses/HoldUnavailableStaleOrCancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/repairs/proposals:
     post:
@@ -489,10 +516,11 @@ paths:
                     queuedAt: '2026-10-11T22:00:00.120Z'
                     result:
                       status: 409
-                      body: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' }
+                      body: { error: CANCELLED, retryable: false, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
     delete:
       operationId: cancelRequest
@@ -517,6 +545,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
         '503': { $ref: '#/components/responses/Unavailable' }
 components:
   securitySchemes:
@@ -559,16 +588,16 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            unknownField: { value: { error: INVALID_REQUEST, message: Unknown field "tenantId" } }
+            unknownField: { value: { error: INVALID_REQUEST, retryable: false, message: Unknown field "tenantId" } }
     PayloadTooLarge:
       description: The request body is larger than 8 MiB (8388608 bytes). Nothing was claimed or calculated; split the work.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            tooLarge: { value: { error: INVALID_REQUEST, message: The request body exceeds 8388608 bytes } }
+            tooLarge: { value: { error: INVALID_REQUEST, retryable: false, message: The request body exceeds 8388608 bytes } }
     Unauthorized:
-      description: Missing, malformed, unknown or revoked token, or a disabled tenant.
+      description: Missing, malformed, unknown or revoked token, or a disabled tenant. No body; do not retry.
       headers:
         WWW-Authenticate:
           schema: { type: string, const: Bearer }
@@ -578,7 +607,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            missing: { value: { error: NOT_FOUND, message: Proposal not found } }
+            missing: { value: { error: NOT_FOUND, retryable: false, message: Proposal not found } }
     HoldUnavailable:
       description: >-
         The hold expired or ended (lost, released or superseded), its offer set already selected another offer, its
@@ -588,7 +617,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            expired: { value: { error: HOLD_UNAVAILABLE, message: The hold expired } }
+            expired: { value: { error: HOLD_UNAVAILABLE, retryable: false, message: The hold expired } }
     CommitConflict:
       description: >-
         STALE when a technician-day changed since the proposal was computed. NOT_COMMITTABLE when the proposal
@@ -598,7 +627,7 @@ components:
           schema: { $ref: '#/components/schemas/CommitConflict' }
           examples:
             changed: { $ref: '#/components/examples/StaleProblem' }
-            committed: { value: { error: NOT_COMMITTABLE, message: Proposal was already committed as rcpt-41d9 } }
+            committed: { value: { error: NOT_COMMITTABLE, retryable: false, message: Proposal was already committed as rcpt-41d9 } }
     Cancelled:
       description: >-
         The host cancelled this call with DELETE /api/v1/requests/{requestId}. Nothing was stored and the requestId
@@ -607,7 +636,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
+            cancelled: { value: { error: CANCELLED, retryable: false, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
     StaleOrCancelled:
       description: >-
         STALE: the snapshot carries a technician-day timestamp older than one the scheduler already used for that
@@ -618,8 +647,8 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ProblemOrStale' }
           examples:
-            stale: { value: { error: STALE, message: 'The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId', changed: [ { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T22:41:05.512Z' } ] } }
-            cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
+            stale: { value: { error: STALE, retryable: false, message: 'The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId', changed: [ { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T22:41:05.512Z' } ] } }
+            cancelled: { value: { error: CANCELLED, retryable: false, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
     HoldUnavailableStaleOrCancelled:
       description: >-
         HOLD_UNAVAILABLE: the hold expired or ended, was not selected, or the confirmed day would need overtime or
@@ -630,9 +659,9 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ProblemOrStale' }
           examples:
-            expired: { value: { error: HOLD_UNAVAILABLE, message: The hold expired } }
-            stale: { value: { error: STALE, message: 'The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId', changed: [ { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T22:41:05.512Z' } ] } }
-            cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
+            expired: { value: { error: HOLD_UNAVAILABLE, retryable: false, message: The hold expired } }
+            stale: { value: { error: STALE, retryable: false, message: 'The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId', changed: [ { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T22:41:05.512Z' } ] } }
+            cancelled: { value: { error: CANCELLED, retryable: false, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
     ProposalUnprocessable:
       description: >-
         The snapshot is well formed but cannot be proposed from (stored and replayed): INCOMPLETE_FACTS when it
@@ -644,31 +673,32 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            frozen: { value: { error: INCOMPLETE_FACTS, message: Routes for 2026-10-12 are frozen from 6 a.m. local time } }
+            frozen: { value: { error: INCOMPLETE_FACTS, retryable: false, message: Routes for 2026-10-12 are frozen from 6 a.m. local time } }
             late:
               value:
                 error: CURRENT_ROUTES_INFEASIBLE
+                retryable: false
                 message: >-
                   The current routes do not hold, so nothing was proposed (minutes are as timed in the given order):
                   tech-1 on 2026-10-12 arrives 12 min past the end of its arrival windows. Send routes that hold, or a
                   repair proposal for the technician-day
     InternalError:
       description: >-
-        The calculation failed inside the scheduler (INTERNAL_ERROR). Nothing was stored and the requestId was
-        released, but sending the same request again fails the same way until the scheduler is fixed, so report it
-        rather than retrying it.
+        The call failed inside the scheduler (INTERNAL_ERROR). Nothing was stored and the call's requestId, if it
+        carried one, was released, but sending the same request again fails the same way until the scheduler is
+        fixed, so report it with the requestId rather than retrying it.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            failed: { value: { error: INTERNAL_ERROR, message: 'The scheduler failed while calculating this request; nothing was stored, and sending it again fails the same way until the scheduler is fixed' } }
+            failed: { value: { error: INTERNAL_ERROR, retryable: false, message: 'The scheduler failed while calculating this request; nothing was stored, and sending it again fails the same way until the scheduler is fixed' } }
     IncompleteFacts:
       description: The snapshot is well formed but cannot be scheduled, for example a location with no road route.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            unroutable: { value: { error: INCOMPLETE_FACTS, message: No road route to appointment appt-7 } }
+            unroutable: { value: { error: INCOMPLETE_FACTS, retryable: false, message: No road route to appointment appt-7 } }
     Queued:
       description: >-
         Queued, because the request asked `Prefer: respond-async`: a worker on any replica calculates it, taking
@@ -704,12 +734,12 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            busy: { value: { error: BUSY, message: Search capacity exhausted } }
+            busy: { value: { error: BUSY, retryable: true, message: Search capacity exhausted } }
     Unavailable:
       description: >-
         Routing or calculation was unavailable, or the deadline passed (ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE);
-        or, on any operation, the scheduler could not check the token (SERVICE_UNAVAILABLE, with Retry-After). Nothing
-        was stored.
+        or, on any operation, the scheduler could not check the token or lost its database during the call
+        (SERVICE_UNAVAILABLE, with Retry-After). Nothing was stored; send the same call again.
       headers:
         Retry-After:
           description: Seconds to wait before sending the same call again; always present with SERVICE_UNAVAILABLE.
@@ -718,8 +748,9 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
-            routing: { value: { error: ROUTING_UNAVAILABLE, message: Road routing unavailable } }
-            tokenStore: { value: { error: SERVICE_UNAVAILABLE, message: The scheduler could not check the token; retry after the Retry-After seconds } }
+            routing: { value: { error: ROUTING_UNAVAILABLE, retryable: true, message: Road routing unavailable } }
+            tokenStore: { value: { error: SERVICE_UNAVAILABLE, retryable: true, message: The scheduler could not check the token; retry after the Retry-After seconds } }
+            database: { value: { error: SERVICE_UNAVAILABLE, retryable: true, message: The scheduler could not reach its database; send the same call again after the Retry-After seconds } }
   schemas:
     Id:
       type: string
@@ -730,7 +761,10 @@ components:
     RequestId:
       type: string
       format: uuid
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       description: >-
+        A UUID in lowercase canonical form; an uppercase or unhyphenated UUID is refused with 400, since the value is
+        compared exactly as an idempotency key.
         Host idempotency key. Repeating a request with the same ID returns the original result; reusing an ID
         with a different request is rejected with 400.
     TenantId:
@@ -1348,8 +1382,14 @@ components:
     Problem:
       type: object
       additionalProperties: false
-      required: [error, message]
+      required: [error, message, retryable]
       properties:
+        retryable:
+          type: boolean
+          description: >-
+            True exactly when sending the same call again, with the same requestId and nothing changed, can succeed
+            after Retry-After: BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE and SERVICE_UNAVAILABLE. It follows
+            `error` (since 1.11.0), so a host that retries automatically can do so before it knows every code.
         error:
           type: string
           enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED, SERVICE_UNAVAILABLE, CURRENT_ROUTES_INFEASIBLE, INTERNAL_ERROR]
@@ -1357,10 +1397,11 @@ components:
     StaleProblem:
       type: object
       additionalProperties: false
-      required: [error, message, changed]
+      required: [error, message, retryable, changed]
       properties:
         error: { type: string, const: STALE }
         message: { type: string, minLength: 1 }
+        retryable: { type: boolean, const: false }
         changed:
           type: array
           minItems: 1
@@ -1482,11 +1523,11 @@ components:
           - technicianId: tech-1
             serviceDate: '2026-10-12'
             stops:
-              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T08:24:00-05:00', plannedEnd: '2026-10-12T09:24:00-05:00' }
+              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T13:24:00Z', plannedEnd: '2026-10-12T14:24:00Z' }
           - technicianId: tech-2
             serviceDate: '2026-10-12'
             stops:
-              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
+              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T18:10:00Z', plannedEnd: '2026-10-12T18:55:00Z' }
         unresolvedAppointmentIds: []
         skippedTechnicianDays: []
         costCents: 18942
@@ -1502,11 +1543,11 @@ components:
           - technicianId: tech-1
             serviceDate: '2026-10-12'
             stops:
-              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T08:24:00-05:00', plannedEnd: '2026-10-12T09:24:00-05:00' }
+              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T13:24:00Z', plannedEnd: '2026-10-12T14:24:00Z' }
           - technicianId: tech-2
             serviceDate: '2026-10-12'
             stops:
-              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
+              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T18:10:00Z', plannedEnd: '2026-10-12T18:55:00Z' }
         skippedTechnicianDays: []
         costCents: 18942
         overtimeMinutes: 0
@@ -1545,7 +1586,7 @@ components:
     OfferSet:
       value:
         offerSetId: set-77a1
-        expiresAt: '2026-10-12T15:10:00-05:00'
+        expiresAt: '2026-10-12T20:10:00Z'
         searchComplete: true
         refinement: SHORTENED
         refinementStop: CAP
@@ -1553,8 +1594,8 @@ components:
         incompleteDates: []
         skippedTechnicianDays: []
         offers:
-          - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }
-          - { offerId: offer-2, serviceDate: '2026-10-12', window: { start: '2026-10-12T13:00:00-05:00', end: '2026-10-12T15:00:00-05:00' } }
+          - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T15:00:00Z', end: '2026-10-12T17:00:00Z' } }
+          - { offerId: offer-2, serviceDate: '2026-10-12', window: { start: '2026-10-12T18:00:00Z', end: '2026-10-12T20:00:00Z' } }
     ConfirmRequest:
       value:
         requestId: 5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a
@@ -1569,13 +1610,14 @@ components:
       value:
         receiptId: rcpt-41d9
         assignments:
-          - { appointmentId: appt-8, technicianId: tech-2, serviceDate: '2026-10-12', sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
+          - { appointmentId: appt-8, technicianId: tech-2, serviceDate: '2026-10-12', sequence: 0, plannedStart: '2026-10-12T18:10:00Z', plannedEnd: '2026-10-12T18:55:00Z' }
         technicianDays:
           - { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T21:04:17.123456Z' }
           - { technicianId: tech-2, serviceDate: '2026-10-12', lastModified: '2026-10-10T16:30:00Z' }
     StaleProblem:
       value:
         error: STALE
+        retryable: false
         message: Technician-day changed since the proposal was computed
         changed:
           - { technicianId: tech-2, serviceDate: '2026-10-12', lastModified: '2026-10-10T16:30:00Z' }

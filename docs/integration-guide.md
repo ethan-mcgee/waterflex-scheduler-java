@@ -1,6 +1,6 @@
 # Integrating WaterFlex Software with the scheduler
 
-For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.10.0); where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use [docs/operations-runbook.md](operations-runbook.md).
+For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.11.0); where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use [docs/operations-runbook.md](operations-runbook.md).
 
 The portal in `web/` is a working client of this API and the reference for every step below: it builds snapshots (`web/lib/clientSnapshot.ts`), books (`web/lib/apiBooking.ts`), writes receipts with a compare-and-set (`web/lib/apiReceipt.ts`), and runs an overnight schedule (`web/lib/overnightCore.ts`, `web/scripts/overnight-worker.ts`).
 
@@ -277,7 +277,9 @@ Every write carries a `requestId` (a UUID) that is its idempotency key **across 
 - The same `requestId` with a different body, or on a different endpoint, is a 400. Use a new UUID for every new request, including a select, a release and each commit.
 - A request that ended in 429, 503 or 409 `CANCELLED` released its `requestId`: repeating it runs it again.
 
-Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 401. Branch on `error`, never on `message`, which is for people and may change.
+Every error is a JSON `Problem` (`{"error": "...", "message": "...", "retryable": false}`) except 401, which has no body. Branch on `error`, never on `message`, which is for people and may change. `retryable` (since 1.11.0) is true exactly for 429 `BUSY` and the three 503 codes: a client that retries automatically retries those, with the same `requestId`, after `Retry-After`, and treats every other refusal as needing a change, a person or a new `requestId`. A 400's message names the field by its JSON path (`Unknown field "colour" at $.snapshot`), or the line and column of malformed JSON.
+
+Every answer from the scheduler carries `X-Scheduler-Version`, the contract version that answered. Put it and the `requestId` in every bug report. The proxy's own refusals (413 past its 16 MiB limit, 503 when no replica answers) are `Problem` bodies too but carry no version.
 
 - **Status 400**
   - **`error`:** `INVALID_REQUEST`.
@@ -293,8 +295,12 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
   - **What to do:** Check the token; do not retry.
 - **Status 404**
   - **`error`:** `NOT_FOUND`.
-  - **Meaning:** No such proposal, offer, hold or running request for this tenant.
+  - **Meaning:** No such proposal, offer, hold or running request for this tenant, or no operation at that path (since 1.11.0).
   - **What to do:** Do nothing (or search again for a booking).
+- **Status 405**
+  - **`error`:** `INVALID_REQUEST`.
+  - **Meaning:** The operation does not take this method; the `Allow` header names the one it takes (since 1.11.0).
+  - **What to do:** Fix the call.
 - **Status 409**
   - **`error`:** `STALE`.
   - **Meaning:** Commit: a technician-day changed since the proposal was computed. Booking search or confirm: the snapshot is older than records already used. `changed` lists the technician-days.
@@ -333,11 +339,11 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
   - **What to do:** Retry the same `requestId` with backoff.
 - **Status 503**
   - **`error`:** `SERVICE_UNAVAILABLE`.
-  - **Meaning:** Any operation: the scheduler could not check the token (its token store did not answer in time). Nothing was decided or stored (since 1.8.0).
+  - **Meaning:** Any operation: the scheduler could not check the token (its token store did not answer in time, since 1.8.0), it lost its database during the call, or the proxy found no replica to answer (since 1.11.0). Nothing was stored.
   - **What to do:** Send the same call, with the same `requestId`, after `Retry-After`.
 - **Status 500**
   - **`error`:** `INTERNAL_ERROR`.
-  - **Meaning:** Daily and repair proposals: the calculation failed inside the scheduler. Nothing was stored and the `requestId` is released (since 1.10.0).
+  - **Meaning:** Any operation (daily and repair proposals since 1.10.0, every other since 1.11.0): the call failed inside the scheduler. Nothing was stored and the `requestId` is released.
   - **What to do:** Do not retry: the same request fails the same way until the scheduler is fixed. Report it with the `requestId`.
 
 **Timeouts to set at the caller:** booking offers and confirm, the client's `bookingDeadlineMs` plus about 3 seconds; daily and repair proposals, `costSearchSeconds + fairnessSearchSeconds` plus about 15 seconds (a queued one answers 202 within a second; give up polling after the queue's 15 minutes plus that); everything else, 10 to 30 seconds. After a client-side timeout, repeat the same `requestId`: you get the stored answer, or a 429 while it is still running.
@@ -387,4 +393,4 @@ Also: store tenant tokens only in a secret store and never log them; the managem
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.10.0). Within v1, changes are additive only and raise the minor version: a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor version before the scheduler is upgraded; a lenient reader needs no change. A breaking change (a removed or renamed field, a new required request field, a changed meaning) is published as `/api/v2` beside v1, never in place, and v1 keeps being served until every host has moved. The one exception is narrowing a value's range to bounds no host sends, confirmed with WaterFlex Software before it is deployed: spec 1.7.0 narrowed the cost rates so.
+The API is version 1 (`/api/v1`, spec version 1.11.0). Within v1, changes are additive only and raise the minor version: a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor version before the scheduler is upgraded; a lenient reader needs no change. A breaking change (a removed or renamed field, a new required request field, a changed meaning) is published as `/api/v2` beside v1, never in place, and v1 keeps being served until every host has moved. The one exception is narrowing a value's range to bounds no host sends, confirmed with WaterFlex Software before it is deployed: spec 1.7.0 narrowed the cost rates so.

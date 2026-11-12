@@ -44,16 +44,16 @@ test("a finished requestId answers 201 when queued and is not polled", async () 
 });
 
 test("a queued proposal that ended refused throws its problem, a 429 keeping its wait", async () => {
-  const busy = scripted([status("COMPLETED", { status: 429, body: { error: "BUSY", message: "waited too long" }, retryAfterSeconds: 30 })]);
+  const busy = scripted([status("COMPLETED", { status: 429, body: { error: "BUSY", message: "waited too long", retryable: true }, retryAfterSeconds: 30 })]);
   await assert.rejects(awaitDailyProposal("acme", request, 60_000, busy.dependencies),
     (error: unknown) => error instanceof SchedulerApiError && error.code === "BUSY" && error.status === 429 && error.retryAfterMs === 30_000);
-  const cancelled = scripted([status("COMPLETED", { status: 409, body: { error: "CANCELLED", message: "cancelled" } })]);
+  const cancelled = scripted([status("COMPLETED", { status: 409, body: { error: "CANCELLED", message: "cancelled", retryable: false } })]);
   await assert.rejects(awaitDailyProposal("acme", request, 60_000, cancelled.dependencies),
     (error: unknown) => error instanceof SchedulerApiError && error.code === "CANCELLED" && error.retryAfterMs === null);
 });
 
 test("a result that does not match its status is malformed, never trusted", async () => {
-  const wrongBody = scripted([status("COMPLETED", { status: 201, body: { error: "BUSY", message: "m" } })]);
+  const wrongBody = scripted([status("COMPLETED", { status: 201, body: { error: "BUSY", message: "m", retryable: true } })]);
   await assert.rejects(awaitDailyProposal("acme", request, 60_000, wrongBody.dependencies), (error: unknown) => error instanceof SchedulerApiError && error.code === "MALFORMED");
   const other = scripted([{ ...status("RUNNING"), requestId: "1a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d" }]);
   await assert.rejects(awaitDailyProposal("acme", request, 60_000, other.dependencies), (error: unknown) => error instanceof SchedulerApiError && error.code === "MALFORMED");

@@ -139,7 +139,7 @@ The [operations runbook](docs/operations-runbook.md) covers start order, upgrade
 
 ## Public API and tokens
 
-The public scheduling API lives under `/api/v1/` and is the scheduler's only interface. Each call needs a per-client bearer token. The contract is [docs/api/openapi-v1.yaml](docs/api/openapi-v1.yaml) (version 1.10.0), [docs/integration-guide.md](docs/integration-guide.md) shows a host how to use it, and the [host conformance kit](infra/host-conformance/README.md) checks a scheduler against it.
+The public scheduling API lives under `/api/v1/` and is the scheduler's only interface. Each call needs a per-client bearer token. The contract is [docs/api/openapi-v1.yaml](docs/api/openapi-v1.yaml) (version 1.11.0), [docs/integration-guide.md](docs/integration-guide.md) shows a host how to use it, and the [host conformance kit](infra/host-conformance/README.md) checks a scheduler against it.
 
 Tokens are issued by the scheduler's own command line, as the owner of its database: `docker compose run --rm scheduler-admin --command=issue-token <tenantId> "<tenant name>" "<token label>"` (the token is printed once and only its SHA-256 digest is stored), plus `--command=revoke-token <tokenId>`, `--command=list-tenants`, `--command=disable-tenant <tenantId>` and `--command=enable-tenant <tenantId>`. Outside Compose, run `java -jar scheduler-service.jar --command=...` with `JDBC_DATABASE_URL`, `DATABASE_USER` and `DATABASE_PASSWORD` set to the owner's connection. `GET /api/v1/whoami` returns the tenant a token belongs to.
 
