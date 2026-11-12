@@ -41,6 +41,8 @@ The scheduler owns:
 - The road graph per metro, its route cache, and address location (Nominatim)
 - Nothing else: it reads no master data and holds no policy settings
 
+**What the scheduler stores, and for how long:** the scheduler is a stateless calculation with a thin store. It keeps only what it needs to finish a sequence it started or to answer a retry: each call's answer under your `requestId`, booking holds (10 minutes), offer sets, proposals, receipts and queued proposals, which hold the snapshot you sent. All of it, including the copies of your facts inside it, is purged after the deployment's `SCHEDULER_RETENTION_DAYS`, and road legs between coordinates are cached for 30 days. Keep your own copy of anything you need longer (section 2).
+
 Every calculating call carries a **snapshot** of the facts it needs. The scheduler answers with time windows (booking offers) or whole timed routes (daily and repair proposals, route evaluations), and you write the result into your own records.
 
 ## 2. Onboarding
@@ -253,7 +255,7 @@ Preference-Applied: respond-async
 
 Poll `GET /api/v1/requests/{requestId}` (the `Location`) no sooner than `Retry-After`. The status is `QUEUED`, then `RUNNING`, then `COMPLETED` with `result`: the HTTP `status` and `body` the call itself would have answered (201 with the proposal, or a `Problem`). A 201 result is stored like any proposal: commit it as above, and the same `requestId` sent again, with or without the header, replays it. A `BUSY`, `ROUTING_UNAVAILABLE`, `CALCULATION_UNAVAILABLE` or `CANCELLED` result released the `requestId`, as the same answer to a synchronous call does: send the request again with it to run it again, after `result.retryAfterSeconds` when given.
 
-- Any scheduler replica takes queued requests, the waiting request of the client whose last one started longest ago first, so one client's 30 overnight days never hold back another client's single day. Each replica runs one daily calculation at a time; bookings keep priority over it.
+- The daily replicas take queued requests, the waiting request of the client whose last one started longest ago first, so one client's 30 overnight days never hold back another client's single day. A replica runs one daily calculation at a time by default and the VM's daily replicas run two; booking replicas run none, so bookings keep priority.
 - A client may have up to 50 requests queued or running (the operator's `scheduler.daily.queue.tenant-limit`); one more is a 429 `BUSY` with `Retry-After: 30`. A request still waiting after 15 minutes (`max-wait-minutes`) completes with 429 `BUSY` without running; send it again.
 - Without the header both endpoints behave exactly as before. Use the queue for anything that is not waiting on a person: overnight runs, batches of days, repairs analysed in the background.
 
