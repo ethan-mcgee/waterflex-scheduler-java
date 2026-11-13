@@ -7,7 +7,7 @@
 //     --area 41.22,-96.05,41.28,-95.95 --variants 2,2:1000,1000 --cases 30
 // Use a dedicated tenant: it confirms jobs under its own IDs on dates two days ahead and later.
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -18,12 +18,13 @@ import { dynamicHorizon, isWeekday, recordDates, weekdayWindow } from "./src/loa
 import { HostStore, type Job, type MetroShape } from "./src/load/host.ts";
 import { disturbance, parseVariants, qualityLines, withReceipt, type OfferedWindow, type QualityCase, type Searched, type Variant } from "./src/load/quality.ts";
 import { retryAfterMs } from "./src/load/scenarios.ts";
+import { readToken, TOKEN_USAGE } from "./src/token.ts";
 import { breakdownLines, containerShareLines, readRequestLog, serverBreakdown, tenantOf, type ContainerShare, type ServerBreakdown } from "./src/load/serverlog.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES, type Snapshot } from "./src/snapshot.ts";
 import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
 
-const USAGE = `Usage: npx tsx quality.ts --url <base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
+const USAGE = `Usage: npx tsx quality.ts --url <base URL> ${TOKEN_USAGE} --metro <metroId> --time-zone <IANA zone>
     (--area <south,west,north,east> | --points fixture) [--variants 2,1000 | --thresholds 2,1000] [--cases 30] [--technicians 3]
     [--appointments 2] [--horizon fixed|dynamic] [--horizon-weekdays 10] [--lead-weekdays 2] [--full-percent 85]
     [--booked-weekdays 0] [--booked-appointments 4] [--offer-limit 4] [--window-hours 2] [--deadline-ms 5000]
@@ -36,7 +37,7 @@ const USAGE = `Usage: npx tsx quality.ts --url <base URL> --token-file <file> --
 
 class UsageError extends Error { }
 
-const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "thresholds", "variants", "cases", "technicians", "appointments",
+const STRING_OPTIONS = ["url", "token-file", "token-env", "metro", "time-zone", "area", "points", "thresholds", "variants", "cases", "technicians", "appointments",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "offer-limit", "window-hours",
   "deadline-ms", "seed", "scheduler-log", "label", "out"] as const;
 
@@ -74,9 +75,9 @@ function settings() {
   if (horizonMode === "fixed" && (text("lead-weekdays") !== undefined || text("full-percent") !== undefined))
     throw new UsageError("--lead-weekdays and --full-percent apply only with --horizon dynamic");
   let token: string;
-  try { token = readFileSync(required("token-file"), "utf8").trim(); } catch (error) {
-    if (error instanceof UsageError) throw error;
-    throw new UsageError(`Cannot read --token-file: ${error instanceof Error ? error.message : String(error)}`);
+  // "--token-file -" reads standard input and --token-env a variable, so the token is never written to a file.
+  try { token = readToken(text("token-file"), text("token-env")); } catch (error) {
+    throw new UsageError(error instanceof Error ? error.message : String(error));
   }
   return {
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),

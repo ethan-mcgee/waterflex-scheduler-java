@@ -12,14 +12,13 @@
 # replica (--metrics-url) and docker stats. Resumable: a run whose report exists is skipped, so the matrix can be run
 # over several nights with the same command; the reports live under -RunsDirectory. Long (about 60 hours with the
 # defaults; -DryRun prints the matrix and its size); the owner starts it.
-#   powershell -ExecutionPolicy Bypass -File infra/run-booking-configuration-study.ps1 -TokenFile .scratch/rehearsal-loadtest.token `
+#   powershell -ExecutionPolicy Bypass -File infra/run-booking-configuration-study.ps1 `
 #     -Stack 'VM rehearsal, 8 vCPU shape, Omaha routing CH' [-Parts quality] [-DryRun]
 param(
-    # The rehearsal proxy. The study's tenant token; issued (tenant loadtest) through the rehearsal's scheduler-admin
-    # when the file does not exist. Part capacity issues one token per client (tenants loadtest-client-<n>) on first
-    # use into -ClientTokenDirectory; revoke them with scheduler-admin --command=revoke-token <id> (ids in the evidence).
+    # The rehearsal proxy. Each invocation issues the study's token (tenant loadtest) and, for part capacity, one per
+    # client (tenants loadtest-client-<n>) through the rehearsal's scheduler-admin, keeps them in its own environment
+    # and revokes them when it ends (study-token.psm1); their IDs are in the evidence.
     [string]$Url = 'http://127.0.0.1:18080',
-    [Parameter(Mandatory)][string]$TokenFile,
     # What the scheduler under test is, recorded in the evidence (build, routing, shape).
     [Parameter(Mandatory)][string]$Stack,
     [string]$RehearsalEnv = 'deploy/vm/rehearsal.env',
@@ -64,13 +63,13 @@ param(
     # they search the same addresses.
     [ValidateRange(0, 700)][int]$SeedBase = 500,
     [string]$RunsDirectory = 'experiments/runs/configuration-study',
-    [string]$ClientTokenDirectory = '.scratch/configuration-clients',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'booking-configuration',
     # Print the matrix and its size, change nothing.
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $vmCompose = Join-Path $repository 'deploy/vm/docker-compose.yml'
@@ -274,23 +273,17 @@ $routingCapped = $false
 $routingName = (& $dockerOutput @('compose', '-f', $devCompose, 'ps', '--format', '{{.Name}}', 'routing-service')).Trim()
 if ($routingName -eq '') { throw 'The development routing service is not running (docker compose up routing-service)' }
 
-# Tokens: the study's own, and one per client, through the rehearsal's scheduler-admin.
-$issue = { param($tenant, $title, $file)
-    $output = & $dockerOutput (@('compose') + $rehearsal + @('run', '--rm', 'scheduler-admin', '--command=issue-token', $tenant, $title, 'booking configuration study'))
-    $id = [regex]::Match($output, '(?m)^id: (\S+)').Groups[1].Value
-    $value = [regex]::Match($output, '(?m)^token: (wfs_\S+)').Groups[1].Value
-    if ($id -eq '' -or $value -eq '') { throw "Could not issue a token for $tenant`n$output" }
-    New-Item -ItemType Directory -Force (Split-Path $file -Parent) | Out-Null
-    Set-Content -LiteralPath $file -Value $value -Encoding ascii -NoNewline
-    Set-Content -LiteralPath "$file.id" -Value $id -Encoding ascii -NoNewline }
-$clientTokens = @()
-if (-not (Test-Path -LiteralPath $TokenFile)) { & $issue 'loadtest' 'Load test' $TokenFile; Write-Output "Issued the study's token into $TokenFile" }
-$token = (Resolve-Path -LiteralPath $TokenFile).Path
-$clientToken = { param($n)
-    $file = Join-Path (Join-Path $repository $ClientTokenDirectory) "client-$n.token"
-    if (-not (Test-Path -LiteralPath $file)) { & $issue "loadtest-client-$n" "Load test client $n" $file }
-    $script:clientTokens += [ordered]@{ client = $n; tenant = "loadtest-client-$n"; tokenId = (Get-Content -LiteralPath "$file.id" -Raw).Trim() }
-    $file }
+# Tokens: the study's own and one per client, issued on first use through the rehearsal's scheduler-admin into this
+# process's environment (the kit's tools inherit it and read --token-env), and revoked when the invocation ends.
+$tokenCompose = @('compose') + $rehearsal
+$tokenLabel = 'booking configuration study'
+$issued = [ordered]@{}
+$tokenVariable = { param($tenant, $title)
+    $variable = 'SCHEDULER_STUDY_TOKEN_' + ($tenant.ToUpperInvariant() -replace '-', '_')
+    if (-not $issued.Contains($tenant)) {
+        $id = New-StudyToken -Compose $tokenCompose -Tenant $tenant -Name $title -Label $tokenLabel -Variable $variable
+        $issued[$tenant] = [ordered]@{ tenant = $tenant; tokenId = $id; variable = $variable } }
+    $variable }
 
 $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area, '--horizon', 'dynamic', '--horizon-weekdays', '15', '--lead-weekdays', '2', '--full-percent', '85')
 # Start-Process in Windows PowerShell joins its arguments with spaces and quotes none of them.
@@ -326,7 +319,7 @@ try {
         Write-Output "[$index/$($cells.Count)] $label"
         if ($cell.tool -eq 'quality') {
             $seed = & $seedOf $cell 1
-            $arguments = @('tsx', 'quality.ts') + $common + @('--token-file', $token, '--variants', $cell.variants, '--cases', "$Cases", '--seed', "$seed",
+            $arguments = @('tsx', 'quality.ts') + $common + @('--token-env', (& $tokenVariable 'loadtest' 'Load test'), '--variants', $cell.variants, '--cases', "$Cases", '--seed', "$seed",
                 '--label', "$label seed $seed", '--out', $directory, '--technicians', "$($cell.fleet)") + $profileArgs[$cell.profile] + (& $observed $layout.replicas 'quality')
             & npx.cmd @arguments *> (Join-Path $directory 'run.log')
             # Exit 1 is a run with breaches, which the report records; a crash also exits 1, so the report is required.
@@ -337,9 +330,9 @@ try {
         $processes = @()
         for ($client = 1; $client -le $cell.clients; $client++) {
             $seed = & $seedOf $cell $client
-            $clientFile = if ($cell.clients -eq 1) { $token } else { & $clientToken $client }
+            $clientVariable = if ($cell.clients -eq 1) { & $tokenVariable 'loadtest' 'Load test' } else { & $tokenVariable "loadtest-client-$client" "Load test client $client" }
             $out = if ($cell.clients -eq 1) { $directory } else { Join-Path $directory "client-$client" }
-            $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $clientFile, '--scenario', 'booking', '--concurrency', '1', '--duration-s', "$DurationS",
+            $arguments = @('tsx', 'load.ts') + $common + @('--token-env', $clientVariable, '--scenario', 'booking', '--concurrency', '1', '--duration-s', "$DurationS",
                 '--seed', "$seed", '--label', "$label client $client of $($cell.clients) seed $seed", '--out', $out, '--technicians', "$($cell.fleet)") + (& $variantArgs $cell.variant) + $profileArgs[$cell.profile]
             # The request log and metrics are the pool's, so one client of a cell reads them.
             if ($client -eq 1) { $arguments += (& $observed $layout.replicas 'load') }
@@ -360,6 +353,7 @@ try {
 } finally {
     Pop-Location
     $ErrorActionPreference = 'Continue'
+    foreach ($token in $issued.Values) { Remove-StudyToken -Compose $tokenCompose -Id $token.tokenId -Variable $token.variable -Log (Join-Path $runs 'revoke.log') }
     if ($null -ne $current) {
         # Back to the rehearsal's own settings: one replica of each pool as rehearsal.env says, the management port published.
         & docker compose @rehearsal up -d --no-build --remove-orphans scheduler-booking scheduler-daily *> (Join-Path $runs 'restore.log')
@@ -401,10 +395,8 @@ foreach ($cell in $cells) {
         clients = $cell.clients; layout = $layout; reserveMs = $cell.reserve; reports = $reports }
 }
 if ($missing.Count -gt 0) { throw "Cells without their reports (run the same command again to finish them): $($missing -join '; ')" }
-# Read from the token files rather than this invocation's runs, so a resumed run that skipped every cell still lists them, once each.
-$clientTokens = @(Get-ChildItem -LiteralPath (Join-Path $repository $ClientTokenDirectory) -Filter 'client-*.token.id' -ErrorAction SilentlyContinue |
-    ForEach-Object { $n = [int]([regex]::Match($_.Name, '^client-(\d+)\.token\.id$').Groups[1].Value)
-        [ordered]@{ client = $n; tenant = "loadtest-client-$n"; tokenId = (Get-Content -LiteralPath $_.FullName -Raw).Trim() } } | Sort-Object { $_.client })
+# The tokens this invocation issued, all revoked when it ended (a resumed invocation that skipped every cell issued none).
+$tokensIssued = @($issued.Values | ForEach-Object { [ordered]@{ tenant = $_.tenant; tokenId = $_.tokenId } })
 # Every shape the study set, from the overrides it wrote; shapesVerified holds the replicas inspected by this invocation only.
 $shapesConfigured = @(Get-ChildItem -LiteralPath $runs -Filter 'shape-*.yml' | ForEach-Object { $_.BaseName -replace '^shape-', '' } | Sort-Object)
 [ordered]@{
@@ -426,7 +418,7 @@ $shapesConfigured = @(Get-ChildItem -LiteralPath $runs -Filter 'shape-*.yml' | F
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
     shapesConfigured = $shapesConfigured
     shapesVerified = $shapes
-    clientTokens = $clientTokens
+    tokensIssued = $tokensIssued
     runsWithDefects = $defects
     unansweredRuns = $unanswered
     cells = $entries

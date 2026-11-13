@@ -1,11 +1,13 @@
 # Dynamic booking horizon study: how SHED, SHORTENED and incompleteDates behave when each search's horizon follows the
 # schedule instead of a fixed ten weekdays. Runs the load tool against a scheduler that is already running, then
 # combines every report into one evidence file. Long (about 55 minutes with the defaults); the owner starts it.
-#   powershell -ExecutionPolicy Bypass -File infra/run-horizon-study.ps1 -Url http://127.0.0.1:8000 -TokenFile .\conformance.token `
+#   powershell -ExecutionPolicy Bypass -File infra/run-horizon-study.ps1 -Url http://127.0.0.1:8000 `
 #     -MetricsUrl http://127.0.0.1:9000/actuator/prometheus -Stack 'local jars, SCHEDULER_SEARCH_CAPACITY=2, Omaha routing'
 param(
     [Parameter(Mandatory)][string]$Url,
-    [Parameter(Mandatory)][string]$TokenFile,
+    # The environment variable holding the study's token, set in your session before the run (docs/operations-runbook.md,
+    # Tokens); the script never reads a token from a file.
+    [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]*$')][string]$TokenEnv = 'SCHEDULER_STUDY_TOKEN',
     # What the scheduler under test is, recorded in the evidence (build, capacity, routing).
     [Parameter(Mandatory)][string]$Stack,
     [string]$MetricsUrl = '',
@@ -19,6 +21,7 @@ param(
     [ValidateRange(0, 960)][int]$SeedBase = 400
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
@@ -26,7 +29,7 @@ $evidence = Join-Path $repository "research/evidence/api-load-$stamp-dynamic-hor
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/horizon-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
-$token = (Resolve-Path -LiteralPath $TokenFile).Path
+Assert-StudyTokenVariable $TokenEnv
 try { Invoke-WebRequest "$Url/health" -UseBasicParsing -TimeoutSec 5 | Out-Null } catch { throw "The scheduler at $Url is not answering /health" }
 
 # Low volume: plenty of technicians, one visit a day, nothing booked out. High demand: few technicians with the first
@@ -52,7 +55,7 @@ try {
             $seed = $SeedBase + $index
             $label = "$($profile.name) $($mode.name) c$desks seed $seed"
             Write-Output "[$index] $label"
-            $arguments = @('tsx', 'load.ts', '--url', $Url, '--token-file', $token, '--metro', $Metro, '--time-zone', $TimeZone,
+            $arguments = @('tsx', 'load.ts', '--url', $Url, '--token-env', $TokenEnv, '--metro', $Metro, '--time-zone', $TimeZone,
                 '--area', $Area, '--scenario', 'booking', '--concurrency', "$desks", '--duration-s', "$DurationS", '--seed', "$seed",
                 '--label', $label, '--out', $runs) + $profile.args + $mode.args
             if ($MetricsUrl -ne '') { $arguments += @('--metrics-url', $MetricsUrl) }
