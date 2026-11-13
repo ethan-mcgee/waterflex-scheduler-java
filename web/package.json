@@ -49,7 +49,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
-    "lucide-react": "^1.70.0",
+    "lucide-react": "^1.71.0",
     "maplibre-gl": "^6.17.0",
     "next": "^16.4.6",
     "react": "^19.3.1",
