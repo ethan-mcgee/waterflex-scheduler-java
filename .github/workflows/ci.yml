@@ -464,16 +464,36 @@ jobs:
             ${{ runner.temp }}/*.log
           retention-days: 7
 
+  api-compatibility:
+    name: Public API compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install oasdiff
+        run: |
+          curl --fail --silent --show-error --location https://github.com/oasdiff/oasdiff/releases/download/v1.35.0/oasdiff_1.35.0_linux_amd64.tar.gz -o "$RUNNER_TEMP/oasdiff.tar.gz"
+          echo "a8023002fcb2eaa7f5758148a9303cb63d33b939886df312268bc0fc7b939140  $RUNNER_TEMP/oasdiff.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/oasdiff.tar.gz" -C "$RUNNER_TEMP" oasdiff
+      # v1 changes only additively (infra/openapi-compat/README.md): compare the spec with the one it replaces, the pull
+      # request's base or, on main, the commit before the push.
+      - name: Compare the v1 contract with the one it replaces
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          python3 infra/openapi_compat.py --against "$BASE_SHA" --oasdiff "$RUNNER_TEMP/oasdiff"
+
   build-and-unit:
     name: Build and unit
-    needs: [java-javac, java-nullability, portal-checks, infrastructure-evidence]
+    needs: [java-javac, java-nullability, portal-checks, infrastructure-evidence, api-compatibility]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every check to succeed
         env:
-          ALL_SUCCEEDED: ${{ needs.java-javac.result == 'success' && needs.java-nullability.result == 'success' && needs.portal-checks.result == 'success' && needs.infrastructure-evidence.result == 'success' }}
+          ALL_SUCCEEDED: ${{ needs.java-javac.result == 'success' && needs.java-nullability.result == 'success' && needs.portal-checks.result == 'success' && needs.infrastructure-evidence.result == 'success' && needs.api-compatibility.result == 'success' }}
         run: test "$ALL_SUCCEEDED" = true
 
   booking-and-optimizer-integration:
