@@ -223,7 +223,7 @@ The integration smokes (`npm run test:*:integration` in `web/`, such as `test:ap
 
 ### CI
 
-`.github/workflows/ci.yml` runs on pull requests to `main` and pushes to `main`, skipping Markdown-only changes. It reports two aggregate checks, **Build and unit** and **Booking and optimizer integration**, that pass only when every job they cover passes, and runs **Browser regressions** beside them. `solver-assertions.yml` runs the Timefold assertion modes daily and on pull requests that touch the scheduler, and `maintenance.yml` builds the images and runs `npm audit` weekly.
+`.github/workflows/ci.yml` runs on pull requests to `main` and pushes to `main`, skipping Markdown-only changes. It reports two aggregate checks, **Build and unit** and **Booking and optimizer integration**, that pass only when every job they cover passes, and runs **Browser regressions** beside them. Booking and optimizer integration includes **VM stack over HTTPS**, which builds the VM's images and checks the sandbox stack through `scheduler-proxy` (`infra/check-vm-stack.sh`). `solver-assertions.yml` runs the Timefold assertion modes daily and on pull requests that touch the scheduler, and `maintenance.yml` builds the images and runs `npm audit` weekly.
 
 ## Deployment
 

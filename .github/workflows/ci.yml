@@ -484,6 +484,42 @@ jobs:
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
           python3 infra/openapi_compat.py --against "$BASE_SHA" --oasdiff "$RUNNER_TEMP/oasdiff"
 
+  # The VM's own stack, built from this tree and checked over HTTPS through scheduler-proxy (infra/check-vm-stack.sh):
+  # new images for nginx, Prometheus, Postgres or the JRE, proxy configuration and Dockerfiles run here before merging,
+  # where the jobs above only render the Compose files.
+  vm-stack:
+    name: VM stack over HTTPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: infra/host-conformance/package-lock.json
+      # Anonymous Docker Hub pulls share a rate limit with every job on the runner's IP; logged-in pulls use the account's own limit.
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+      - name: Build the VM images and check the stack through the proxy
+        run: bash infra/check-vm-stack.sh "$RUNNER_TEMP/vm-stack"
+      - name: Collect the stack's logs
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/vm-stack"
+          docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env \
+            --profile monitoring --profile remote-solver logs --no-color > "$RUNNER_TEMP/vm-stack/compose.log" 2>&1 || true
+      - name: Upload VM stack diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vm-stack-diagnostics
+          path: ${{ runner.temp }}/vm-stack/
+          retention-days: 7
+
   build-and-unit:
     name: Build and unit
     needs: [java-javac, java-nullability, portal-checks, infrastructure-evidence, api-compatibility]
@@ -498,14 +534,14 @@ jobs:
 
   booking-and-optimizer-integration:
     name: Booking and optimizer integration
-    needs: [integration-core, integration-remote]
+    needs: [integration-core, integration-remote, vm-stack]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every check to succeed
         env:
-          ALL_SUCCEEDED: ${{ needs.integration-core.result == 'success' && needs.integration-remote.result == 'success' }}
+          ALL_SUCCEEDED: ${{ needs.integration-core.result == 'success' && needs.integration-remote.result == 'success' && needs.vm-stack.result == 'success' }}
         run: test "$ALL_SUCCEEDED" = true
 
   browser-regressions:
