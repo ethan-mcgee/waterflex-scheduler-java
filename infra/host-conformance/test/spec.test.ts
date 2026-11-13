@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { parse } from "yaml";
 import { z } from "zod";
-import { ERROR_CODES, LocatedStop, SPEC_SCHEMAS } from "../src/api.ts";
+import { CONTRACT_VERSION, ERROR_CODES, LocatedStop, SPEC_SCHEMAS } from "../src/api.ts";
 
 interface SpecSchema { properties?: Record<string, { enum?: string[] }>; required?: string[] }
 
@@ -17,6 +17,11 @@ function specSchema(name: string): SpecSchema {
   assert.ok(typeof schema === "object" && schema !== null, `The spec has no schema ${name}`);
   return schema as SpecSchema;
 }
+
+test("the kit proves the spec's own version", () => {
+  const version = z.object({ info: z.object({ version: z.string() }) }).parse(spec).info.version;
+  assert.equal(CONTRACT_VERSION, version);
+});
 
 for (const [name, schema] of Object.entries(SPEC_SCHEMAS)) {
   test(`${name} mirrors the spec`, () => {

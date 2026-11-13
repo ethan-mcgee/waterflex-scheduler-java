@@ -157,7 +157,7 @@ npm ci
 $token | npx tsx conformance.ts --url http://127.0.0.1:18090 --token-file - --metro sandbox --time-zone America/Chicago --points fixture --out <report-directory>
 ```
 
-On the sandbox the kit's 30 cases take under a minute.
+On the sandbox the whole kit takes under a minute.
 
 ## Stop or reset it
 

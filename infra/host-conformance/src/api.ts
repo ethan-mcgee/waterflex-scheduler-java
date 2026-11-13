@@ -12,6 +12,12 @@ export const ERROR_CODES = ["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMIT
   "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED", "SERVICE_UNAVAILABLE", "CURRENT_ROUTES_INFEASIBLE", "INTERNAL_ERROR"] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
+/** The contract this kit proves: a scheduler's X-Scheduler-Version must be this or a later 1.x (spec 1.11.0). */
+export const CONTRACT_VERSION = "1.11.0";
+
+/** The codes a host may retry unchanged, with the same requestId; every Problem's retryable says so (spec 1.11.0). */
+export const RETRYABLE_CODES: ReadonlySet<ErrorCode> = new Set<ErrorCode>(["BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "SERVICE_UNAVAILABLE"]);
+
 /** `retryable` (spec 1.11.0) follows the code: true only for BUSY and the three *_UNAVAILABLE codes. */
 export const Problem = z.strictObject({ error: z.enum(ERROR_CODES), message: z.string().min(1), retryable: z.boolean() });
 
