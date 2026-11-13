@@ -31,14 +31,25 @@ updates:
       # to one release, SolverEngineTest fails on any other, and a remote solver pool must run the same artifact as the
       # scheduler (runbook, "Start, stop and upgrade": a new solver pool beside the old one first).
       - dependency-name: 'ai.timefold.solver:*'
+  # Images are pinned by digest; these move the tag and digest together. One tag carries one digest in every file
+  # (infra/test_container_hardening.py), so a bump in one ecosystem fails CI until the other's files match.
   - package-ecosystem: docker
-    directories: [/web, /scheduler-service, /routing-service, /infra/map-import]
+    directories: [/web, /scheduler-service, /solver-service, /routing-service, /infra/map-import]
     schedule:
       interval: weekly
       day: monday
       time: '08:00'
     groups:
       docker-images:
+        patterns: ['*']
+  - package-ecosystem: docker-compose
+    directories: [/, /deploy/vm]
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+    groups:
+      compose-images:
         patterns: ['*']
   - package-ecosystem: github-actions
     directory: /

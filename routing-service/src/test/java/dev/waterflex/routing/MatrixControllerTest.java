@@ -6,6 +6,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
@@ -99,7 +100,7 @@ class MatrixControllerTest {
                     .getStatusCode().value());
         } finally { routing.close(); }
         // The prepared graph answers on four workers at once, the flexible one above on one; they agree leg for leg.
-        MatrixController prepared = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, true, 4, 2);
+        MatrixController prepared = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, true, 4, 2, false);
         try {
             assertNotEquals(identity, prepared.health().get("routingIdentity"));
             assertEquals("CH-car-v1", prepared.health().get("preparedConfiguration"));
@@ -111,7 +112,7 @@ class MatrixControllerTest {
                 assertEquals("p" + n, manyAtOnce.pairs().get(n).id(), "answers keep the request's order");
                 assertEquals(accelerated.legs().get(n % 2).get(1 - n % 2), manyAtOnce.pairs().get(n).leg());
             }
-            assertThrows(IllegalArgumentException.class, () -> new MatrixController("missing.osm", "missing-graph", "test", 10, 10, false, 65, 1));
+            assertThrows(IllegalArgumentException.class, () -> new MatrixController("missing.osm", "missing-graph", "test", 10, 10, false, 65, 1, false));
             MatrixController flexible = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
             try {
                 assertEquals(accelerated.legs(), flexible.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity)).legs());
@@ -127,5 +128,38 @@ class MatrixControllerTest {
                     new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)), Required.value(List.<MatrixController.Point>of(SECOND)), identity)))
                     .getStatusCode().value());
         } finally { replacement.close(); }
+    }
+
+    @Test
+    void servingLoadsThePreparedGraphReadOnlyAndNeverImports() throws Exception {
+        Path osm = Required.value(temp).resolve("fixture-roads.osm");
+        try (var source = getClass().getResourceAsStream("/fixture-roads.osm")) {
+            assertNotNull(source);
+            Files.copy(source, osm);
+        }
+        Path graph = Required.value(temp).resolve("graph");
+        var pair = new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)), Required.value(List.<MatrixController.Point>of(SECOND)), null);
+        // Preparation imports and writes the graph, as infra/prepare-map.ps1 does.
+        MatrixController preparation = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, false, 0, 1, false);
+        MatrixController.Matrix prepared;
+        try { prepared = preparation.matrix(pair); } finally { preparation.close(); }
+        // Serving takes the write permission away from the graph directory, as the VM's read-only mount does (POSIX file
+        // systems only; there a lock or an import would fail), and still answers leg for leg.
+        boolean posix = graph.getFileSystem().supportedFileAttributeViews().contains("posix");
+        var permissions = posix ? Files.getPosixFilePermissions(graph) : null;
+        if (posix) Files.setPosixFilePermissions(graph, PosixFilePermissions.fromString("r-xr-xr-x"));
+        try {
+            MatrixController serving = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, false, 0, 1, true);
+            try {
+                assertEquals(prepared.legs(), serving.matrix(pair).legs());
+                assertFalse(Files.exists(graph.resolve("gh.lock")), "a read-only load takes no lock");
+            } finally { serving.close(); }
+        } finally { if (permissions != null) Files.setPosixFilePermissions(graph, permissions); }
+        // With the OSM file present but no prepared graph, serving refuses to start rather than import into its volume.
+        Path unprepared = Required.value(temp).resolve("unprepared");
+        var refused = assertThrows(IllegalStateException.class, () -> new MatrixController(Required.value(osm.toString()),
+                Required.value(unprepared.toString()), "fixture-v1", 100, 60, false, 0, 1, true));
+        assertTrue(String.valueOf(refused.getMessage()).contains("routing.graph.read-only"));
+        assertFalse(Files.exists(unprepared));
     }
 }

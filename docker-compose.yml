@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663
     environment:
       POSTGRES_USER: waterflex
       POSTGRES_PASSWORD: waterflex
@@ -13,7 +13,7 @@ services:
       retries: 10
   # The scheduler's own database (tenants, tokens, thin store, route cache), apart from the portal's, as on the VM.
   scheduler-db:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663
     environment:
       POSTGRES_USER: scheduler_owner
       POSTGRES_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
@@ -56,7 +56,8 @@ services:
       ROUTING_PARALLELISM: ${ROUTING_PARALLELISM:-0}
       # Local-only default; production VMs must set their own secret.
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
-    volumes: ["map-data:/maps"]
+    # Serving only reads the prepared graph (routing.graph.read-only); routing-prepare writes it.
+    volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:8001:8001"]
     # The JRE image has no curl; bash's /dev/tcp reads the status line. Loading the road graph can take minutes.
     healthcheck:
@@ -128,7 +129,7 @@ services:
       retries: 3
       start_period: 60s
   nominatim:
-    image: mediagis/nominatim:5.3
+    image: mediagis/nominatim:5.3@sha256:168c30e20fbba0c2e8199fca7a8aa2640e8cc1a62f8b05b1958897796fdb38f1
     environment:
       PBF_PATH: /maps/omaha.osm.pbf
       # A file path, never "true": the image would then download TIGER data from a third-party server. The image
@@ -146,7 +147,7 @@ services:
       - nominatim-db:/var/lib/postgresql/16/main
     ports: ["127.0.0.1:8082:8080"]
   tiles:
-    image: protomaps/go-pmtiles:v1.22.1
+    image: protomaps/go-pmtiles:v1.22.1@sha256:33fc389ed4f7e13ed08529dd90eb97d670ce999339486e8442efb2b231172b38
     command: ["serve", "/maps", "--public-url=http://localhost:8083", "--cors=http://localhost:3001"]
     volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:8083:8080"]
@@ -224,6 +225,8 @@ services:
       DATABASE_USER: scheduler_owner
       DATABASE_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
       LOCAL_TOKEN_BOOTSTRAP: ${LOCAL_TOKEN_BOOTSTRAP:-true}
+    # Root, unlike the image's default user: portal-clients (root in the portal image) owns this volume's folder.
+    user: "0:0"
     volumes: ["portal-api-tokens:/run/portal-api-tokens"]
     depends_on:
       portal-clients: { condition: service_completed_successfully }
@@ -246,9 +249,24 @@ services:
     pull_policy: build
     build: ./infra/map-import
     volumes: ["map-data:/maps"]
+  # Prepares a map version's road graph (infra/prepare-map.ps1 passes the version's paths): the routing image with writes
+  # on, as root because map-import, also root, made the version's folder. Serving never writes (routing-service).
+  routing-prepare:
+    profiles: ["map-import"]
+    image: waterflex-scheduler-routing:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: routing-service/Dockerfile
+    user: "0:0"
+    command: ["--spring.main.web-application-type=none"]
+    environment:
+      ROUTING_GRAPH_READ_ONLY: "false"
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
+    volumes: ["map-data:/maps"]
   tile-import:
     profiles: ["map-import"]
-    image: ghcr.io/onthegomap/planetiler:0.9.0
+    image: ghcr.io/onthegomap/planetiler:0.9.0@sha256:937244c33c543c3347c55cc3d088acc8ee14a0c5e76e1d0cf1502d4c84ddeb55
     volumes: ["map-data:/maps"]
 volumes:
   app-db:

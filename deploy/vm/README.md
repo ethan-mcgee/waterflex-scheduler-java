@@ -34,7 +34,7 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
      sh -c 'mkdir -p /maps/versions && cp -a /src/<version> /maps/versions/'
    ```
 
-   Set `ACTIVE_MAP_VERSION=<version>` in `.env`.
+   Set `ACTIVE_MAP_VERSION=<version>` in `.env`. `routing-omaha` runs as uid 10001 and mounts this volume read-only, so the copied files only need to be readable by every user, as `prepare-map.ps1` leaves them and `cp -a` keeps them. A version without both prepared graphs stops `routing-omaha` at start (`No prepared road graph in ...`).
 4. Start the VM:
 
    ```sh

@@ -1,4 +1,4 @@
-FROM node:26-slim
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc
 
 # Prisma's engine-detection needs openssl on the PATH at generate time to
 # pick the right query-engine binary (debian-openssl-3.0.x on bookworm);

@@ -162,6 +162,16 @@ Rollback is the reverse: start the previous scheduler with the previous pool. Mi
 
 Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since. Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
 
+## Containers and images
+
+The scheduler, routing and solver images run as uid 10001, and Compose drops every Linux capability from them and sets `no-new-privileges` (the `x-hardened` block in `deploy/vm/docker-compose.yml`); Prometheus runs the same way as `nobody`. The proxy's nginx master starts as root to run its workers as `nginx`, and keeps only `CHOWN`, `DAC_OVERRIDE`, `SETGID` and `SETUID`. Postgres and Nominatim keep their images' defaults, because their entrypoints switch users as root; neither is published.
+
+Every image from a registry is pinned by digest beside its tag (`nginx:1.27.5-alpine@sha256:...`) in the Compose files and Dockerfiles, so a rebuild or a new VM runs exactly the image that was tested. `infra/test_container_hardening.py` checks that every reference is pinned and that one tag carries one digest in every file. Dependabot proposes new digests weekly, Dockerfiles and Compose files in separate pull requests; when one fails that test, copy its new digest into the files the other covers. To move a pin by hand, read the digest, replace it in every file that names the image, then run the tests and the conformance kit on the sandbox:
+
+```sh
+docker buildx imagetools inspect nginx:1.27.5-alpine --format '{{.Manifest.Digest}}'
+```
+
 ## Health
 
 `GET /health` on a replica's API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
@@ -243,6 +253,8 @@ The token is printed once and stored only as a digest. A disabled tenant's token
 ## Maps and routing identity
 
 Each prepared map version carries two road graphs, `graph` (flexible) and `graph-ch-car-v1` (contraction hierarchy, which answers a query in a fraction of the time and CPU); `infra/prepare-map.ps1` prepares both, the manifest lists both, and activation requires both. The routing service serves the CH graph by default (`ROUTING_CH_ENABLED=true`). Switching between the two changes the routing identity exactly as a map change does: every route cache goes cold and a call in flight on the old identity is refused and retried by the host.
+
+The routing service only reads its map version: it runs as uid 10001 with the map volume mounted read-only (`ROUTING_GRAPH_READ_ONLY=true`), so GraphHopper takes no lock. Only preparation writes a graph, on the build machine (`routing-prepare` in the development Compose file, as root). A version without its prepared graph therefore stops the routing service at start (`No prepared road graph in ...`) rather than being imported on the VM, and a graph is never prepared into a version directory a routing service is serving, since nothing protects a reader from a graph rewritten under it.
 
 A map refresh prepares a new version beside the active one and switches to it (README, "Map versions"). Pause booking during the switch. The routing identity in `/health` changes with the map. The scheduler's route cache is keyed by identity, so it starts cold and routing load is higher until it fills.
 

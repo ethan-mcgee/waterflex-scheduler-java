@@ -10,7 +10,7 @@ The upstream projects this repository started from, with the version used here a
   - **Source revision checked 2026-10-22:** `ebb578f4e94db72e82f2f8d3bc69417758e16e1c` (tag `11.1`).
 - **[Nominatim Docker](https://github.com/mediagis/nominatim-docker)**
   - **Version used here:** Docker image 5.3.
-  - **Source revision checked 2026-10-22:** `44bb833a05eaf714e53f471cd8f95d3b4b8acd59` (checked 2026-09-16; the image digest still needs pinning).
+  - **Source revision checked 2026-10-22:** `44bb833a05eaf714e53f471cd8f95d3b4b8acd59` (checked 2026-09-16; the image is pinned by digest in every Compose file).
 - **[Planetiler](https://github.com/onthegomap/planetiler/tree/v0.9.0)**
   - **Version used here:** 0.9.0.
   - **Source revision checked 2026-10-22:** `2c91725f6d048fd60b02d3e7c29bb88838451048` (checked 2026-09-16).

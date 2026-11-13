@@ -107,7 +107,7 @@ public class MatrixController {
     }
 
     public MatrixController(String osmFile, String graphDir, String mapVersion, int cacheEntries, int cacheMinutes, boolean chEnabled) {
-        this(osmFile, graphDir, mapVersion, cacheEntries, cacheMinutes, chEnabled, 0, 1);
+        this(osmFile, graphDir, mapVersion, cacheEntries, cacheMinutes, chEnabled, 0, 1, false);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -118,7 +118,8 @@ public class MatrixController {
                             @Value("${routing.cache.ttl-minutes:60}") int cacheMinutes,
                             @Value("${routing.ch.enabled:false}") boolean chEnabled,
                             @Value("${routing.parallelism:0}") int configuredParallelism,
-                            @Value("${routing.ch.preparation-threads:1}") int preparationThreads) {
+                            @Value("${routing.ch.preparation-threads:1}") int preparationThreads,
+                            @Value("${routing.graph.read-only:true}") boolean readOnly) {
         if (configuredParallelism < 0 || configuredParallelism > 64) throw new IllegalArgumentException("routing.parallelism must be 0 (the processors available) to 64");
         if (preparationThreads < 1 || preparationThreads > 64) throw new IllegalArgumentException("routing.ch.preparation-threads must be 1 to 64");
         this.parallelism = configuredParallelism == 0 ? Math.max(1, Runtime.getRuntime().availableProcessors()) : configuredParallelism;
@@ -144,10 +145,17 @@ public class MatrixController {
             this.hopper = null;
             return;
         }
+        // Serving reads a graph prepared beforehand (infra/prepare-map.ps1) and never writes: GraphHopper then takes no
+        // lock in the graph directory, so the map volume can be mounted read-only and the service needs no root. A
+        // missing graph stops the start here instead of importing one into the serving volume.
+        if (readOnly && !new File(graphDir, "properties").isFile())
+            throw new IllegalStateException("No prepared road graph in " + graphDir + ", and routing.graph.read-only is on;"
+                    + " prepare the map version first (infra/prepare-map.ps1)");
         GraphHopper active = new GraphHopper();
         this.hopper = active;
         active.setOSMFile(osmFile);
         active.setGraphHopperLocation(graphDir);
+        active.setAllowWrites(!readOnly);
         active.setEncodedValuesString("car_access, car_average_speed, road_access, road_environment, max_speed, ferry_speed");
         active.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
         if (chEnabled) {
