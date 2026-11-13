@@ -59,8 +59,31 @@ function expectBody<T extends z.ZodType>(reply: Reply, status: number, schema: T
 function expectProblem(reply: Reply, status: number, code: Api.ErrorCode, what: string): z.infer<typeof Api.Problem> {
   const problem = expectBody(reply, status, Api.Problem, what);
   check(problem.error === code, `${what}: expected error ${code}, got ${problem.error}: ${problem.message}`);
+  check(problem.retryable === Api.RETRYABLE_CODES.has(problem.error), `${what}: ${problem.error} says retryable ${problem.retryable}`);
   return problem;
 }
+
+/** Whether `version` is `minimum` or a later release of the same major version. */
+function versionAtLeast(version: string, minimum: string): boolean {
+  const have = version.split(".").map(Number), want = minimum.split(".").map(Number);
+  if (have[0] !== want[0]) return false;
+  for (let index = 1; index < 3; index++) {
+    const a = have[index] ?? 0, b = want[index] ?? 0;
+    if (a !== b) return a > b;
+  }
+  return true;
+}
+
+/** Every answer from the scheduler names the contract that served it, this kit's or a later 1.x (spec 1.11.0). */
+function checkVersion(reply: Reply, what: string) {
+  const version = reply.headers.get("x-scheduler-version");
+  check(version !== null, `${what}: no X-Scheduler-Version header`);
+  check(/^\d+\.\d+\.\d+$/.test(version), `${what}: X-Scheduler-Version "${version}" is not a version`);
+  check(versionAtLeast(version, Api.CONTRACT_VERSION), `${what}: the scheduler serves contract ${version}; this kit proves ${Api.CONTRACT_VERSION}`);
+}
+
+/** The largest body the scheduler reads; one byte more is refused with 413. */
+const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 const sameInstant = (a: string, b: string) => Date.parse(a) === Date.parse(b);
 const minutes = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 60_000;
@@ -192,6 +215,8 @@ export const STRICT_MUTATIONS: readonly { name: string; proves: string; mutate: 
     mutate: body => { const copy = structuredClone(body); delete (copy.snapshot.technicianDays[0] as Partial<Snapshot["technicianDays"][number]>).absences; return copy; } },
   { name: "tenantId in the body", proves: "The tenant comes only from the token; a request naming one is refused.",
     mutate: body => ({ ...body, tenantId: "another-tenant" }) },
+  { name: "uppercase requestId", proves: "A requestId is a lowercase canonical UUID (spec 1.11.0); any other form is refused, never normalized, since it is compared exactly.",
+    mutate: body => ({ ...body, requestId: String(body.requestId).toUpperCase() }) },
 ];
 
 export const CASES: readonly Case[] = [
@@ -202,12 +227,38 @@ export const CASES: readonly Case[] = [
         const reply = await context.api.call("GET", "/api/v1/whoami", undefined, { token });
         check(reply.status === 401, `whoami with ${label}: expected HTTP 401, got ${describe(reply)}`);
         check(reply.headers.get("www-authenticate") === "Bearer", `whoami with ${label}: WWW-Authenticate is "${reply.headers.get("www-authenticate")}", expected "Bearer"`);
+        check(reply.text === "", `whoami with ${label}: the 401 has a body: ${reply.text.slice(0, 200)}`);
+        checkVersion(reply, `whoami with ${label}`);
       }
     },
   },
   {
     group: "Integration", name: "whoami", proves: "The token is active and names the tenant every other call runs as.",
     run: async context => { expectBody(await context.api.call("GET", "/api/v1/whoami"), 200, Api.WhoAmI, "whoami"); },
+  },
+  {
+    group: "Integration", name: "contract version", proves:
+      "Every answer names the contract that served it (X-Scheduler-Version), and it is the one this kit proves or a later 1.x.",
+    run: async context => {
+      const reply = await context.api.call("GET", "/api/v1/whoami");
+      expectBody(reply, 200, Api.WhoAmI, "whoami");
+      checkVersion(reply, "whoami");
+    },
+  },
+  {
+    group: "Integration", name: "unknown path", proves: "A path that is no operation is a 404 NOT_FOUND Problem, parsed like any other refusal.",
+    run: async context => {
+      expectProblem(await context.api.call("GET", `/api/v1/${encodeURIComponent(context.run)}-no-such-operation`), 404, "NOT_FOUND", "An unknown path");
+    },
+  },
+  {
+    group: "Integration", name: "wrong method", proves: "A method an operation does not take is a 405 INVALID_REQUEST Problem whose Allow header names the one it takes.",
+    run: async context => {
+      const reply = await context.api.call("GET", "/api/v1/booking/offers");
+      expectProblem(reply, 405, "INVALID_REQUEST", "GET on booking offers");
+      const allow = reply.headers.get("allow") ?? "";
+      check(allow.split(",").map(method => method.trim()).includes("POST"), `GET on booking offers: Allow is "${allow}", expected POST`);
+    },
   },
   ...STRICT_MUTATIONS.map((mutation): Case => ({
     group: "Strict parsing", name: mutation.name, proves: mutation.proves,
@@ -218,6 +269,13 @@ export const CASES: readonly Case[] = [
       expectProblem(reply, 400, "INVALID_REQUEST", `A daily proposal with ${mutation.name}`);
     },
   })),
+  {
+    group: "Strict parsing", name: "oversized body", proves: "A body over 8 MiB is refused with 413 before it is read in full or calculated.",
+    run: async context => {
+      const body = `{"padding":"${"x".repeat(MAX_BODY_BYTES)}"}`;
+      expectProblem(await context.api.call("POST", "/api/v1/routes/evaluate", body, { timeoutMs: 60_000 }), 413, "INVALID_REQUEST", "A route evaluation over 8 MiB");
+    },
+  },
   {
     group: "Routes", name: "evaluate", proves: "A day's routes are timed in the host's order and reported feasible without storing anything.",
     run: async context => {
@@ -232,6 +290,36 @@ export const CASES: readonly Case[] = [
       const stops = evaluation.routes.find(route => route.technicianId === id("tech"))?.stops.map(stop => stop.appointmentId);
       check(isDeepStrictEqual(stops, [id("first"), id("second")]), `Route evaluation: stops ${String(stops)} are not in the host's order`);
       check(evaluation.overtimeMinutes === 0, `Route evaluation: ${evaluation.overtimeMinutes} overtime minutes on a short day`);
+      check(evaluation.stopsInsideBuffer === undefined && evaluation.routes.every(route => route.stops.every(stop => stop.arrivalBufferStart === undefined)),
+        "Route evaluation: buffer fields without Rates.arrivalBuffer");
+    },
+  },
+  {
+    group: "Routes", name: "late-arrival buffer", proves:
+      "With Rates.arrivalBuffer each timed stop names where its buffer starts (its window end less the buffer) and the day counts the stops inside it (spec 1.9.0).",
+    run: async context => {
+      const date = addDays(context.today, 2);
+      const id = ids(context, "buffer");
+      const snapshot = builder(context).day(id("tech"), date, home(context))
+        .visit(id("first"), id("tech"), date, visitPoint(context), 0, 540).visit(id("second"), id("tech"), date, jobPoint(context, 0), 1, 660).build();
+      const buffer = { percent: 25, minMinutes: 15, maxMinutes: 60 };
+      snapshot.rates.arrivalBuffer = buffer;
+      const evaluation = expectBody(await context.api.call("POST", "/api/v1/routes/evaluate", { serviceDate: date, snapshot }, { timeoutMs: 30_000 }),
+        200, Api.RouteEvaluation, "Route evaluation with a buffer");
+      const stops = evaluation.routes.flatMap(route => route.stops);
+      check(stops.length === 2, `Route evaluation with a buffer: ${stops.length} stops timed, expected 2`);
+      let inside = 0;
+      for (const stop of stops) {
+        const sent = snapshot.appointments.find(appointment => appointment.id === stop.appointmentId) ?? fail(`Unknown stop ${stop.appointmentId}`);
+        // The buffer is the percentage of the window in whole minutes, held between the bounds and at most half the window.
+        const window = minutes(sent.window.start, sent.window.end);
+        const held = Math.min(Math.max(Math.floor(window * buffer.percent / 100), buffer.minMinutes), buffer.maxMinutes, Math.floor(window / 2));
+        const expected = Date.parse(sent.window.end) - held * 60_000;
+        check(stop.arrivalBufferStart !== undefined && Date.parse(stop.arrivalBufferStart) === expected,
+          `Route evaluation with a buffer: stop ${stop.appointmentId} buffer starts at ${stop.arrivalBufferStart ?? "nothing"}, expected ${new Date(expected).toISOString()}`);
+        if (Date.parse(stop.plannedStart) >= expected) inside++;
+      }
+      check(evaluation.stopsInsideBuffer === inside, `Route evaluation with a buffer: stopsInsideBuffer is ${String(evaluation.stopsInsideBuffer)}, expected ${inside}`);
     },
   },
   {
@@ -535,6 +623,26 @@ export const CASES: readonly Case[] = [
       const reply = await context.api.call("POST", "/api/v1/daily/proposals",
         { requestId: randomUUID(), serviceDate: yesterday, snapshot: sharedVisit(context, "frozen-daily", yesterday).snapshot }, { timeoutMs: PROPOSAL_TIMEOUT_MS });
       expectProblem(reply, 422, "INCOMPLETE_FACTS", "A daily proposal for yesterday");
+    },
+  },
+  {
+    group: "Daily", name: "current routes infeasible", proves:
+      "A day whose current routes do not hold is refused as CURRENT_ROUTES_INFEASIBLE (spec 1.10.0), stored and replayed, and routes/evaluate agrees.",
+    run: async context => {
+      const date = addDays(context.today, 2);
+      const day = sharedVisit(context, "infeasible", date);
+      const visit = day.snapshot.appointments[0] ?? fail("No visit");
+      // The window closes a minute after the shift starts, so no technician can reach a visit away from home in time.
+      visit.window = { start: visit.window.start, end: new Date(Date.parse(visit.window.start) + 60_000).toISOString() };
+      const body = { requestId: randomUUID(), serviceDate: date, snapshot: day.snapshot };
+      const refused = expectProblem(await context.api.call("POST", "/api/v1/daily/proposals", body, { timeoutMs: PROPOSAL_TIMEOUT_MS }),
+        422, "CURRENT_ROUTES_INFEASIBLE", "A daily proposal whose routes do not hold");
+      const replay = expectProblem(await context.api.call("POST", "/api/v1/daily/proposals", body, { timeoutMs: PROPOSAL_TIMEOUT_MS }),
+        422, "CURRENT_ROUTES_INFEASIBLE", "The same proposal again");
+      check(isDeepStrictEqual(replay, refused), "The same proposal again: the same requestId answered differently");
+      const evaluation = expectBody(await context.api.call("POST", "/api/v1/routes/evaluate", { serviceDate: date, snapshot: day.snapshot }, { timeoutMs: 30_000 }),
+        200, Api.RouteEvaluation, "Route evaluation of the same day");
+      check(!evaluation.feasible && evaluation.routes.length === 0, "Route evaluation of the same day: it is reported as holding");
     },
   },
   {
