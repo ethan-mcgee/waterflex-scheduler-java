@@ -1,5 +1,6 @@
 # The scheduler VM: what runs on the machine WaterFlex Software calls at https://<scheduler-vm>/api/v1, and nothing
-# else. No portal, no tiles, no portal database. Every secret is required (no defaults); copy .env.example to .env.
+# else. No portal, no tiles, no portal database. Every secret is required (no defaults); copy .env.example to .env and
+# put the TLS certificate in deploy/vm/tls (or SCHEDULER_TLS_DIR).
 # See deploy/vm/README.md for installation, and docs/operations-runbook.md for running it.
 #
 #   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d
@@ -136,13 +137,19 @@ services:
 
   # The one address WaterFlex Software calls. nginx sends daily and repair proposals and request status and
   # cancellation to the daily pool and everything else to the booking pool, spreading each over its replicas; it
-  # looks the replicas up again every 10 s, so scaling a pool needs no restart here (deploy/vm/nginx.conf). The API
-  # answers only on the private interface named here; TLS terminates in front of it before production traffic.
+  # looks the replicas up again every 10 s, so scaling a pool needs no restart here (deploy/vm/nginx.conf). It
+  # terminates TLS on SCHEDULER_API_BIND (the API and /health/live only) and serves plain HTTP, with the detailed
+  # /health, on SCHEDULER_MANAGEMENT_BIND, which stays on loopback unless an internal monitor needs it.
   scheduler-proxy:
     image: nginx:1.27.5-alpine
-    volumes: ["./nginx.conf:/etc/nginx/nginx.conf:ro"]
+    volumes:
+      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "./scheduler-api.conf:/etc/nginx/scheduler-api.conf:ro"
+      # fullchain.pem and privkey.pem for the name WaterFlex Software calls (deploy/vm/README.md, "TLS certificate").
+      - "${SCHEDULER_TLS_DIR:-./tls}:/etc/nginx/tls:ro"
     ports:
-      - "${SCHEDULER_API_BIND:?Set SCHEDULER_API_BIND to the private interface address}:${SCHEDULER_API_PORT:-8000}:8000"
+      - "${SCHEDULER_API_BIND:?Set SCHEDULER_API_BIND to the interface WaterFlex Software reaches}:${SCHEDULER_API_PORT:-443}:8443"
+      - "${SCHEDULER_MANAGEMENT_BIND:-127.0.0.1}:${SCHEDULER_PRIVATE_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/proxy/live"]
       interval: 10s

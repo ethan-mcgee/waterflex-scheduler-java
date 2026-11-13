@@ -2,16 +2,35 @@
 
 The scheduler runs on its own VM and is reached only through `/api/v1`. On that VM it runs beside one routing service per served metro, its Postgres database (thin store, tenants, route cache), Nominatim when address lookup is on, and optionally a remote solver pool. This runbook covers running that set. The API contract is `docs/api/openapi-v1.yaml`, the host's side is `docs/integration-guide.md`, and the design is `docs/stateless-api-design.md`.
 
-## Before production traffic: TLS
+## TLS
 
-TLS is not set up yet (deferred by owner decision on 2026-10-13). It is a precondition of production traffic. These connections must be encrypted first:
+`scheduler-proxy` terminates TLS for the API. WaterFlex Software calls `https://<name>/api/v1` on `SCHEDULER_API_BIND`, port 443 by default (`SCHEDULER_API_PORT`), with TLS 1.2 or 1.3. The certificate and key are `fullchain.pem` and `privkey.pem` in `SCHEDULER_TLS_DIR` (`deploy/vm/tls` by default), mounted read-only; the proxy does not start without them. This listener serves only `/api/v1/*` and `/health/live`. Any other path answers 404, and plain HTTP sent to it answers 400, both as a `Problem`.
 
-- WaterFlex Software to the scheduler API (port 8000). Terminate TLS at a reverse proxy in front of 8000, or in the JVM with Spring Boot's `server.ssl.*` settings.
-- The scheduler to each routing service. Today this is plain http with a bearer token (`ROUTING_AUTH_TOKEN`).
-- The scheduler to Nominatim, when `GEOCODING_MODE=NOMINATIM`.
-- The scheduler to a remote solver. This is already enforced: a `SCHEDULER_CALCULATION_URL` must be https unless it names loopback or the compose service `solver-service` on the VM's private network.
+The proxy's second listener is plain HTTP on `SCHEDULER_MANAGEMENT_BIND` (loopback by default), port `SCHEDULER_PRIVATE_PORT` (8000), for operators and studies on the VM. It serves the same API plus the detailed `/health` (a booking replica) and `/health/daily` (a daily replica). Never publish it where WaterFlex Software or anyone else can reach it: bearer tokens would cross it unencrypted.
 
-Until then, keep every port on the private network, as Compose does by binding to `127.0.0.1`.
+Connections inside the VM stay plain HTTP on its Docker network, which never leaves the machine:
+
+- **The scheduler to each routing service:** with a bearer token (`ROUTING_AUTH_TOKEN`). Encrypt it if a routing service ever runs on another machine.
+- **The scheduler to Nominatim:** when `GEOCODING_MODE=NOMINATIM`, on the same terms.
+- **The scheduler to a remote solver:** already enforced: a `SCHEDULER_CALCULATION_URL` must be https unless it names loopback or the compose service `solver-service`.
+
+### Rotate the certificate
+
+1. Put the new `fullchain.pem` (the certificate followed by its intermediates) and `privkey.pem` in `SCHEDULER_TLS_DIR`, replacing the old ones.
+2. Check that nginx can read them, then reload it. A reload finishes the calls in progress on the old certificate:
+
+   ```sh
+   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env exec scheduler-proxy nginx -t
+   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env exec scheduler-proxy nginx -s reload
+   ```
+
+3. Check what the API now serves:
+
+   ```sh
+   openssl s_client -connect <SCHEDULER_API_BIND>:443 -servername <name> </dev/null 2>/dev/null | openssl x509 -noout -subject -enddate
+   ```
+
+Renew well before `notAfter`: an expired certificate stops every host call. If `nginx -t` fails, the running proxy keeps the old files; fix them before reloading.
 
 ## Settings
 
@@ -145,7 +164,7 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 ## Health
 
-`GET /health` on the API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
+`GET /health` on a replica's API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
 
 - **`database`**
   - **Checked:** `SELECT 1`.
@@ -163,7 +182,7 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
   - **Checked:** Nominatim's `/status`, only in `NOMINATIM` mode.
   - **Down means:** Address-only locations are reported as skipped.
 
-`GET /health/live` reads nothing and always answers 200. Use it for restarts, and `/health` for taking a replica out of a load balancer. Restarting on `/health` would restart the scheduler when routing is down, which fixes nothing.
+Through the proxy, `/health` and `/health/daily` on its private listener reach a booking and a daily replica. `GET /health/live` reads nothing and always answers 200; it is the only health path on the proxy's public HTTPS listener. Use it for restarts, and `/health` for taking a replica out of a load balancer. Restarting on `/health` would restart the scheduler when routing is down, which fixes nothing.
 
 ## Logs
 

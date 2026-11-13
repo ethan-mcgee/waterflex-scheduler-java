@@ -5,11 +5,28 @@
 #   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/rehearsal.override.yml --env-file deploy/vm/rehearsal.env up -d
 #
 # rehearsal.env (ignored by git) holds local secrets and, for this file:
-#   SCHEDULER_API_BIND=127.0.0.1, SCHEDULER_API_PORT=18080, PROMETHEUS_PORT=19091,
+#   SCHEDULER_API_BIND=127.0.0.1, SCHEDULER_API_PORT=18081 (HTTPS), SCHEDULER_PRIVATE_PORT=18080 (plain HTTP, what the
+#   study scripts call), PROMETHEUS_PORT=19091,
 #   ROUTING_METRO_URLS=metro-omaha=http://host.docker.internal:8001, and the development stack's ROUTING_AUTH_TOKEN.
 services:
   routing-omaha:
     profiles: ["vm-routing"]
+  # A self-signed certificate for localhost and 127.0.0.1, made once and kept in its own volume, so the rehearsal
+  # serves HTTPS as the VM does. The JRE image the scheduler is built on has openssl.
+  scheduler-tls:
+    image: eclipse-temurin:25-jre
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        test -s /tls/fullchain.pem && test -s /tls/privkey.pem ||
+        openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 -subj /CN=localhost
+        -addext subjectAltName=DNS:localhost,IP:127.0.0.1 -keyout /tls/privkey.pem -out /tls/fullchain.pem
+    volumes: ["rehearsal-tls:/tls"]
+    restart: "no"
+  scheduler-proxy:
+    volumes: ["rehearsal-tls:/etc/nginx/tls:ro"]
+    depends_on:
+      scheduler-tls: { condition: service_completed_successfully }
   # The rehearsal publishes each pool's management port on loopback (one replica per pool), so the load tool can read
   # the replica's metrics; on the VM the replicas publish nothing and Prometheus reads them on the private network.
   scheduler-booking:
@@ -18,3 +35,6 @@ services:
   scheduler-daily:
     extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["127.0.0.1:19011:9000"]
+
+volumes:
+  rehearsal-tls:

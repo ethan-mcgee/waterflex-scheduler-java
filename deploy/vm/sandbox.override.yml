@@ -37,8 +37,26 @@ services:
     depends_on:
       fixture-routing: { condition: service_healthy }
 
+  # A self-signed certificate for localhost and 127.0.0.1, made once and kept in its own volume, so the sandbox also
+  # answers over HTTPS like the VM (docs/host-sandbox.md). The JRE image the scheduler is built on has openssl.
+  scheduler-tls:
+    image: eclipse-temurin:25-jre
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        test -s /tls/fullchain.pem && test -s /tls/privkey.pem ||
+        openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 -subj /CN=localhost
+        -addext subjectAltName=DNS:localhost,IP:127.0.0.1 -keyout /tls/privkey.pem -out /tls/fullchain.pem
+    volumes: ["sandbox-tls:/tls"]
+    restart: "no"
+  scheduler-proxy:
+    volumes: ["sandbox-tls:/etc/nginx/tls:ro"]
+    depends_on:
+      scheduler-tls: { condition: service_completed_successfully }
+
 volumes:
   # The fixture router needs no map; the VM file's maps volume is external, so the sandbox names its own empty one.
   maps:
     name: scheduler-sandbox-maps
     external: false
+  sandbox-tls:
