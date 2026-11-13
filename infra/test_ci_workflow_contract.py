@@ -18,7 +18,7 @@ class ParallelCiContractTest(unittest.TestCase):
     def test_aggregates_require_success_from_every_dependency(self):
         groups = {
             "build-and-unit": ["java-javac", "java-nullability", "portal-checks", "infrastructure-evidence", "api-compatibility"],
-            "booking-and-optimizer-integration": ["integration-core", "integration-remote", "vm-stack"],
+            "booking-and-optimizer-integration": ["integration-core", "vm-stack"],
         }
         for gate, dependencies in groups.items():
             with self.subTest(gate=gate):
@@ -67,27 +67,20 @@ class ParallelCiContractTest(unittest.TestCase):
         self.assertEqual(self.text.count(login), services)
 
     def test_integration_isolation_and_unique_diagnostics(self):
-        artifacts = []
-        for key in ["integration-core", "integration-remote"]:
-            job = self.jobs[key]
-            self.assertIn("image: postgres:16", job)
-            self.assertIn("npm ci && npm run prisma:generate", job)
-            self.assertIn("./mvnw", job)
-            self.assertIn("infra/fixture-routing.mjs", job)
-            self.assertIn("if: failure()", job)
-            artifacts.extend(re.findall(r"          name: (.*-diagnostics)", job))
-        self.assertEqual(len(artifacts), 2)
-        self.assertEqual(len(set(artifacts)), 2)
+        job = self.jobs["integration-core"]
+        self.assertIn("image: postgres:16", job)
+        self.assertIn("npm ci && npm run prisma:generate", job)
+        self.assertIn("./mvnw", job)
+        self.assertIn("infra/fixture-routing.mjs", job)
+        self.assertIn("if: failure()", job)
+        artifacts = re.findall(r"          name: (.*-diagnostics)", self.text)
+        self.assertEqual(len(artifacts), len(set(artifacts)), "each job uploads its own diagnostics")
 
-    def test_remote_calculation_covers_every_public_api_calculation(self):
-        remote = self.jobs["integration-remote"]
-        # Booking, daily proposals and repairs each run against the remote solver through the public API,
-        # so each smoke's metro must be routed to the fixture router.
-        for scenario, smoke, metro in [("booking", "api-booking", "api-booking-smoke"), ("dispatch", "api-dispatch", "api-dispatch-smoke"),
-                                       ("repair", "api-repair", "api-repair-smoke")]:
-            self.assertIn(f"remote-{scenario} npm run test:{smoke}:integration", remote)
-            self.assertIn(f"{metro}=http://127.0.0.1:18001", remote)
-        self.assertNotIn("Start fixture routing and scheduler", remote)
+    def test_the_remote_solver_is_gone(self):
+        # The owner removed the remote solver pool on 2026-11-13; the embedded solver is the only calculation path.
+        self.assertNotIn("integration-remote", self.jobs)
+        self.assertNotIn("solver-service", self.text)
+        self.assertNotIn("SCHEDULER_CALCULATION_MODE", self.text)
 
     def test_retired_portal_endpoints_are_not_exercised(self):
         self.assertNotIn("integration-reservations", self.jobs)

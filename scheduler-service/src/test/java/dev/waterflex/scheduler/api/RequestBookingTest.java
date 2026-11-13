@@ -98,9 +98,6 @@ class RequestBookingTest {
         assertFalse(result.candidates().isEmpty());
         for (var candidate : result.candidates()) assertEquals("tech-1", candidate.technicianId(), "only tech-1 installs softeners");
         BookingCalculation.validate(routed, built.request(), result);
-        var decoded = dev.waterflex.scheduler.BookingDataset.parse(dev.waterflex.scheduler.BookingDataset.encode(input, dev.waterflex.scheduler.BookingDataset.Encoding.SPARSE));
-        assertEquals(routed.horizon(), decoded.snapshot().horizon(), "the remote solver receives the host horizon");
-        assertEquals(routed.days(), decoded.snapshot().days());
     }
 
     @Test void daysMustCoverExactlyTheDeclaredHorizon() {

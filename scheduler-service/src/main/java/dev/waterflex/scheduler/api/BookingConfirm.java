@@ -2,7 +2,6 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.BookingSnapshot;
 import dev.waterflex.scheduler.CalculationJson;
-import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.ReservationTransition;
@@ -135,7 +134,7 @@ public class BookingConfirm {
             store.release(tenantId, request.requestId(), owner);
             return Reply.of(429, new Problem(ErrorCode.BUSY, busy instanceof BookingStore.DayMoved
                     ? "Other bookings kept changing this date; retry" : "Search capacity exhausted"));
-        } catch (SearchDeadline.Expired | HttpCalculation.Unavailable expired) {
+        } catch (SearchDeadline.Expired expired) {
             store.release(tenantId, request.requestId(), owner);
             if (registered.cancelled()) return Reply.of(409, DailyProposals.cancelled());
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The confirm did not finish before its deadline"));

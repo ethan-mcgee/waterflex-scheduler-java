@@ -3,7 +3,6 @@ package dev.waterflex.scheduler.api;
 import dev.waterflex.scheduler.BookingCalculation;
 import dev.waterflex.scheduler.CalculationFixture;
 import dev.waterflex.scheduler.CalculationTransport;
-import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
@@ -34,12 +33,12 @@ class BookingOffersRefinementTest {
     private static final int BUDGET_MS = 1000;
 
     @Test void unavailableRefinementKeepsInsertionWitnessesWithExplicitIncompleteness() {
-        var failing = failingRefinement(REQUIRED, () -> new HttpCalculation.Unavailable("Injected optional transport failure", null));
+        var failing = failingRefinement(REQUIRED, () -> new RoadClient.RoadUnavailable("Injected routing failure"));
         var searched = failing.offers.calculate(failing.roads, failing.input.snapshot(), failing.input.request(), BUDGET_MS);
 
         assertEquals(2, failing.stages.get(), "Insertion ran, then the refinement was attempted");
         assertFalse(searched.result().complete());
-        assertEquals("REFINEMENT_UNAVAILABLE", searched.result().stopReason());
+        assertEquals("ROUTING_UNAVAILABLE", searched.result().stopReason());
         assertFalse(searched.result().candidates().isEmpty(), "Insertion offers survive the failed refinement");
         BookingCalculation.validate(searched.snapshot(), failing.input.request(), searched.result());
         assertEquals(0, failing.offers.invalidRefinements());
@@ -82,7 +81,7 @@ class BookingOffersRefinementTest {
     }
 
     @Test void anOptionalRefinementThatFailsLeavesTheSearchComplete() {
-        var failing = failingRefinement(OPTIONAL, () -> new HttpCalculation.Unavailable("Injected optional transport failure", null));
+        var failing = failingRefinement(OPTIONAL, () -> new SearchAdmission.Busy("Injected admission failure"));
         var searched = failing.offers.calculate(failing.roads, failing.input.snapshot(), failing.input.request(), BUDGET_MS);
 
         assertFalse(searched.refinementRequired(), "the insertion pass found more windows than the threshold");

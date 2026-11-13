@@ -84,7 +84,7 @@ class BookingOffersDatabaseIT {
             @Override public Clock withZone(@Nullable ZoneId zone) { return this; }
             @Override public Instant instant() { return Required.value(now.get()); }
         };
-        return new BookingOffers(store, bookings, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
+        return new BookingOffers(store, bookings, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport(),
                 new SearchAdmission(2, 16), running, "BOUNDED", 250, clock);
     }
 

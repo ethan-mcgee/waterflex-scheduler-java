@@ -54,7 +54,4 @@ public final class DailySolver {
     }
     public String variant() { return Required.value(definition.variant().name()); }
     public long seed() { return definition.seed(); }
-    public boolean matches(@org.jspecify.annotations.Nullable String variant, long seed) {
-        return definition.variant().name().equals(variant) && definition.seed() == seed;
-    }
 }

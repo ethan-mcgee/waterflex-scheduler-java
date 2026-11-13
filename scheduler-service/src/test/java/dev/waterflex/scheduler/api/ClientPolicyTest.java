@@ -92,19 +92,6 @@ class ClientPolicyTest {
         assertEquals(60_000, costOnly.searchMs());
     }
 
-    @Test void theConfigurationIdentityCoversTheMethodTimesAndEveryRule() {
-        var rules = policy("0.02").rules();
-        String tabuKopt = DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT);
-        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU, DailyCalculation.Allocation.DEFAULT));
-        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 0)));
-        assertEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 5)));
-        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT_SIZE_3, DailyCalculation.Allocation.DEFAULT));
-        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 5, 4)),
-                "an unimproved limit changes results, so it is part of the identity");
-        assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4999, 3).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
-        assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4000, 4).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
-    }
-
     @Test void aClaimLeaseOutlivesTheLongestSearch() {
         // Search, the 5 second reserve, routing (which runs before the search's own allowance) and the lease margin.
         long routing = DailyProposals.ROUTING_ALLOWANCE.toSeconds(), margin = PublicApiStore.LEASE_MARGIN.toSeconds();

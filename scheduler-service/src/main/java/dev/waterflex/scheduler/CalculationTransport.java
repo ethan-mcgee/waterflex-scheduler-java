@@ -1,61 +1,11 @@
 package dev.waterflex.scheduler;
 import dev.waterflex.scheduler.optimizer.*;
-import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-/** Rollout stays embedded by default. Every remote result is checked against caller-owned facts. */
+/** Runs booking and daily calculations in this replica's JVM; tests replace it to inject a calculation's failures. */
 @Component
-public final class CalculationTransport {
-    private final @Nullable HttpCalculation remote;
-    public CalculationTransport(@Value("${scheduler.calculation.mode:EMBEDDED}") String mode,
-            @Value("${scheduler.calculation.url:http://127.0.0.1:8002}") String url,
-            @Value("${scheduler.calculation.auth-token:}") String token) {
-        if (!mode.equals("EMBEDDED") && !mode.equals("REMOTE")) throw new IllegalArgumentException("Unknown calculation mode");
-        remote = mode.equals("REMOTE") ? new HttpCalculation(url,token) : null;
-    }
-    /** Whether calculations run on a remote solver pool, which readiness then checks. */
-    public boolean remote() { return remote != null; }
-    /** Readiness of the remote solver pool; a no-op when calculations are embedded. */
-    public void checkRemote(java.time.Duration timeout) {
-        HttpCalculation current = remote;
-        if (current != null) current.checkHealth(timeout);
-    }
-    public BookingCalculation.Output booking(BookingCalculation.Input input) {
-        if (remote == null) {
-            return BookingCalculation.run(input);
-        }
-        long remaining = allowance(120000);
-        var request = CalculationProtocol.Request.of("BOOKING",remaining,input);
-        var response = Required.value(remote).calculate(request);
-        var output = CalculationJson.read(response.payload(),BookingCalculation.Output.class);
-        BookingCalculation.validate(input.snapshot(),input.request(),output.result());
-        return output;
-    }
-    /** A daily calculation keyed by opaque per-technician revision tokens such as host last-modified timestamps. */
-    public DailyCalculation.Result dailyTokens(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,DailyCalculation.Allocation allocation,
-            java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,String> schedule) {
-        if (remote == null) return DailyCalculation.run(plan,policy,solver,allocation);
-        long remaining = allowance(DailyOperation.Allowance.forSearch(allocation).total().toMillis());
-        var dataset = DailyDataset.captureTokens(plan,points,snapshotId,revision,routing,configuration,schedule,solver.variant(),solver.seed(),remaining);
-        var request = CalculationProtocol.Request.of("DAILY",remaining,new CalculationProtocol.DailyInput(dataset.json(DailyDataset.Encoding.SPARSE),policy,allocation));
-        var response = Required.value(remote).calculate(request); var output = CalculationJson.read(response.payload(),CalculationProtocol.DailyOutput.class);
-        DayPlan proposed = output.proposal().restore(plan), reference = output.reference().restore(plan);
-        if (!DailyOutcome.assess(proposed).equals(output.outcome())) throw new IllegalArgumentException("Remote daily outcome differs from caller validation");
-        boolean accepted;
-        if (plan.getMode() == DayPlan.Mode.REPAIR) accepted = DailyCalculation.valid(proposed) && RouteEvaluator.evaluate(proposed).overtimeMinutes() == 0;
-        else {
-            boolean proposedValid = DailyCalculation.valid(proposed), referenceValid = DailyCalculation.valid(reference);
-            if (proposedValid && !referenceValid) throw new IllegalArgumentException("Remote reference is not independently valid");
-            accepted = proposedValid && (DailyCalculation.valid(plan)
-                    ? SchedulingPolicy.compare(SchedulingPolicy.measure(plan),SchedulingPolicy.measure(proposed),SchedulingPolicy.measure(reference),policy).accepted()
-                    : DailyOutcome.assess(proposed).policyEligible());
-        }
-        if (output.accepted() != accepted) throw new IllegalArgumentException("Remote daily policy eligibility mismatch");
-        return new DailyCalculation.Result(proposed,reference,accepted,output.reason(),output.solveMs(),output.diagnostics());
-    }
-    private static long allowance(long maximum) {
-        SearchDeadline clock = Required.value(SearchDeadline.current(),"caller calculation clock"); clock.requireTime();
-        long remaining = Math.min(maximum,clock.explorationNanos()/1_000_000);
-        if (remaining < 1) throw new SearchDeadline.Expired(); return remaining;
+public class CalculationTransport {
+    public BookingCalculation.Output booking(BookingCalculation.Input input) { return BookingCalculation.run(input); }
+    public DailyCalculation.Result daily(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,DailyCalculation.Allocation allocation) {
+        return DailyCalculation.run(plan,policy,solver,allocation);
     }
 }

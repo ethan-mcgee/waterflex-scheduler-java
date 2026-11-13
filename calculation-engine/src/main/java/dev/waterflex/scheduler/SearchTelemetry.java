@@ -26,7 +26,7 @@ public final class SearchTelemetry {
     }
     /** Wall time the call spent waiting on routing. */
     public void routingWait(long nanos) { routingNanos += Math.max(0, nanos); }
-    /** Wall time the call spent in the calculation engine (embedded or remote). */
+    /** Wall time the call spent in the calculation engine. */
     public void calculation(long nanos) { calculationNanos += Math.max(0, nanos); }
     /** Wall time the call waited for a search slot. */
     public void admission(long nanos) { admissionNanos += Math.max(0, nanos); }

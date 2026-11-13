@@ -6,7 +6,6 @@ import dev.waterflex.scheduler.BookingSnapshot;
 import dev.waterflex.scheduler.BoundedBookingSearch;
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
-import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.ReservationOffers;
@@ -199,7 +198,7 @@ public class BookingOffers {
             store.release(tenantId, request.requestId(), owner);
             return Reply.of(429, new Problem(ErrorCode.BUSY, busy instanceof BookingStore.DayMoved
                     ? "Other bookings kept changing these dates; retry" : "Search capacity exhausted"));
-        } catch (SearchDeadline.Expired | HttpCalculation.Unavailable expired) {
+        } catch (SearchDeadline.Expired expired) {
             store.release(tenantId, request.requestId(), owner);
             if (registered.cancelled()) return Reply.of(409, DailyProposals.cancelled());
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The booking search found nothing before its deadline"));
@@ -444,7 +443,7 @@ public class BookingOffers {
                 refined = timed(() -> transport.booking(refinement)).result();
                 refined = BookingSearchPipeline.combine(result, refined, snapshot.policy());
             } catch (IllegalArgumentException invalid) {
-                // The refinement answered with a plan that fails validation (a remote engine drift or a bug). The insertion
+                // The refinement answered with a plan that fails validation (an engine bug). The insertion
                 // result was validated on its own and is validated again before publishing, so it is kept; the refinement's
                 // improvements are the only loss. The insertion stage above is not covered: an invalid insertion must fail.
                 invalidRefinements.increment();
@@ -461,8 +460,6 @@ public class BookingOffers {
             return new Searched(widened, incomplete(result, "DEADLINE"), Refinement.SHORTENED, required, unreturned, RefinementStop.DEADLINE, found);
         } catch (RoadClient.RoadUnavailable unavailable) {
             return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned, null, found);
-        } catch (HttpCalculation.Unavailable unavailable) {
-            return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned, null, found);
         } catch (SearchAdmission.Busy busy) {
             // The refinement's routes could not get a database connection or shared routing capacity in time (a cold
             // search on a large fleet spends most of its deadline fetching legs). The search already holds the insertion

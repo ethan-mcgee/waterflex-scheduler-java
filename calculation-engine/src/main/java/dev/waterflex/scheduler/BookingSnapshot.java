@@ -18,7 +18,7 @@ import java.util.*;
  */
 public record BookingSnapshot(String metroId, Instant capturedAt, String configurationFingerprint,
         String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days, Set<LocalDate> horizon) {
-    /** The most dates one search may cover; the remote dataset accepts no more. */
+    /** The most dates one search may cover. */
     public static final int MAX_HORIZON_DAYS = 32;
 
     public BookingSnapshot {

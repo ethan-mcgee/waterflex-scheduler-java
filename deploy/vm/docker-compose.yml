@@ -11,7 +11,9 @@
 # The scheduler runs as two pools of the same image behind scheduler-proxy, the one address WaterFlex Software calls:
 # booking replicas (SCHEDULER_ROLE=booking) answer booking searches, confirms and route calls, and daily replicas
 # (SCHEDULER_ROLE=daily) answer daily and repair proposals and run the queued ones. Scale a pool by its replica count
-# and its per-replica CPU and memory; each limit applies to every replica of the pool.
+# and its per-replica CPU and memory; each limit applies to every replica of the pool. The defaults fill the VM's 8 vCPU
+# (booking 2, daily 2, routing 2, Postgres 1, proxy 0.5, Prometheus 0.5; infra/test_vm_cpu_budget.py), so scaling one
+# means lowering another.
 name: scheduler-vm
 
 # No Linux capabilities and no way to gain privileges: the services built here (uid 10001, their Dockerfiles) and
@@ -40,9 +42,6 @@ x-scheduler-runtime: &scheduler-runtime
   ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
   GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
   NOMINATIM_URL: http://nominatim:8080
-  SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
-  SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
-  SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
   TIMEFOLD_LOG_LEVEL: ${TIMEFOLD_LOG_LEVEL:-WARN}
 
@@ -229,34 +228,6 @@ services:
         limits: { cpus: "${NOMINATIM_CPUS:-2}", memory: "${NOMINATIM_MEMORY:-4g}" }
     restart: unless-stopped
 
-  # A remote solver pool (SCHEDULER_CALCULATION_MODE=REMOTE, SCHEDULER_CALCULATION_URL=http://solver-service:8002 on
-  # this private network). The embedded solver is the default. Its capacity serves every replica's searches at once
-  # (booking capacity plus daily capacity, summed over replicas: 4 for the defaults above) and its background limit
-  # is how many daily calculations it runs at once (0: every slot). Measured in research/api-load.md, "Embedded against
-  # remote (K)".
-  solver-service:
-    <<: *hardened
-    profiles: ["remote-solver"]
-    image: waterflex-calculation-solver:vm
-    # The web server drains solves for up to 30 s first.
-    stop_grace_period: 45s
-    pull_policy: build
-    build:
-      context: ../..
-      dockerfile: solver-service/Dockerfile
-    environment:
-      SOLVER_BIND_ADDRESS: 0.0.0.0
-      SOLVER_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
-      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-4}
-      SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
-      SOLVER_BACKGROUND_LIMIT: ${SOLVER_BACKGROUND_LIMIT:-0}
-      TIMEFOLD_LOG_LEVEL: ${TIMEFOLD_LOG_LEVEL:-WARN}
-    expose: ["8002"]
-    deploy:
-      resources:
-        limits: { cpus: "${SOLVER_CPUS:-4}", memory: "${SOLVER_MEMORY:-4g}" }
-    restart: unless-stopped
-
   # Scrapes every scheduler replica's metrics (found by name on this network); its UI answers on the management
   # interface only.
   prometheus:
@@ -265,6 +236,9 @@ services:
     image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
     volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prometheus-data:/prometheus"]
     ports: ["${SCHEDULER_MANAGEMENT_BIND:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"]
+    deploy:
+      resources:
+        limits: { cpus: "${PROMETHEUS_CPUS:-0.5}", memory: "${PROMETHEUS_MEMORY:-512m}" }
     restart: unless-stopped
 
 volumes:

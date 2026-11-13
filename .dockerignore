@@ -1,5 +1,5 @@
 # Allowlist. The repository-root context is used only by the Maven images:
-# scheduler-service, routing-service and solver-service Dockerfiles, built from
+# scheduler-service and routing-service Dockerfiles, built from
 # docker-compose.yml (context "."), deploy/vm/docker-compose.yml (context "../..")
 # and .github/workflows/maintenance.yml. The portal builds from web/ (web/.dockerignore)
 # and map-import from infra/map-import. Anything not re-included below, such as .env,
@@ -15,7 +15,6 @@
 !calculation-engine
 !scheduler-service
 !routing-service
-!solver-service
 
 # Local output inside the allowed modules (the last matching rule wins)
 **/target
