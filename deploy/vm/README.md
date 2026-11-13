@@ -52,6 +52,7 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
    `curl -H "Authorization: Bearer <token>" https://<name>/api/v1/whoami` answers the tenant, which also proves the certificate.
 7. Prove the install end to end with the [host conformance kit](../../infra/host-conformance/README.md), from the host's network, with a token for a dedicated `conformance` tenant (never a client's). Run it again after every upgrade.
 8. Schedule the daily backup and copy the dumps off the VM ("Backups", below).
+9. Schedule the watchdog ("Watchdog", below).
 
 ## Upgrade
 
@@ -66,6 +67,16 @@ Schedule `infra/backup-vm.sh` daily from the VM's crontab, and copy `/var/backup
 ```
 
 `bash infra/restore-vm.sh <dump> --replace` restores one, on this VM or on a new one installed through step 3. The runbook's "Backup and restore" says what a restore loses.
+
+## Watchdog
+
+Docker marks a hung scheduler replica unhealthy but never restarts it, and each pool has one replica by default, so a hang is an outage of that pool until the replica restarts. Run `infra/watchdog-vm.sh` every minute from the VM's crontab; it restarts a replica only when it is unhealthy and `/health/live` fails too, and prints a line only when it acts:
+
+```sh
+* * * * * cd /path/to/waterflex-scheduler-java && bash infra/watchdog-vm.sh >> /var/log/scheduler-watchdog.log 2>&1
+```
+
+The runbook's "A hung scheduler replica" says what it leaves alone and why.
 
 ## Scaling the pools
 
