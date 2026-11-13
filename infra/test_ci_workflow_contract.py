@@ -51,7 +51,8 @@ class ParallelCiContractTest(unittest.TestCase):
         self.assertEqual(job.count("if: failure()"), 2)
         script = (WORKFLOW.parents[2] / "infra/check-vm-stack.sh").read_text(encoding="utf-8")
         for check in ("promtool check config", "-tls1_1 -cipher 'DEFAULT@SECLEVEL=0'", "ALPN protocol: h2", "00000000000000c3",
-                      "--token-env SCHEDULER_STUDY_TOKEN", "--command=revoke-token", "stop scheduler-booking scheduler-daily"):
+                      "--token-env SCHEDULER_STUDY_TOKEN", "--command=revoke-token", "stop scheduler-booking scheduler-daily",
+                      "protocols+=(--http2)"):
             self.assertIn(check, script)
 
     def test_postgres_service_pulls_are_authenticated(self):

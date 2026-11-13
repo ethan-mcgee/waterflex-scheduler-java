@@ -89,8 +89,16 @@ expect "no token" 401 "$(status "$public/api/v1/whoami")"
 [ ! -s "$out/body" ] && pass "the 401 has no body" || fail "the 401 has a body"
 expect "plain HTTP on the TLS port" 400 "$(curl --silent --output "$out/body" --write-out '%{http_code}' http://127.0.0.1:18091/api/v1/whoami)"
 grep -q 'HTTPS only' "$out/body" && pass "the plain-HTTP 400 is a Problem" || fail "the plain-HTTP 400 is not a Problem"
-expect "a body over 16 MiB" 413 "$(head -c 17000000 /dev/zero | status -H 'Authorization: Bearer x' -H 'Content-Type: application/json' --data-binary @- "$public/api/v1/routes/evaluate")"
-grep -q '"error":"INVALID_REQUEST"' "$out/body" && pass "the 413 is a Problem" || fail "the 413 is not a Problem"
+# A body past the proxy's limit, with its length declared as host clients send it, over both protocols: nginx reaches
+# the limit by a different path on each, and over HTTP/2 its error page once fell back to HTML.
+head -c 17000000 /dev/zero > "$out/oversized"
+protocols=(--http1.1)
+if curl --version | grep -qw HTTP2; then protocols+=(--http2); else echo "SKIP the 413 over HTTP/2 (this curl has no HTTP/2)"; fi
+for protocol in "${protocols[@]}"; do
+  expect "a body over 16 MiB ($protocol)" 413 "$(status "$protocol" -H 'Authorization: Bearer x' -H 'Content-Type: application/json' --data-binary @"$out/oversized" "$public/api/v1/routes/evaluate")"
+  grep -q '"error":"INVALID_REQUEST"' "$out/body" && pass "the 413 is a Problem ($protocol)" || fail "the 413 is not a Problem ($protocol)"
+done
+rm -f "$out/oversized"
 expect "private /health (booking pool)" 200 "$(curl --silent --output "$out/body" --write-out '%{http_code}' "$private/health")"
 grep -q '"role":"booking"' "$out/body" && pass "private /health reaches a booking replica" || fail "private /health did not reach a booking replica"
 expect "private /health/daily" 200 "$(curl --silent --output "$out/body" --write-out '%{http_code}' "$private/health/daily")"
