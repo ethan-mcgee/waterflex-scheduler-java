@@ -18,7 +18,7 @@ class ParallelCiContractTest(unittest.TestCase):
     def test_aggregates_require_success_from_every_dependency(self):
         groups = {
             "build-and-unit": ["java-javac", "java-nullability", "portal-checks", "infrastructure-evidence", "api-compatibility"],
-            "booking-and-optimizer-integration": ["integration-core", "integration-remote"],
+            "booking-and-optimizer-integration": ["integration-core", "integration-remote", "vm-stack"],
         }
         for gate, dependencies in groups.items():
             with self.subTest(gate=gate):
@@ -41,6 +41,19 @@ class ParallelCiContractTest(unittest.TestCase):
         self.assertIn("github.event.pull_request.base.sha || github.event.before", job)
         self.assertIn('git fetch --no-tags --depth=1 origin "$BASE_SHA"', job)
         self.assertIn('python3 infra/openapi_compat.py --against "$BASE_SHA" --oasdiff "$RUNNER_TEMP/oasdiff"', job)
+
+    def test_the_vm_stack_is_built_and_checked_through_the_proxy(self):
+        job = self.jobs["vm-stack"]
+        self.assertIn('run: bash infra/check-vm-stack.sh "$RUNNER_TEMP/vm-stack"', job)
+        self.assertIn('docker login --username "$DOCKERHUB_USERNAME" --password-stdin', job)
+        self.assertIn("cache-dependency-path: infra/host-conformance/package-lock.json", job)
+        self.assertIn("          name: vm-stack-diagnostics", job)
+        self.assertEqual(job.count("if: failure()"), 2)
+        script = (WORKFLOW.parents[2] / "infra/check-vm-stack.sh").read_text(encoding="utf-8")
+        for check in ("promtool check config", "-tls1_1 -cipher 'DEFAULT@SECLEVEL=0'", "ALPN protocol: h2", "00000000000000c3",
+                      "--token-env SCHEDULER_STUDY_TOKEN", "--command=revoke-token", "stop scheduler-booking scheduler-daily",
+                      "protocols+=(--http2)"):
+            self.assertIn(check, script)
 
     def test_postgres_service_pulls_are_authenticated(self):
         # Anonymous Docker Hub pulls share a rate limit with every job on the runner's IP; logged-in pulls use the account's own limit.
