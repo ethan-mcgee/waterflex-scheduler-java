@@ -66,21 +66,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 300s
-  solver-service:
-    profiles: ["remote-solver"]
-    image: waterflex-calculation-solver:local
-    stop_grace_period: 45s
-    pull_policy: build
-    build:
-      context: .
-      dockerfile: solver-service/Dockerfile
-    environment:
-      SOLVER_BIND_ADDRESS: 0.0.0.0
-      SOLVER_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
-      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-2}
-      SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
-    # Internal Compose connectivity only. No published solver port or database/routing credentials.
-    expose: ["8002"]
   scheduler-service:
     image: waterflex-scheduler-engine:local
     # Drain the web server and the daily queue (each up to 30 s) before Docker's SIGKILL.
@@ -102,9 +87,6 @@ services:
       # The public API routes only the metros listed here; the seeded Omaha metro is listed by default.
       ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:-metro-omaha=http://routing-service:8001}
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
-      SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
-      SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
-      SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-0}
       # Connections: more than the capacity and confirm slots together, with headroom; the publish reserve is the part
       # of a client's bookingDeadlineMs kept back to validate and publish the offers (800 to 1000).
@@ -121,7 +103,7 @@ services:
       scheduler-admin: { condition: service_completed_successfully }
     # 8000 is the API; 9000 serves /actuator/health and /actuator/prometheus and stays on a private interface.
     ports: ["127.0.0.1:8000:8000", "127.0.0.1:9000:9000"]
-    # Readiness: 503 until the database, each metro's routing and any remote solver or address lookup answer.
+    # Readiness: 503 until the database, each metro's routing and the address lookup, when on, answer.
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\r\n\r\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
       interval: 10s

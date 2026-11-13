@@ -33,13 +33,7 @@ class DailySolversTest {
         }
     }
 
-    @Test void aRemoteRequestRunsOnlyAClientSearchWithThisSeed() {
-        var solvers = new DailySolvers(17);
-        assertSame(solvers.get(DailySearch.TABU_KOPT), solvers.matching("TABU_KOPT", 17));
-        assertSame(solvers.get(DailySearch.TABU), solvers.matching("TABU", 17));
-        assertThrows(IllegalArgumentException.class, () -> solvers.matching("KOPT", 17));
-        assertThrows(IllegalArgumentException.class, () -> solvers.matching("TABU_KOPT", 18));
-        assertThrows(IllegalArgumentException.class, () -> solvers.matching(null, 17));
+    @Test void everyClientSearchMustHaveASolver() {
         Map<DailySearch, SolverEngine.Variant> partial = new EnumMap<>(DailySearch.class);
         partial.put(DailySearch.TABU, SolverEngine.Variant.CURRENT_CAPPED);
         assertThrows(IllegalArgumentException.class, () -> new DailySolvers(17, partial));

@@ -27,22 +27,19 @@ import org.springframework.stereotype.Component;
  * Recorder recording on the JDK's {@code profile} configuration, dumped as {@code <proposalId>-<phase>.jfr}: the
  * same recording the workstation harness makes around each solve (SolverBenchmark), so the two instruments profile
  * the same events. The study receipt names each phase's file and the thread the phases ran on; the summarizer keeps
- * that thread's samples, since a recording is JVM-wide and two queued calculations overlap. Recording is the
- * embedded calculation's: a remote calculation mode refuses to start with profiles on rather than record nothing.
+ * that thread's samples, since a recording is JVM-wide and two queued calculations overlap.
  * Nothing here changes a proposal; the JDK's own sampling costs about one percent of the search.
  */
 @Component
 public final class StudyProfiles {
     /** Profiles off: the production default, and the wiring of tests that construct the proposals directly. */
-    public static final StudyProfiles OFF = new StudyProfiles("", "EMBEDDED");
+    public static final StudyProfiles OFF = new StudyProfiles("");
     private static final Logger LOG = Required.value(LoggerFactory.getLogger(StudyProfiles.class));
     private final @Nullable Path directory;
 
     @Autowired
-    public StudyProfiles(@Value("${scheduler.study.profiles:}") String directory, @Value("${scheduler.calculation.mode:EMBEDDED}") String mode) {
+    public StudyProfiles(@Value("${scheduler.study.profiles:}") String directory) {
         if (directory.isBlank()) { this.directory = null; return; }
-        if (!mode.equals("EMBEDDED"))
-            throw new IllegalStateException("Study profiles record the embedded calculation; calculation mode " + mode + " runs it elsewhere");
         Path path = Required.value(Path.of(directory));
         try { Files.createDirectories(path); }
         catch (IOException failure) { throw new IllegalStateException("Cannot create the study profiles directory " + path, failure); }

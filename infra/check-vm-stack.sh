@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The scheduler VM's stack as WaterFlex Software meets it, built from this tree: the sandbox (deploy/vm with
-# sandbox.override.yml, the fixture router in place of the road graph) with the monitoring and remote-solver profiles,
+# sandbox.override.yml, the fixture router in place of the road graph) with the monitoring profile,
 # checked over HTTPS through scheduler-proxy. CI runs it on every change ("VM stack over HTTPS"), so a new image for
 # nginx, Prometheus, Postgres or the JRE, a proxy configuration change or a Dockerfile change is exercised before it
 # merges; the Compose files themselves are only rendered elsewhere. It also runs on a Linux or Git Bash workstation:
@@ -12,7 +12,7 @@
 # the conformance kit over HTTPS; and the proxy's 503 when no replica answers. The kit's token lives only in this
 # process's environment and is revoked at the end. The stack is left stopped but in place for its logs; remove it with
 #   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env \
-#     --profile monitoring --profile remote-solver down -v
+#     --profile monitoring down -v
 set -euo pipefail
 # Git Bash would rewrite container paths such as /proc/1/status.
 export MSYS_NO_PATHCONV=1
@@ -23,10 +23,8 @@ cd "$repository"
 out=${1:-"${RUNNER_TEMP:-$repository/.scratch}/vm-stack-check"}
 mkdir -p "$out"
 export PROMETHEUS_PORT=${PROMETHEUS_PORT:-19092}
-export SOLVER_AUTH_TOKEN
-SOLVER_AUTH_TOKEN=$(openssl rand -hex 24)
 compose=(docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env
-  --profile monitoring --profile remote-solver)
+  --profile monitoring)
 public=https://127.0.0.1:18091
 private=http://127.0.0.1:18090
 failures=0
@@ -43,7 +41,7 @@ echo "== Building and starting the stack"
 "${compose[@]}" ps --format '{{.Service}} {{.Image}} {{.Status}}'
 
 echo "== Users and capabilities (deploy/vm/docker-compose.yml, x-hardened)"
-for service in scheduler-booking scheduler-daily solver-service prometheus scheduler-proxy; do
+for service in scheduler-booking scheduler-daily prometheus scheduler-proxy; do
   id=$(container "$service")
   # The service's own process (PID 1), not the user an exec would run as.
   uid=$(docker exec "$id" awk '/^Uid/ {print $2}' /proc/1/status)

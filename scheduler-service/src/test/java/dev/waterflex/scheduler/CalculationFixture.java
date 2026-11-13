@@ -21,11 +21,4 @@ public final class CalculationFixture {
         var snapshot = new BookingSnapshot("metro",CAPTURED,"config-rev","roads-rev",SchedulingPolicy.Rules.defaults(),new Rates(30,45,0,0,0),days,Required.value(Set.copyOf(days.keySet())));
         return new BookingCalculation.Input(snapshot,new BoundedBookingSearch.Request("new","service",30,240,POINT),BookingCalculation.Stage.INSERTION,"INSERTION",null,0);
     }
-    static CalculationProtocol.Request bookingRequest() { return CalculationProtocol.Request.of("BOOKING",5000,booking()); }
-    static CalculationProtocol.Request dailyRequest() throws Exception {
-        String draft;
-        try (var stream = Required.value(CalculationFixture.class.getResourceAsStream("/daily-dataset-v1.json"))) { draft = new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8); }
-        draft = Required.value(draft.replace("TABU","CURRENT_CAPPED"));
-        return CalculationProtocol.Request.of("DAILY",20000,new CalculationProtocol.DailyInput(DailyDataset.seal(draft),SchedulingPolicy.Rules.defaults(),DailyCalculation.Allocation.DEFAULT));
-    }
 }

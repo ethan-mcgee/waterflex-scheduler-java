@@ -337,7 +337,7 @@ Every answer from the scheduler carries `X-Scheduler-Version`, the contract vers
   - **What to do:** Retry the same `requestId` with backoff.
 - **Status 503**
   - **`error`:** `CALCULATION_UNAVAILABLE`.
-  - **Meaning:** The deadline passed with nothing found, or the remote solver is unavailable.
+  - **Meaning:** The deadline passed with nothing found.
   - **What to do:** Retry the same `requestId` with backoff.
 - **Status 503**
   - **`error`:** `SERVICE_UNAVAILABLE`.
@@ -390,7 +390,6 @@ TLS terminates at the scheduler VM's proxy (`scheduler-proxy`), with the operato
 - **WaterFlex Software to the scheduler API:** HTTPS only, TLS 1.2 or 1.3, on port 443 by default. Bearer tokens travel in every request, so the VM offers you no plain HTTP: only `/api/v1/*` and `/health/live` answer on that address, and plain HTTP sent to it is refused with 400.
 - **Scheduler to routing services:** Plain http with a bearer token (`ROUTING_AUTH_TOKEN`) on the VM's internal network, which never leaves the machine; encrypted if a routing service ever runs elsewhere.
 - **Scheduler to Nominatim**, in `NOMINATIM` mode, on the same terms.
-- **Scheduler to a remote solver pool:** already https with a service token for any non-loopback address.
 
 Metros are shared, not assigned to tenants: any working token may name any metro the VM routes (`ROUTING_METRO_URLS`). Every stored row still belongs to one tenant, so a client never sees another's bookings, proposals or answers; the route cache is shared within a metro and holds travel times only. What a token can do in another metro is use routing and solving capacity there. This is accepted while every tenant is a WaterFlex Software client reached only through WaterFlex Software's backend; a per-tenant metro list is the change to make before any other caller gets a token.
 

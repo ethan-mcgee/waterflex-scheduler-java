@@ -4,7 +4,6 @@ COPY .mvn .mvn
 COPY mvnw pom.xml ./
 COPY scheduler-service/pom.xml scheduler-service/pom.xml
 COPY calculation-engine/pom.xml calculation-engine/pom.xml
-COPY solver-service/pom.xml solver-service/pom.xml
 COPY routing-service routing-service
 RUN chmod +x mvnw && ./mvnw -q -pl routing-service -am -DskipTests package
 FROM eclipse-temurin:25-jre@sha256:a640968ae55027b322cedd5f8228b01a84baff0b9e9360e47601c6a111ba1699

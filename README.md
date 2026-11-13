@@ -12,8 +12,7 @@ The portal and other hosts call the scheduler over `/api/v1`; the scheduler owns
    +------------------ /api/v1 ---------------+
                          |
                  scheduler-service (Spring Boot, Flyway --> scheduler-db)
-                   |  calculation-engine (Timefold), embedded,
-                   |  or solver-service when SCHEDULER_CALCULATION_MODE=REMOTE
+                   |  calculation-engine (Timefold), embedded
                    |
                    +-- routing-service (GraphHopper), one per metro
                    +-- nominatim (address lookup, optional on the VM)
@@ -28,7 +27,6 @@ The top-level paths and what each holds:
 
 - **`calculation-engine/`:** Maven module: the Timefold model, constraints, scoring and the independent route evaluator, shared by the scheduler and the solver service.
 - **`scheduler-service/`:** Maven module: the Spring Boot service behind `/api/v1`, its Flyway migrations (`src/main/resources/db/migration`) and its admin commands.
-- **`solver-service/`:** Maven module: the remote solver pool (`remote-solver` profile).
 - **`routing-service/`:** Maven module: GraphHopper road matrix, legs and geometry for one metro's prepared map.
 - **`campaign-benchmark/`:** Maven module, built only with `-Pcampaign-benchmark`: the Timefold audit benchmark adapters.
 - **`web/`:** The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`.
@@ -125,11 +123,10 @@ The [operations runbook](docs/operations-runbook.md) covers start order, upgrade
 - `SCHEDULER_DB_PASSWORD`: password of the scheduler's database login `scheduler`, a member of the least-privilege role `scheduler_app`, which `scheduler-admin` creates or updates after the migrations. `SCHEDULER_DB_OWNER_PASSWORD` is the owner's password of `scheduler-db`, used only by `scheduler-admin` and `token-bootstrap`. Compose has local-only defaults for both.
 - `MANAGEMENT_PORT` (default 9000): `/actuator/health` and `/actuator/prometheus`, never on the API port. Publish it only on a private interface.
 - `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`: JSON log lines. Either way each `/api/v1` call logs one summary line with its tenant and host `requestId`.
-- `SCHEDULER_CALCULATION_MODE` (`EMBEDDED` by default, or `REMOTE` with `SCHEDULER_CALCULATION_URL` and `SCHEDULER_CALCULATION_AUTH_TOKEN`): where solving runs. `docker compose --profile remote-solver up -d` starts `solver-service`.
 - `SCHEDULER_SEARCH_CAPACITY`, `SCHEDULER_DB_POOL_SIZE`, `SCHEDULER_BOOKING_REFINEMENT_MS` and `SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`: search admission and booking budgets; their defaults and ranges are in [docs/scheduler-policy.md](docs/scheduler-policy.md#configuration).
 - `GEOCODING_MODE` and `NOMINATIM_URL`: address lookup for locations sent without coordinates.
 
-`GET /health` on the API port is readiness: 200 when the database, every metro's routing service, a remote solver and the address lookup (when configured) answer within a second, 503 with the failing component otherwise. `GET /health/live` reads nothing.
+`GET /health` on the API port is readiness: 200 when the database, every metro's routing service and the address lookup (when configured) answer within a second, 503 with the failing component otherwise. `GET /health/live` reads nothing.
 
 ### Routing
 
@@ -227,7 +224,7 @@ The integration smokes (`npm run test:*:integration` in `web/`, such as `test:ap
 
 ## Deployment
 
-The scheduler runs on its own VM in production. [deploy/vm/README.md](deploy/vm/README.md) has the VM's Compose file (the database, the booking and daily pools behind `scheduler-proxy`, one routing service per metro, and optional Nominatim, remote solver and Prometheus), the install steps using `deploy/vm/.env.example`, and a local rehearsal that runs the VM stack beside this development stack. The scheduler creates and migrates its own schema (`java -jar scheduler-service.jar --command=migrate`).
+The scheduler runs on its own VM in production. [deploy/vm/README.md](deploy/vm/README.md) has the VM's Compose file (the database, the booking and daily pools behind `scheduler-proxy`, one routing service per metro, and optional Nominatim and Prometheus), the install steps using `deploy/vm/.env.example`, and a local rehearsal that runs the VM stack beside this development stack. The scheduler creates and migrates its own schema (`java -jar scheduler-service.jar --command=migrate`).
 
 ## Documentation
 

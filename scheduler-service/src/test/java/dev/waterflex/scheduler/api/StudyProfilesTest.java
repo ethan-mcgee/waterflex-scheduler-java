@@ -47,7 +47,7 @@ class StudyProfilesTest {
 
     /** Each phase runs inside its own flight recording, dumped under the proposal's name, and the receipt names them and the thread. */
     @Test void everyPhaseIsRecordedAndNamedInTheReceipt(@TempDir Path directory) {
-        var profiles = new StudyProfiles(Required.value(directory.toString()), "EMBEDDED");
+        var profiles = new StudyProfiles(Required.value(directory.toString()));
         assertTrue(profiles.enabled());
         var recorder = Required.value(profiles.recorder("p1"));
         var solver = new DailySolver("TABU_KOPT", 17);
@@ -85,16 +85,15 @@ class StudyProfilesTest {
         var solver = new DailySolver("TABU_KOPT", 17);
         DayPlan baseline = plan();
         var calculation = calculate(baseline, solver, DailyCalculation.NONE);
-        var unrecorded = Required.value(new StudyProfiles(temporary(), "EMBEDDED").recorder("p2"));
+        var unrecorded = Required.value(new StudyProfiles(temporary()).recorder("p2"));
         assertEquals(Map.of("unavailable", "NO_PHASE_RECORDED"), unrecorded.receipt(calculation.diagnostics().phases()));
         var receipt = StudyReceipts.receipt("p2", Required.value(LocalDate.of(2030, 1, 1)), solver, SchedulingPolicy.Rules.defaults(), baseline, calculation);
         assertFalse(receipt.containsKey("profile"));
     }
 
-    /** Off is the default; a remote calculation cannot be profiled here and refuses to start with profiles on. */
-    @Test void profilesAreOffUnlessADirectoryIsNamedAndRefuseARemoteCalculation() {
+    /** Off is the default. */
+    @Test void profilesAreOffUnlessADirectoryIsNamed() {
         assertFalse(StudyProfiles.OFF.enabled());
         assertNull(StudyProfiles.OFF.recorder("p3"));
-        assertThrows(IllegalStateException.class, () -> new StudyProfiles(temporary(), "REMOTE"));
     }
 }

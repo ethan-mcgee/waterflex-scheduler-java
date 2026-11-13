@@ -7,9 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_FILES = ["docker-compose.yml", "docker-compose.map-preview.yml", "docker-compose.map-active.yml",
                  "deploy/vm/docker-compose.yml", "deploy/vm/sandbox.override.yml", "deploy/vm/rehearsal.override.yml"]
-DOCKERFILES = ["scheduler-service/Dockerfile", "solver-service/Dockerfile", "routing-service/Dockerfile",
+DOCKERFILES = ["scheduler-service/Dockerfile", "routing-service/Dockerfile",
                "web/Dockerfile", "infra/map-import/Dockerfile"]
-JAVA_SERVICES = ["scheduler-service", "solver-service", "routing-service"]
+JAVA_SERVICES = ["scheduler-service", "routing-service"]
 # Images built from this repository are tagged locally, so they carry no registry digest.
 LOCAL_IMAGE = re.compile(r"^(waterflex-[\w-]+:[\w.-]+|\$\{SCHEDULER_IMAGE:-waterflex-[\w-]+:[\w.-]+\})$")
 PINNED = re.compile(r"^(?P<name>[\w./-]+:[\w.-]+)@sha256:[0-9a-f]{64}$")
@@ -68,7 +68,7 @@ class VmComposeTest(unittest.TestCase):
     def test_services_built_here_drop_every_capability(self):
         self.assertIn('x-hardened: &hardened\n  cap_drop: [ALL]\n  security_opt: ["no-new-privileges:true"]\n', self.text)
         self.assertRegex(self.text, r"x-scheduler-image: &scheduler-image\n  <<: \*hardened\n")
-        for name in ["routing-omaha", "solver-service", "prometheus"]:
+        for name in ["routing-omaha", "prometheus"]:
             with self.subTest(service=name):
                 self.assertTrue(service(self.text, name).startswith("    <<: *hardened\n"))
 

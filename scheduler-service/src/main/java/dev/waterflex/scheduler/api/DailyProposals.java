@@ -2,7 +2,6 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
-import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
@@ -24,9 +23,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -334,7 +331,7 @@ public class DailyProposals {
         try {
             StoredProposal stored;
             try { stored = Required.value(propose.propose(registered)); }
-            catch (Final | RoadClient.RoadUnavailable | SearchAdmission.Busy | HttpCalculation.Unavailable | SearchDeadline.Expired
+            catch (Final | RoadClient.RoadUnavailable | SearchAdmission.Busy | SearchDeadline.Expired
                    | org.springframework.dao.DataAccessException expected) { throw expected; }
             catch (RuntimeException broken) {
                 // A broken invariant fails the same way on every retry, so it is answered at once instead of retried. It
@@ -353,11 +350,6 @@ public class DailyProposals {
         } catch (SearchAdmission.Busy busy) {
             Duration wait = busy.retryAfter();
             return new Deferred(busy(busy), wait == null ? Required.value(Duration.ofSeconds(1)) : wait);
-        } catch (HttpCalculation.Unavailable unavailable) {
-            // A remote solver that is down, refused the work or answered an error: nothing was calculated, so the
-            // claim is released and the same requestId may be sent again.
-            LOG.warn("Remote daily calculation unavailable for request {}: {}", requestId, unavailable.getMessage());
-            return new Released(Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation service is unavailable")));
         } catch (SearchDeadline.Expired expired) {
             if (registered.cancelled()) return new Released(Reply.of(409, cancelled()));
             return new Released(Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation deadline passed")));
@@ -397,8 +389,6 @@ public class DailyProposals {
         String revision = revision(snapshot, absence);
         String proposalId = PublicApiStore.newProposalId();
         SchedulingPolicy.Rules policy = snapshot.policy().rules();
-        Map<String, String> tokens = new LinkedHashMap<>();
-        for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         DailyCalculation.Allocation allocation = allocation(snapshot.policy());
         DailyOperation.Allowance allowance = DailyOperation.Allowance.forSearch(allocation);
         // Refused at once, before any routing, when the calculations ahead could not finish within the allowance's reserve.
@@ -408,7 +398,7 @@ public class DailyProposals {
         Outcome outcome = DailyOperation.executePrepared(admission, allowance, () -> {
                     registered.attach(DailyOperation.current());
                     return new DailyOperation.Preparation<>(
-                            () -> calculate(prepared, policy, snapshot.policy().dailySearch(), allocation, request.serviceDate(), proposalId, revision, tokens, absence),
+                            () -> calculate(prepared, policy, snapshot.policy().dailySearch(), allocation, request.serviceDate(), proposalId, absence),
                             true, _ -> { });
                 }, receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
@@ -432,7 +422,7 @@ public class DailyProposals {
      * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
     private Outcome calculate(DailyPreparation.Prepared prepared, SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation,
-                              LocalDate serviceDate, String proposalId, String revision, Map<String, String> tokens, PublicRequests.@Nullable Absence absence) {
+                              LocalDate serviceDate, String proposalId, PublicRequests.@Nullable Absence absence) {
         DayPlan baseline = prepared.plan();
         if (absence != null && baseline.getRoutes().stream().noneMatch(route -> route.getId().equals(absence.technicianId())))
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Technician-day " + absence.technicianId() + " on " + absence.serviceDate()
@@ -446,18 +436,15 @@ public class DailyProposals {
         if (!validated.feasible()) throw new Final(422, ErrorCode.CURRENT_ROUTES_INFEASIBLE, infeasible(baseline, serviceDate));
         if (before.hardPenalty() != 0 || before.costCents() != validated.costCents() || !before.arrivals().equals(validated.arrivals()))
             return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, "The current routes cannot be scored consistently; nothing was proposed");
-        Map<String, String> kept = new LinkedHashMap<>();
-        for (TechRoute route : baseline.getRoutes()) kept.put(route.getId(), Required.value(tokens.get(route.getId()), "technician-day token"));
-        String configuration = configuration(policy, search, allocation);
         DayPlan searched = absence == null ? baseline : PlanCopies.withAbsence(baseline, absence.technicianId(),
                 new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
         DailySolver solver = solvers.get(search);
         // With profiles on, each phase of the embedded calculation runs inside its own flight recording on this thread.
         StudyProfiles.Recorded profile = profiles.recorder(proposalId);
         var calculation = profile == null
-                ? transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept)
+                ? transport.daily(searched, policy, solver, allocation)
                 : DailyCalculation.recording(profile, () ->
-                        transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept));
+                        transport.daily(searched, policy, solver, allocation));
         receipts.record(proposalId, serviceDate, solver, policy, searched, calculation, profile);
         SearchDeadline.checkpoint();
         if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, ReasonText.describe(calculation.reason()));
@@ -513,13 +500,6 @@ public class DailyProposals {
     /** The phase budgets of the client's chosen search times, with its unimproved limit when it set one. */
     static DailyCalculation.Allocation allocation(PublicTypes.Policy client) {
         return DailyCalculation.Allocation.client(client.costSearchSeconds(), client.fairnessSearchSeconds(), client.unimprovedSearchSeconds());
-    }
-
-    /** The identity of everything that shapes the search besides the snapshot: policy rules, method and phase budgets. */
-    record Configuration(SchedulingPolicy.Rules policy, DailySearch dailySearch, DailyCalculation.Allocation allocation) { }
-
-    static String configuration(SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation) {
-        return sha256(CalculationJson.write(new Configuration(policy, search, allocation)));
     }
 
     /** A claim must outlive the calculation it guards, so another replica never takes over a running request. */

@@ -23,7 +23,7 @@ from experiment_config import digest, expand, read_json, validate
 ROOT = Path(__file__).resolve().parents[1]
 # Every reactor module listed in pom.xml must be present for Maven to load the frozen tree; the solver itself
 # lives in calculation-engine, so it is frozen and built from source rather than resolved from ~/.m2.
-SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'calculation-engine', 'solver-service', 'scheduler-service',
+SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'calculation-engine', 'scheduler-service',
                 'routing-service', 'infra', 'experiments/configs']
 
 

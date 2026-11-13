@@ -28,13 +28,12 @@ updates:
         patterns: ['*']
     ignore:
       # Timefold moves by hand, never inside the weekly group: SolverEngine.INSTRUMENTED_TIMEFOLD pins the instrumentation
-      # to one release, SolverEngineTest fails on any other, and a remote solver pool must run the same artifact as the
-      # scheduler (runbook, "Start, stop and upgrade": a new solver pool beside the old one first).
+      # to one release and SolverEngineTest fails on any other.
       - dependency-name: 'ai.timefold.solver:*'
   # Images are pinned by digest; these move the tag and digest together. One tag carries one digest in every file
   # (infra/test_container_hardening.py), so a bump in one ecosystem fails CI until the other's files match.
   - package-ecosystem: docker
-    directories: [/web, /scheduler-service, /solver-service, /routing-service, /infra/map-import]
+    directories: [/web, /scheduler-service, /routing-service, /infra/map-import]
     schedule:
       interval: weekly
       day: monday

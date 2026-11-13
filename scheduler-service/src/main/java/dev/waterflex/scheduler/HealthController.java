@@ -21,8 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Readiness and liveness. {@code /health} checks every dependency a calculation needs, each within one second and all
- * at once: the database and its schema version, each configured metro's routing service, the remote solver pool when calculations are
- * remote, and the address lookup when it is on. It answers 200 when every one is up and 503 otherwise. The body names
+ * at once: the database and its schema version, each configured metro's routing service, and the address lookup when it is on. It answers 200 when every one is up and 503 otherwise. The body names
  * components and routing identities only, never URLs or credentials, and this replica's {@code role} (booking, daily
  * or all) so a load balancer's view can be checked. {@code /health/live} reads nothing.
  */
@@ -44,14 +43,14 @@ public class HealthController {
     private final String role;
 
     @Autowired
-    public HealthController(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding,
+    public HealthController(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, AddressLocation geocoding,
                             ReplicaRole role) {
-        this(checks(jdbc, schema, routing, transport, geocoding), role);
+        this(checks(jdbc, schema, routing, geocoding), role);
     }
 
     HealthController(Map<String, Check> checks, ReplicaRole role) { this.checks = Required.value(Map.copyOf(checks)); this.role = role.label(); }
 
-    private static Map<String, Check> checks(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
+    private static Map<String, Check> checks(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, AddressLocation geocoding) {
         Map<String, Check> checks = new LinkedHashMap<>();
         JdbcTemplate bounded = new JdbcTemplate(Required.value(jdbc.getDataSource(), "scheduler data source"));
         bounded.setQueryTimeout((int) CHECK_TIMEOUT.toSeconds());
@@ -71,7 +70,6 @@ public class HealthController {
                 return roads.endpoints() == 1 ? identity : identity + " (" + roads.availableEndpoints() + " of " + roads.endpoints() + " replicas)";
             });
         }
-        if (transport.remote()) checks.put("calculation", () -> { transport.checkRemote(CHECK_TIMEOUT); return null; });
         if (geocoding.looksUpAddresses()) checks.put("geocoding", () -> { geocoding.checkLookup(CHECK_TIMEOUT); return null; });
         return checks;
     }

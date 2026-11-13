@@ -11,7 +11,6 @@ The scheduler runs on its own VM with a fixed share of compute and is reached on
 - **`scheduler-daily`:** Daily replicas (`SCHEDULER_ROLE=daily`): daily and repair proposals, synchronous and queued, up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` at once each.
 - **`routing-omaha`:** Omaha's routing service. Add one per served metro.
 - **`nominatim`:** Profile `nominatim`: address lookup for locations sent without coordinates (`GEOCODING_MODE=NOMINATIM`).
-- **`solver-service`:** Profile `remote-solver`: a remote solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE`). The embedded solver is the default.
 - **`prometheus`:** Profile `monitoring`: scrapes every scheduler replica's metrics.
 
 Each service has `deploy.resources` limits set from `.env`, so the VM's partition is explicit; a pool's limits apply to each of its replicas. Both pools run the same image and every replica answers every route, so a call that reaches the other pool still gets the right answer. Running it is covered by [the operations runbook](../../docs/operations-runbook.md).
@@ -55,7 +54,7 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
 
 ## Upgrade
 
-Pull the new revision, then `docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d --build`. `scheduler-admin` applies new migrations before the new scheduler starts. With a remote solver, follow the runbook's upgrade order (new solver pool beside the old one first).
+Pull the new revision, then `docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d --build`. `scheduler-admin` applies new migrations before the new scheduler starts.
 
 ## Scaling the pools
 
