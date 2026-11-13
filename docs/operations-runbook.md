@@ -307,6 +307,11 @@ The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs mor
   - **When it stops:** The proxy stops sending it calls within 10 seconds. A synchronous call it was serving is lost; a queued day it was running is taken by another replica's worker once its lease passes (at most three attempts).
   - **What the host sees:** The call in progress fails or times out; later calls go to the other replicas.
   - **Recovery:** None needed with two or more replicas per pool. With one, start it again.
+- **A hung scheduler replica** (running but not answering, such as a stuck JVM)
+  - **How many:** One or more per pool.
+  - **When it hangs:** Docker marks it unhealthy after about 40 seconds but neither restarts it nor drops it from its DNS, so the proxy still sends it calls. The proxy's own failure count decides instead: a booking-pool call it does not answer within 60 seconds answers the retryable 503, and the replica sits out for 30 seconds while the others answer, after which one call tries it again. A daily-pool call waits up to 300 seconds, since a synchronous proposal may route and solve for 50. Measured on the sandbox with two booking replicas, one paused: before this, about half the calls waited on the hung replica.
+  - **What the host sees:** One call at a time answers 503 after the wait; the rest go to the other replicas. With one replica in the pool, which is the default layout, every call to that pool waits and answers 503, because nothing else can answer.
+  - **Recovery:** Restart the replica (`docker restart <container>`). Watch for `unhealthy` in `docker compose ps` or the `up` metric in Prometheus, since nothing restarts it automatically.
 - **Postgres (`scheduler-db`)**
   - **How many:** One.
   - **When it stops:** Nothing can be claimed, published or committed. Work in a transaction is rolled back, never half written.
