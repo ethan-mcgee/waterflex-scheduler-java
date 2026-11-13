@@ -110,9 +110,15 @@ Each setting, whether it is required, and what it controls:
 - **`SCHEDULER_STUDY_PROFILES`**
   - **Required:** No.
   - **Meaning:** Studies only, default empty; leave it empty in production. A directory inside a daily replica (mount it from the host) where every phase of every daily or repair calculation is recorded with Java Flight Recorder on the JDK's `profile` configuration, as `<proposalId>-<phase>.jfr`, the same recording the workstation harness makes around each solve. The study receipt names each phase's file and the thread the phases ran on. The JDK's sampling costs about one percent of the search.
-- **`SCHEDULER_IMAGE`, `SCHEDULER_PULL_POLICY`**
+- **`SCHEDULER_RELEASE`, `SCHEDULER_REVISION`, `ROUTING_REVISION`**
+  - **Required:** No; on the VM `infra/release-vm.sh` writes them ("Releases").
+  - **Meaning:** The release the VM runs: its git tag, its commit, and the last commit that changed what the routing image is built from. The images are tagged by the two commits (`waterflex-scheduler-engine:<SCHEDULER_REVISION>`, `waterflex-scheduler-routing:<ROUTING_REVISION>`), and a build stamps the tag and commit into the image. Unset, both images are tagged `dev`.
+- **`SCHEDULER_PULL_POLICY`, `ROUTING_PULL_POLICY`**
   - **Required:** No.
-  - **Meaning:** The scheduler image every pool and the admin task run, default `waterflex-scheduler-engine:vm` built from this checkout (`build`). A study pins a tag built from one commit with `never`, so the stack cannot rebuild the working tree under it.
+  - **Meaning:** Whether `docker compose up` rebuilds the images from the checkout, default `build` (the sandbox, the rehearsal and CI). The VM's `.env` sets `missing`, so `up` runs the release's images and never rebuilds them under the release's name.
+- **`SCHEDULER_IMAGE`**
+  - **Required:** No.
+  - **Meaning:** Pins the scheduler image every pool and the admin task run, in place of the release's. A study pins a tag built from one commit, with `SCHEDULER_PULL_POLICY=never`, so the stack cannot rebuild the working tree under it.
 
 ## Install
 
@@ -149,17 +155,44 @@ Stop the scheduler first. A stopping replica stops taking queued jobs, lets runn
 
 Upgrade:
 
-1. Run `--command=migrate` with the new jar. On the VM, `docker compose up -d` does this through `scheduler-admin` before the scheduler starts.
+1. Run `--command=migrate` with the new jar. On the VM, `infra/release-vm.sh` ("Releases", below) does this through `scheduler-admin` before the scheduler starts.
 2. Replace the scheduler replicas.
-3. Wait for `/health` to answer 200.
+3. Wait for `/health` to answer 200 with the new `revision`.
 
-Rollback is the reverse: start the previous scheduler. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
+Rollback is the reverse: start the previous scheduler. On the VM that is `infra/release-vm.sh` with the previous tag, which reuses its images while they are still on the VM. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
 
 Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since. Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
 
+### Releases
+
+A release is an annotated git tag `v<year>.<month>.<day>.<n>` on a commit merged into `main`, made and pushed from a workstation:
+
+```sh
+git fetch origin
+git tag -a v2026.11.13.1 -m "<what changed>" origin/main
+git push origin v2026.11.13.1
+```
+
+On the VM, from the repository's checkout:
+
+```sh
+bash infra/release-vm.sh v2026.11.13.1
+```
+
+The script refuses a checkout with changes, a tag that is not annotated, differs from GitHub's or is not on `main`, and an image whose label names another commit. It checks out the tag (the checkout stays there), builds the scheduler image tagged by the release's commit and the routing image tagged by the last commit that changed what routing is built from, records all three in `.env` with both pull policies at `missing`, and starts the stack with `up -d --wait`, migrations first. An image already on the VM is reused, not rebuilt, so a release that leaves routing alone does not restart it or reload the road graph, and a rollback starts at once. A later `docker compose up` (after changing `.env`, say) stays on the recorded release.
+
+Each release can be read back four ways:
+
+- **The VM's record:** `deploy/vm/releases.log` gets one line per release: its UTC time, tag, commits and the release it replaced.
+- **A replica:** `/health` answers its `release` and `revision`, and its start logs `Scheduler release <tag> at commit <commit>`.
+- **An image:** `docker image inspect` shows the labels `org.opencontainers.image.version` (the tag) and `org.opencontainers.image.revision` (the commit).
+- **The VM's settings:** `SCHEDULER_RELEASE`, `SCHEDULER_REVISION` and `ROUTING_REVISION` in `.env`.
+
+A host's bug report carries the time, the `requestId` and `X-Scheduler-Version`; `releases.log` turns the time into the build that answered.
+
 ## Containers and images
 
-The scheduler, routing and solver images run as uid 10001, and Compose drops every Linux capability from them and sets `no-new-privileges` (the `x-hardened` block in `deploy/vm/docker-compose.yml`); Prometheus runs the same way as `nobody`. The proxy's nginx master starts as root to run its workers as `nginx`, and keeps only `CHOWN`, `DAC_OVERRIDE`, `SETGID` and `SETUID`. Postgres and Nominatim keep their images' defaults, because their entrypoints switch users as root; neither is published.
+The scheduler and routing images run as uid 10001, and Compose drops every Linux capability from them and sets `no-new-privileges` (the `x-hardened` block in `deploy/vm/docker-compose.yml`); Prometheus runs the same way as `nobody`. The proxy's nginx master starts as root to run its workers as `nginx`, and keeps only `CHOWN`, `DAC_OVERRIDE`, `SETGID` and `SETUID`. Postgres and Nominatim keep their images' defaults, because their entrypoints switch users as root; neither is published.
 
 Every image from a registry is pinned by digest beside its tag (`nginx:1.31.8-alpine@sha256:...`) in the Compose files and Dockerfiles, so a rebuild or a new VM runs exactly the image that was tested. `infra/test_container_hardening.py` checks that every reference is pinned and that one tag carries one digest in every file. Dependabot proposes new versions and digests weekly, Dockerfiles and Compose files in separate pull requests; when one fails that test, copy its new digest into the files the other covers. CI's **VM stack over HTTPS** job builds the sandbox stack from the pull request and checks it through the proxy (`infra/check-vm-stack.sh`: users and capabilities, Prometheus's configuration and scraping, TLS versions and HTTP/2, the JSON refusals, the conformance kit and the 503 with no replica), so an image bump is exercised before it merges. The same script runs from Git Bash or Linux with `bash infra/check-vm-stack.sh`. A Prometheus major version needs one more look: its data volume may not open in the older version once it has run for a while. To move a pin by hand, read the digest, replace it in every file that names the image, then let CI run or run the script:
 
@@ -169,7 +202,7 @@ docker buildx imagetools inspect nginx:1.27.5-alpine --format '{{.Manifest.Diges
 
 ## Health
 
-`GET /health` on a replica's API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
+`GET /health` on a replica's API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role`, the `release` and `revision` it was built from ("Releases"), and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
 
 - **`database`**
   - **Checked:** `SELECT 1`.
@@ -307,6 +340,11 @@ The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs mor
   - **When it stops:** The proxy stops sending it calls within 10 seconds. A synchronous call it was serving is lost; a queued day it was running is taken by another replica's worker once its lease passes (at most three attempts).
   - **What the host sees:** The call in progress fails or times out; later calls go to the other replicas.
   - **Recovery:** None needed with two or more replicas per pool. With one, start it again.
+- **A hung scheduler replica** (running but not answering, such as a stuck JVM)
+  - **How many:** One or more per pool.
+  - **When it hangs:** Docker marks it unhealthy after about 40 seconds but neither restarts it nor drops it from its DNS, so the proxy still sends it calls. The proxy's own failure count decides instead: a booking-pool call it does not answer within 60 seconds answers the retryable 503, and the replica sits out for 30 seconds while the others answer, after which one call tries it again. A daily-pool call waits up to 300 seconds, since a synchronous proposal may route and solve for 50. Measured on the sandbox with two booking replicas, one paused: before this, about half the calls waited on the hung replica.
+  - **What the host sees:** One call at a time answers 503 after the wait; the rest go to the other replicas. With one replica in the pool, which is the default layout, every call to that pool waits and answers 503, because nothing else can answer.
+  - **Recovery:** Restart the replica (`docker restart <container>`). Watch for `unhealthy` in `docker compose ps` or the `up` metric in Prometheus, since nothing restarts it automatically.
 - **Postgres (`scheduler-db`)**
   - **How many:** One.
   - **When it stops:** Nothing can be claimed, published or committed. Work in a transaction is rolled back, never half written.

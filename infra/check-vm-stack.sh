@@ -9,8 +9,9 @@
 #
 # It checks that every service is healthy and runs with the users and capabilities deploy/vm/docker-compose.yml sets;
 # that Prometheus accepts its configuration and scrapes both pools; the proxy's TLS versions, HTTP/2 and JSON refusals;
-# the conformance kit over HTTPS; and the proxy's 503 when no replica answers. The kit's token lives only in this
-# process's environment and is revoked at the end. The stack is left stopped but in place for its logs; remove it with
+# the conformance kit over HTTPS; that a hung booking replica is taken out of rotation; and the proxy's 503 when no
+# replica answers. The kit's token lives only in this process's environment and is revoked at the end. The stack is
+# left stopped but in place for its logs; remove it with
 #   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env \
 #     --profile monitoring down -v
 set -euo pipefail
@@ -115,6 +116,29 @@ if (cd infra/host-conformance && NODE_EXTRA_CA_CERTS="$ca" npx tsx conformance.t
 else fail "conformance kit (report in $out/kit)"; fi
 unset SCHEDULER_STUDY_TOKEN
 "${compose[@]}" run --rm -T scheduler-admin --command=revoke-token "$token_id" > /dev/null && pass "kit token revoked" || fail "kit token $token_id not revoked"
+
+echo "== A hung booking replica"
+# Docker marks a hung replica unhealthy but its DNS keeps listing it; nginx's failure count is what takes it out of
+# rotation (deploy/vm/nginx.conf). One call waits out the booking read timeout and answers the retryable 503; the
+# next calls reach the healthy replica at once.
+"${compose[@]}" up -d --wait --wait-timeout 300 --scale scheduler-booking=2 --no-recreate scheduler-booking > /dev/null 2>&1
+# nginx looks the pool up again every 10 s (resolver valid=10s); wait until the new replica is in the group.
+sleep 12
+hung_replica=$("${compose[@]}" ps -q scheduler-booking | tail -n 1)
+docker pause "$hung_replica" > /dev/null
+held=""
+for _attempt in 1 2 3 4; do
+  answer=$(curl --silent --output "$out/body" --write-out '%{http_code}' --max-time 75 "$private/api/v1/whoami")
+  if [ "$answer" = 503 ]; then held=503; break; fi
+done
+expect "a call held by the hung replica answers 503" 503 "$held"
+grep -q '"retryable":true' "$out/body" && pass "that 503 is a retryable Problem" || fail "that 503 is not a retryable Problem"
+fast=0
+for _attempt in $(seq 1 10); do
+  [ "$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "$private/api/v1/whoami")" = 401 ] && fast=$((fast + 1))
+done
+expect "the next calls skip the hung replica" 10 "$fast"
+docker unpause "$hung_replica" > /dev/null
 
 echo "== No replica answering"
 "${compose[@]}" stop scheduler-booking scheduler-daily > /dev/null 2>&1

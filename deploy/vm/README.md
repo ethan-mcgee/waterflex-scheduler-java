@@ -34,13 +34,13 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
    ```
 
    Set `ACTIVE_MAP_VERSION=<version>` in `.env`. `routing-omaha` runs as uid 10001 and mounts this volume read-only, so the copied files only need to be readable by every user, as `prepare-map.ps1` leaves them and `cp -a` keeps them. A version without both prepared graphs stops `routing-omaha` at start (`No prepared road graph in ...`).
-4. Start the VM:
+4. Start the VM on a release, an annotated tag on `main` (the runbook's "Releases" says how to make one):
 
    ```sh
-   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d
+   bash infra/release-vm.sh <tag>
    ```
 
-   `scheduler-admin` migrates the database and exits; both pools start after it, and `scheduler-proxy` in front of them. Loading the road graph takes minutes, and `/health` answers 503 until routing is up.
+   It checks out the tag, builds the images tagged by its commit, records the release in `.env` and starts the stack. `scheduler-admin` migrates the database and exits; both pools start after it, and `scheduler-proxy` in front of them. Loading the road graph takes minutes, and `/health` answers 503 until routing is up.
 5. Check readiness from the VM on the proxy's private listener: `curl http://127.0.0.1:8000/health` answers 200 with `"role":"booking"` and `database`, `schema` and `routing:metro-omaha` up, and `curl http://127.0.0.1:8000/health/daily` the same with `"role":"daily"`. `docker compose ... ps` shows each replica healthy.
 6. Issue a token for each WaterFlex Software client and hand it over through a secret channel:
 
@@ -54,7 +54,7 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
 
 ## Upgrade
 
-Pull the new revision, then `docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d --build`. `scheduler-admin` applies new migrations before the new scheduler starts.
+Tag the new release from a workstation, then run `bash infra/release-vm.sh <tag>` on the VM. `scheduler-admin` applies new migrations before the new scheduler starts, and `/health` answers the new `revision` once it serves. Rolling back is the same command with the earlier tag; the runbook's "Start, stop and upgrade" lists what a rollback past a migration needs.
 
 ## Scaling the pools
 
