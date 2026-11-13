@@ -6,11 +6,11 @@ Proves, against a running scheduler and over its public API only, that the sched
 
 - Node 22 or newer.
 - A scheduler reachable at its API address, with a routing service for the metro you name.
-- A token for a **dedicated tenant**, for example `conformance`. The kit creates and confirms bookings and commits proposals under its own technician IDs on dates two to five days ahead; each booking search replaces the tenant's booking state for its metro and date, so never run it with a tenant that serves real customers. Issue the token on the scheduler host and store it in a file readable only by you:
+- A token for a **dedicated tenant**, for example `conformance`. The kit creates and confirms bookings and commits proposals under its own technician IDs on dates two to five days ahead; each booking search replaces the tenant's booking state for its metro and date, so never run it with a tenant that serves real customers. Issue the token on the scheduler host and keep it in your secret store or your shell's environment, never in a file:
 
   ```sh
-  java -jar scheduler-service.jar --command=issue-token conformance "Conformance kit" "go-live check" \
-    | sed -n 's/^token: //p' > conformance.token
+  export SCHEDULER_STUDY_TOKEN="$(java -jar scheduler-service.jar --command=issue-token conformance "Conformance kit" "go-live check" \
+    | sed -n 's/^token: //p')"
   ```
 
   On the scheduler VM, run the same command through the `scheduler-admin` service (see `deploy/vm/README.md`). Revoke it with `--command=revoke-token <id>` when you are done.
@@ -20,14 +20,14 @@ Proves, against a running scheduler and over its public API only, that the sched
 ```sh
 cd infra/host-conformance
 npm ci
-npx tsx conformance.ts --url https://scheduler.internal.example --token-file ./conformance.token \
+npx tsx conformance.ts --url https://scheduler.internal.example --token-env SCHEDULER_STUDY_TOKEN \
   --metro metro-omaha --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95
 ```
 
 The command's options:
 
 - **`--url`:** The scheduler's base URL, without `/api/v1`.
-- **`--token-file`:** File holding the dedicated tenant's token (`wfs_` and 43 characters), or `-` to read it from standard input so it is never written to a file.
+- **`--token-env`:** The environment variable holding the dedicated tenant's token (`wfs_` and 43 characters). Or **`--token-file -`** to read it from standard input, piped from a secret store; `--token-file <file>` also works but leaves the token on disk. Give exactly one; the tools share this rule (`src/token.ts`).
 - **`--metro`:** A metro the scheduler routes (one of its `ROUTING_METRO_URLS`).
 - **`--time-zone`:** The metro's IANA time zone; dates and shifts are local to it.
 - **`--area south,west,north,east`:** A box of streets inside the metro, at most one degree each way. The kit places its technicians, visits and jobs at fixed points spread over it, the same on every run. Keep it to an area where any two points are well under an hour's drive apart.
@@ -60,7 +60,7 @@ Every response body is checked against the spec's schema exactly: an unknown or 
 `load.ts` drives a scheduler with concurrent work over the same public API, for capacity planning and before and after performance changes. It uses the same kind of dedicated tenant and token, never a client's.
 
 ```sh
-npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --metro metro-omaha   --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60   --metrics-url http://127.0.0.1:9000/actuator/prometheus --docker <routing container>
+npx tsx load.ts --url http://127.0.0.1:8000 --token-env SCHEDULER_STUDY_TOKEN --metro metro-omaha   --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60   --metrics-url http://127.0.0.1:9000/actuator/prometheus --docker <routing container>
 ```
 
 - **booking:** each of `--concurrency` desks books like a host: a search over `--horizon-days` dates (from two days ahead) for a new 60-minute job, then either releases the offers or (`--confirm-rate`, default 0.3) selects the first, confirms it against fresh records and writes the receipt with a compare-and-set. The records live in an in-memory host (`src/load/host.ts`): `--technicians` per date with `--appointments` visits each, every write stamping a new `lastModified`, so concurrent desks see each other's bookings as a real host would.

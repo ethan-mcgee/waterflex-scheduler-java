@@ -27,6 +27,7 @@ public final class SchedulerCommands {
               issue-token <tenantId> <name> <label>     issue a token, creating the tenant if needed; printed once
               revoke-token <tokenId>                    revoke a token
               list-tenants                              list tenants with their active token counts
+              list-tokens <tenantId>                    list a tenant's token IDs, labels and dates (never a token)
               disable-tenant <tenantId>                 refuse every token of the tenant (401)
               enable-tenant <tenantId>                  accept the tenant's active tokens again
               bootstrap-local-tokens <clients.json> <dir>
@@ -99,6 +100,15 @@ public final class SchedulerCommands {
                 if (!args.isEmpty()) return null;
                 for (var tenant : new TenantAdministration(owner(env)).tenants())
                     out.println(tenant.id() + "\t" + tenant.name() + "\t" + (tenant.disabled() ? "disabled" : "enabled") + "\t" + tenant.activeTokens() + " active token(s)");
+                return 0;
+            }
+            case "list-tokens" -> {
+                if (args.size() != 1) return null;
+                for (var token : new TenantAdministration(owner(env)).tokens(arg(args, 0))) {
+                    var revoked = token.revokedAt();
+                    out.println(token.id() + "\t" + token.label() + "\tcreated " + token.createdAt() + "\t"
+                            + (revoked == null ? "active" : "revoked " + revoked));
+                }
                 return 0;
             }
             case "disable-tenant", "enable-tenant" -> {

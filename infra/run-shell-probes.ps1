@@ -5,7 +5,7 @@
 # seconds (one arm per pause length; 0 is the baseline). Answers whether the Hikari connect and validation timeouts
 # (250 ms each) turn a short database stall into 429 BUSY or 503 answers, and how many. About 12 minutes.
 #   powershell -ExecutionPolicy Bypass -File infra/run-shell-probes.ps1 -Probe db-stall -Url http://127.0.0.1:8000 `
-#     -TokenFile .scratch/loadtest.token -Stack 'local compose, Omaha routing' -Database waterflex-scheduler-java-scheduler-db-1
+#     -Stack 'local compose, Omaha routing' -Database waterflex-scheduler-java-scheduler-db-1
 #
 # daily-thread: two queued daily proposals with long searches (both background lanes of a daily replica busy) while
 # /health is read every second. Answers whether CPU-bound solves starve the replica's virtual threads (health checks,
@@ -13,11 +13,13 @@
 # thread change, on a daily replica limited to 2 CPUs with background limit 2 and 2 queue workers
 # (SCHEDULER_SEARCH_BACKGROUNDLIMIT=2, SCHEDULER_DAILY_QUEUE_WORKERS=2; one worker runs one solve at a time). About 8 minutes.
 #   powershell -ExecutionPolicy Bypass -File infra/run-shell-probes.ps1 -Probe daily-thread -Url http://127.0.0.1:8000 `
-#     -TokenFile .scratch/loadtest.token -Stack 'daily replica, 2 CPUs, background limit 2, build <sha>' -Name platform-thread
+#     -Stack 'daily replica, 2 CPUs, background limit 2, build <sha>' -Name platform-thread
 param(
     [Parameter(Mandatory)][ValidateSet('db-stall', 'daily-thread')][string]$Probe,
     [Parameter(Mandatory)][string]$Url,
-    [Parameter(Mandatory)][string]$TokenFile,
+    # The environment variable holding the study's token, set in your session before the run (docs/operations-runbook.md,
+    # Tokens); the script never reads a token from a file.
+    [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]*$')][string]$TokenEnv = 'SCHEDULER_STUDY_TOKEN',
     # What the scheduler under test is, recorded in the evidence (build, capacity, CPUs, routing).
     [Parameter(Mandatory)][string]$Stack,
     [string]$MetricsUrl = '',
@@ -36,6 +38,7 @@ param(
     [ValidatePattern('^[a-z0-9-]*$')][string]$Name = ''
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
@@ -44,9 +47,9 @@ $evidence = Join-Path $repository "research/evidence/shell-probe-$stamp-$Probe$s
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/shell-probe-$Probe-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
-$token = (Resolve-Path -LiteralPath $TokenFile).Path
+Assert-StudyTokenVariable $TokenEnv
 try { Invoke-WebRequest "$Url/health" -UseBasicParsing -TimeoutSec 5 | Out-Null } catch { throw "The scheduler at $Url is not answering /health" }
-$common = @('--url', $Url, '--token-file', $token, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area)
+$common = @('--url', $Url, '--token-env', $TokenEnv, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area)
 if ($MetricsUrl -ne '') { $common += @('--metrics-url', $MetricsUrl) }
 
 # Reads /health once a second until the stop file appears; one line per read: elapsed ms, status, components down.
