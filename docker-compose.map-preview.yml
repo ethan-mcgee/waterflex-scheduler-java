@@ -28,7 +28,7 @@ services:
     volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:18001:8001"]
   tiles-preview:
-    image: protomaps/go-pmtiles:v1.22.1@sha256:33fc389ed4f7e13ed08529dd90eb97d670ce999339486e8442efb2b231172b38
+    image: protomaps/go-pmtiles:v1.31.2@sha256:06574f01f55a78f78f887bc7ebf729a5c093c0d6e17d9876300cfcb0758b59d3
     command: ["serve", "/maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}", "--public-url=http://localhost:18083", "--cors=http://localhost:13000"]
     volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:18083:8080"]
