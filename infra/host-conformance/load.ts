@@ -92,7 +92,9 @@ function settings() {
   if ((text("area") === undefined) === (text("points") === undefined)) throw new UsageError("Give exactly one of --area and --points fixture");
   if (text("points") !== undefined && text("points") !== "fixture") throw new UsageError("--points takes only the value fixture");
   let token: string;
-  try { token = readFileSync(required("token-file"), "utf8").trim(); } catch (error) {
+  const tokenFile = required("token-file");
+  // "-" reads standard input, so a token piped from a secret store is never written to a file.
+  try { token = readFileSync(tokenFile === "-" ? 0 : tokenFile, "utf8").trim(); } catch (error) {
     if (error instanceof UsageError) throw error;
     throw new UsageError(`Cannot read --token-file: ${error instanceof Error ? error.message : String(error)}`);
   }

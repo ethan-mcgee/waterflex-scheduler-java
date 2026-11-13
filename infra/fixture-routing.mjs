@@ -95,4 +95,7 @@ const server = createServer(async (request, response) => {
 
 const port = Number(process.env.FIXTURE_ROUTING_PORT ?? "18001");
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Invalid fixture routing port");
-server.listen(port, "127.0.0.1");
+// Loopback by default (CI); the scheduler sandbox (deploy/vm/sandbox.override.yml) runs it in a container on 0.0.0.0.
+const host = process.env.FIXTURE_ROUTING_HOST ?? "127.0.0.1";
+if (host !== "127.0.0.1" && host !== "0.0.0.0") throw new Error("FIXTURE_ROUTING_HOST must be 127.0.0.1 or 0.0.0.0");
+server.listen(port, host);

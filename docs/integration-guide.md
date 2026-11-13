@@ -4,6 +4,8 @@ For the WaterFlex Software engineers who connect the product to the scheduler. I
 
 The portal in `web/` is a working client of this API and the reference for every step below: it builds snapshots (`web/lib/clientSnapshot.ts`), books (`web/lib/apiBooking.ts`), writes receipts with a compare-and-set (`web/lib/apiReceipt.ts`), and runs an overnight schedule (`web/lib/overnightCore.ts`, `web/scripts/overnight-worker.ts`).
 
+To build and test against the scheduler before its VM exists, run the [scheduler sandbox](host-sandbox.md) on your own machine: the real scheduler with fixed road points, started with one command.
+
 > **Before production traffic:** TLS is not set up yet (deferred by owner decision on 2026-10-13). See [step 10](#10-security-preconditions-before-full-integration). Until it is, run the integration only on a private network.
 
 ## 1. Topology and ownership
@@ -363,8 +365,9 @@ The scheduler never changes your records. For changes that move existing work, c
 
 ## 9. Proving the integration
 
-1. Run the [host conformance kit](../infra/host-conformance/README.md) from your network against the scheduler, with a token for a dedicated `conformance` tenant. It exercises every endpoint, sequence and refusal in this guide and writes a pass/fail report; `src/snapshot.ts` and `src/cases.ts` are compact examples of each call.
-2. Prove your own snapshot builder: send a real day of each client to `routes/evaluate` and compare the timed routes with your schedule; then book, confirm and write a receipt end to end on a test client.
+1. Develop against the [scheduler sandbox](host-sandbox.md), and run the kit against it as that page shows.
+2. Run the [host conformance kit](../infra/host-conformance/README.md) from your network against the scheduler, with a token for a dedicated `conformance` tenant. It exercises every endpoint, sequence and refusal in this guide and writes a pass/fail report; `src/snapshot.ts` and `src/cases.ts` are compact examples of each call.
+3. Prove your own snapshot builder: send a real day of each client to `routes/evaluate` and compare the timed routes with your schedule; then book, confirm and write a receipt end to end on a test client.
 
 Before go-live, check that:
 

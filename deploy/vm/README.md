@@ -16,6 +16,8 @@ The scheduler runs on its own VM with a fixed share of compute and is reached on
 
 Each service has `deploy.resources` limits set from `.env`, so the VM's partition is explicit; a pool's limits apply to each of its replicas. Both pools run the same image and every replica answers every route, so a call that reaches the other pool still gets the right answer. Running it is covered by [the operations runbook](../../docs/operations-runbook.md).
 
+`sandbox.override.yml` with `sandbox.env` runs the same stack on a developer's machine, with a fixture router in place of `routing-omaha`, for WaterFlex Software developers to build against before the VM exists; see the [scheduler sandbox](../../docs/host-sandbox.md). `rehearsal.override.yml` is the owner's local rehearsal of the VM with the development stack's routing.
+
 ## Before production traffic
 
 TLS is not set up (deferred by owner decision). Terminate TLS in front of the API port before WaterFlex Software sends real traffic; the runbook lists every connection that must be encrypted. Until then, bind the API only to the private interface (`SCHEDULER_API_BIND`).
