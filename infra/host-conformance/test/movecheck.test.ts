@@ -63,6 +63,13 @@ test("drags that fail a check are named and left out of the statistics", () => {
   assert.match(stepTables(groups(joined), "median"), /not measured/);
 });
 
+test("a drag under a simulated delay that came back faster than the delay is left out", () => {
+  const rows = parseRows(jsonl([row(0, { delayMs: 100 }), row(1, { delayMs: 20 })]));
+  const { joined } = join(rows, evaluateLines([logged(1, "move-timing", 20, 0), logged(2, "move-timing", 20, 0)].join("\n"), "move-timing"));
+  assert.match(joined[0]?.invalid ?? "", /the request took 44.0 ms under a \+100 ms delay/);
+  assert.equal(joined[1]?.invalid, null, "a 44 ms request under a 20 ms delay is plausible");
+});
+
 test("discarded warm-up drags are not summarized, and tables are aligned", () => {
   const { joined } = join(parseRows(jsonl([row(0, { case: "warmup", discarded: true }), row(1)])),
     evaluateLines([logged(1, "move-timing", 20, 0), logged(2, "move-timing", 20, 0)].join("\n"), "move-timing"));

@@ -95,6 +95,8 @@ function invalidity(row: DragRow, line: StampedLine | null, steps: Steps): strin
   if (row.outcome !== row.expected) return `answered ${row.outcome}, expected ${row.expected}`;
   if (row.resource === null) return "no Resource Timing entry for the request";
   if (steps.portalTotal === null || steps.schedulerCall === null) return "no portal Server-Timing phases";
+  // Chromium adds the emulated latency to each request, so a request faster than the delay never had it applied.
+  if (row.resource.duration < row.delayMs) return `the request took ${row.resource.duration.toFixed(1)} ms under a +${row.delayMs} ms delay`;
   if (!sequential(row)) return null;
   if (line === null) return null;
   if (line.status !== 200) return `the scheduler answered ${line.status}`;

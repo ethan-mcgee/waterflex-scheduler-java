@@ -102,11 +102,17 @@ async function drag(page: Page, plan: TimingPlan, date: string, moving: string, 
   return record;
 }
 
-/** Simulated browser-to-portal latency on this page's network, through Chromium's DevTools protocol. */
-async function simulateDelay(page: Page, latencyMs: number) {
+/**
+ * Simulated browser-to-portal latency on one page's network, through Chromium's DevTools protocol. Every change goes
+ * through the one session opened here: Chromium 156 ignores the conditions sent by a third or later session on the
+ * same page, which silently left every delay case of the first full run at +20 ms or less.
+ */
+async function delaySimulator(page: Page): Promise<(latencyMs: number) => Promise<void>> {
   const session = await page.context().newCDPSession(page);
   await session.send("Network.enable");
-  await session.send("Network.emulateNetworkConditions", { offline: false, latency: latencyMs, downloadThroughput: -1, uploadThroughput: -1 });
+  return async latencyMs => {
+    await session.send("Network.emulateNetworkConditions", { offline: false, latency: latencyMs, downloadThroughput: -1, uploadThroughput: -1 });
+  };
 }
 
 test("move check timing", async ({ browser, baseURL }) => {
@@ -116,6 +122,7 @@ test("move check timing", async ({ browser, baseURL }) => {
   if (warm === undefined) throw new Error("The plan has no warm day");
   const { context, page } = await newPage(browser, baseURL, plan);
   await openWeek(page, plan, warm.date);
+  const simulateDelay = await delaySimulator(page);
 
   // The first check after the portal starts also verifies the client's token with the scheduler and is cold.
   await drag(page, plan, warm.date, warm.moving, "roomy", { case: "first", delayMs: 0, rep: 0 });
@@ -123,11 +130,11 @@ test("move check timing", async ({ browser, baseURL }) => {
     await drag(page, plan, warm.date, warm.moving, rep % 2 === 0 ? "full" : "roomy", { case: "warmup", delayMs: 0, rep });
 
   for (const delayMs of DELAYS) {
-    await simulateDelay(page, delayMs);
+    await simulateDelay(delayMs);
     for (let rep = 0; rep < WARM_REPS; rep++)
       for (const target of ["roomy", "full"] as const) await drag(page, plan, warm.date, warm.moving, target, { case: "warm", delayMs, rep });
   }
-  await simulateDelay(page, 0);
+  await simulateDelay(0);
 
   let rep = 0;
   for (const day of plan.days.filter(item => item.kind !== "warm")) {
