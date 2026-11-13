@@ -68,25 +68,47 @@ public final class SearchDeadline {
         if (remaining == 0) throw new Expired();
         return Required.value(Duration.ofNanos(Math.min(remaining, maximum.toNanos())));
     }
-    public <T> T within(Supplier<T> work) {
+    /** Runs the work under this deadline and hands its measurements to the observer on this thread when it ends. */
+    public <T> T within(Supplier<T> work) { return run(work, true); }
+
+    /**
+     * Runs the work under this deadline without notifying the observer: for a worker thread whose caller publishes the
+     * measurements on the request thread ({@link #publish}) once it has the result.
+     */
+    public <T> T withinUnobserved(Supplier<T> work) { return run(work, false); }
+
+    private <T> T run(Supplier<T> work, boolean notify) {
         if (CURRENT.get() != null) throw new IllegalStateException("Nested booking deadline");
         CURRENT.set(this);
         try { return work.get(); }
         finally {
             CURRENT.remove();
             endCommit();
+            SearchTelemetry.Measurements measured = telemetry.snapshot();
+            finished = measured;
             java.util.function.Consumer<SearchTelemetry.Measurements> listener = observer;
-            if (listener != null) listener.accept(telemetry.snapshot());
+            if (notify && listener != null) listener.accept(measured);
         }
     }
+
+    /** The measurements taken when the work under this deadline ended; null while it runs or before it starts. */
+    private volatile SearchTelemetry.@Nullable Measurements finished;
+    public SearchTelemetry.@Nullable Measurements finished() { return finished; }
 
     private static volatile java.util.function.@Nullable Consumer<SearchTelemetry.Measurements> observer;
 
     /**
      * Receives every finished deadline's measurements on the thread that ran it, whether the work returned or threw
-     * (the request log reads them). One observer per process; null removes it.
+     * (the request log reads them), and those a caller publishes for work that ran on another thread. One observer per
+     * process; null removes it.
      */
     public static void observe(java.util.function.@Nullable Consumer<SearchTelemetry.Measurements> listener) { observer = listener; }
+
+    /** Hands measurements taken on another thread to the observer on this thread; nothing when there are none. */
+    public static void publish(SearchTelemetry.@Nullable Measurements measured) {
+        java.util.function.Consumer<SearchTelemetry.Measurements> listener = observer;
+        if (measured != null && listener != null) listener.accept(measured);
+    }
     /** Calculation scoring must depend on facts, not a caller's request clock. */
     public static <T> T withoutRequestClock(Supplier<T> work) {
         SearchDeadline previous = CURRENT.get();

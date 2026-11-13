@@ -12,9 +12,35 @@ public final class SearchTelemetry {
     /** {@code commitNanos} is null for a call that never began its commit phase (it failed or finished before it). */
     public record Measurements(long databaseExecutions, long databaseNanos, long lockStatementNanos,
             long routingPairs, long memoryHits, long persistentHits, long sharedRoutingPairs,
-            @Nullable Long foregroundCpuNanos, long routingNanos, long calculationNanos, long admissionNanos, @Nullable Long commitNanos) { }
-    private final long cpuStarted = cpu();
-    private final long ownerThread = Thread.currentThread().threadId();
+            @Nullable Long foregroundCpuNanos, long routingNanos, long calculationNanos, long admissionNanos, @Nullable Long commitNanos) {
+        /**
+         * One call's measurements from two deadlines, such as a daily proposal's routing on the request thread and its
+         * search on a worker. Commit time is null only when neither committed; CPU time is null when either thread's is
+         * unknown, so a partial CPU figure is never reported as the whole.
+         */
+        public Measurements plus(Measurements other) {
+            Long commit = commitNanos, otherCommit = other.commitNanos();
+            Long cpu = foregroundCpuNanos, otherCpu = other.foregroundCpuNanos();
+            return new Measurements(databaseExecutions + other.databaseExecutions(), databaseNanos + other.databaseNanos(),
+                    lockStatementNanos + other.lockStatementNanos(), routingPairs + other.routingPairs(), memoryHits + other.memoryHits(),
+                    persistentHits + other.persistentHits(), sharedRoutingPairs + other.sharedRoutingPairs(),
+                    cpu == null || otherCpu == null ? null : cpu + otherCpu,
+                    routingNanos + other.routingNanos(), calculationNanos + other.calculationNanos(), admissionNanos + other.admissionNanos(),
+                    commit == null && otherCommit == null ? null : (commit == null ? 0L : commit) + (otherCommit == null ? 0L : otherCommit));
+        }
+    }
+    /** CPU time is measured on the owner thread: the one that created the telemetry, or the one that adopted it. */
+    private long cpuStarted = cpu();
+    private long ownerThread = Thread.currentThread().threadId();
+
+    /**
+     * Makes the calling thread the owner, so a worker that runs the whole deadline reports its own CPU time. Call it on
+     * that worker before any work is measured.
+     */
+    public void adoptCurrentThread() {
+        cpuStarted = cpu();
+        ownerThread = Thread.currentThread().threadId();
+    }
     private long databaseExecutions, databaseNanos, lockStatementNanos, routingPairs, memoryHits, persistentHits, sharedRoutingPairs;
     private long routingNanos, calculationNanos, admissionNanos;
     private @Nullable Long commitNanos;
