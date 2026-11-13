@@ -32,6 +32,8 @@ infra/fixtures/
 deploy/vm/rehearsal.env
 # The VM's TLS certificate and key (deploy/vm/README.md, "TLS certificate").
 deploy/vm/tls/
+# What infra/release-vm.sh deployed on this VM and when.
+deploy/vm/releases.log
 *.token
 *.pem
 *.key
