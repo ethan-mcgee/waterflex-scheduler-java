@@ -249,7 +249,6 @@ These come from upstream images or tools and need no action: Nominatim's `ASGI a
 
 - Manual reassignment is not exposed in the dispatch UI; optimization proposals and guarded apply are the supported route-change path.
 - The `/time-off` technician selector and staff controls do not authenticate anyone.
-- TLS is not set up on the VM yet; see [deploy/vm/README.md](deploy/vm/README.md#before-production-traffic).
 
 ## Contributing
 

@@ -30,6 +30,8 @@ infra/fixtures/
 /portal-api-tokens*.env
 # The scheduler VM rehearsal's local secrets (deploy/vm/rehearsal.override.yml).
 deploy/vm/rehearsal.env
+# The VM's TLS certificate and key (deploy/vm/README.md, "TLS certificate").
+deploy/vm/tls/
 *.token
 *.pem
 *.key

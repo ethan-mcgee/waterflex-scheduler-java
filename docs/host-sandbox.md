@@ -7,7 +7,7 @@ The sandbox runs the scheduler on a developer's own machine, so WaterFlex Softwa
 - **Roads:** The fixture router routes only the 15 points listed under "Fixture points", and times every leg between two different points at 10 minutes and 3 km. Build every location in a sandbox snapshot from those points.
 - **Unknown coordinates:** A snapshot with any other coordinate gets 503 `ROUTING_UNAVAILABLE` with `retryable: true`. Only the sandbox answers that for this reason; do not retry it, use a fixture point.
 - **Metro:** The one served metro is `sandbox`. Locations must carry coordinates (`GEOCODING_MODE=COORDINATES_REQUIRED`).
-- **Transport:** Plain HTTP on loopback, at `http://127.0.0.1:18090/api/v1`. The VM will be reached over HTTPS.
+- **Transport:** Plain HTTP at `http://127.0.0.1:18090/api/v1`, and HTTPS at `https://127.0.0.1:18091/api/v1` with a self-signed certificate the sandbox makes for `localhost` and `127.0.0.1` ("Call it over HTTPS"). The VM answers over HTTPS only, with a certificate your systems trust.
 - **Retention:** Requests, proposals, offers and receipts are purged after 7 days.
 - **Tokens:** Sandbox tokens work only on the sandbox that issued them. The VM's operator issues your real tokens.
 
@@ -158,6 +158,19 @@ $token | npx tsx conformance.ts --url http://127.0.0.1:18090 --token-file - --me
 ```
 
 On the sandbox the whole kit takes under a minute.
+
+## Call it over HTTPS
+
+To exercise your client's TLS settings before the VM exists, copy the sandbox's certificate out and trust it in your client. The kit runs on Node, which reads extra trusted certificates from `NODE_EXTRA_CA_CERTS`. From the root of this repository, with `$token` issued as above:
+
+```powershell
+docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/sandbox.override.yml --env-file deploy/vm/sandbox.env cp scheduler-proxy:/etc/nginx/tls/fullchain.pem "$env:TEMP\sandbox-ca.pem"
+$env:NODE_EXTRA_CA_CERTS = "$env:TEMP\sandbox-ca.pem"
+cd infra/host-conformance
+$token | npx tsx conformance.ts --url https://127.0.0.1:18091 --token-file - --metro sandbox --time-zone America/Chicago --points fixture --out <report-directory>
+```
+
+The certificate is made on the first start and kept until `down -v`. Never turn certificate checks off in your client to reach the sandbox: the VM's certificate is checked the same way.
 
 ## Stop or reset it
 

@@ -6,7 +6,7 @@ The portal in `web/` is a working client of this API and the reference for every
 
 To build and test against the scheduler before its VM exists, run the [scheduler sandbox](host-sandbox.md) on your own machine: the real scheduler with fixed road points, started with one command.
 
-> **Before production traffic:** TLS is not set up yet (deferred by owner decision on 2026-10-13). See [step 10](#10-security-preconditions-before-full-integration). Until it is, run the integration only on a private network.
+> **Transport:** The scheduler VM answers over HTTPS only (TLS 1.2 or 1.3), with a certificate for the name you call. [Step 10](#10-security-preconditions-before-full-integration) lists the other security preconditions.
 
 ## 1. Topology and ownership
 
@@ -15,7 +15,7 @@ Your backend keeps the master data and every appointment and calls the scheduler
 ```text
  WaterFlex Software backend                       Scheduler VM (partitioned CPU and memory)
  +------------------------------+  HTTPS /api/v1  +-----------------------------------------------+
- | master data and the record   | --------------> | scheduler-proxy :8000 --> booking/daily pool  |
+ | master data and the record   | --------------> | scheduler-proxy :443 --> booking/daily pool   |
  | of every appointment         | snapshot + call |   |  scheduler replicas, embedded engine      |
  |                              | <-------------- |   +--> routing-service per metro (private)    |
  | writes receipts with a       | offers, routes, |   +--> Nominatim (optional, private)          |
@@ -371,7 +371,7 @@ The scheduler never changes your records. For changes that move existing work, c
 
 Before go-live, check that:
 
-- [ ] TLS is in place for every connection in step 10.
+- [ ] The VM's certificate is valid for the name you call, your client checks it, and its renewal is scheduled (runbook, "Rotate the certificate").
 - [ ] Each client has its own tenant token, stored as a secret, with a rotation procedure.
 - [ ] Every served metro is in `ROUTING_METRO_URLS`, and its routing `/health` is up.
 - [ ] `lastModified` moves on every change listed in section 3, including both sides of a move (tested).
@@ -385,14 +385,14 @@ Before go-live, check that:
 
 ## 10. Security preconditions before full integration
 
-TLS is deferred by owner decision (2026-10-13) and is **required before production traffic**. Until then the API must be bound only to a private interface (`SCHEDULER_API_BIND`). Encrypt:
+TLS terminates at the scheduler VM's proxy (`scheduler-proxy`), with the operator's certificate for the name you call. The connections and how each is protected:
 
-- **WaterFlex Software to the scheduler API (port 8000):** Terminate TLS at a reverse proxy in front of 8000, or in the JVM with Spring Boot's `server.ssl.*` settings. Bearer tokens travel in every request, so this one is mandatory.
-- **Scheduler to routing services:** Plain http with a bearer token (`ROUTING_AUTH_TOKEN`) today; fine on the VM's internal network, encrypted if a routing service ever runs elsewhere.
+- **WaterFlex Software to the scheduler API:** HTTPS only, TLS 1.2 or 1.3, on port 443 by default. Bearer tokens travel in every request, so the VM offers you no plain HTTP: only `/api/v1/*` and `/health/live` answer on that address, and plain HTTP sent to it is refused with 400.
+- **Scheduler to routing services:** Plain http with a bearer token (`ROUTING_AUTH_TOKEN`) on the VM's internal network, which never leaves the machine; encrypted if a routing service ever runs elsewhere.
 - **Scheduler to Nominatim**, in `NOMINATIM` mode, on the same terms.
 - **Scheduler to a remote solver pool:** already https with a service token for any non-loopback address.
 
-Also: store tenant tokens only in a secret store and never log them; the management port (9000, metrics and health) stays on the private network only; and the scheduler VM accepts API traffic only from WaterFlex Software's backend. The runbook's TLS section is the operator's checklist for the same work.
+Also: store tenant tokens only in a secret store and never log them; the management port (9000, metrics and health) and the proxy's plain listener with the detailed `/health` stay on the VM's loopback or private network only; and the scheduler VM accepts API traffic only from WaterFlex Software's backend. The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
