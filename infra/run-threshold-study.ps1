@@ -1,11 +1,13 @@
 # Window threshold study: how regularWindowThreshold changes the offers a search returns (quality) and what it costs
 # under load (efficiency). Runs against a scheduler that is already running, then combines every report into one
 # evidence file. Long (about 75 minutes with the defaults); the owner starts it. -Fleets repeats the matrix per fleet size.
-#   powershell -ExecutionPolicy Bypass -File infra/run-threshold-study.ps1 -Url http://127.0.0.1:8000 -TokenFile .scratch/loadtest.token `
+#   powershell -ExecutionPolicy Bypass -File infra/run-threshold-study.ps1 -Url http://127.0.0.1:8000 `
 #     -MetricsUrl http://127.0.0.1:9000/actuator/prometheus -Stack 'local compose, Omaha routing'
 param(
     [Parameter(Mandatory)][string]$Url,
-    [Parameter(Mandatory)][string]$TokenFile,
+    # The environment variable holding the study's token, set in your session before the run (docs/operations-runbook.md,
+    # Tokens); the script never reads a token from a file.
+    [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]*$')][string]$TokenEnv = 'SCHEDULER_STUDY_TOKEN',
     # What the scheduler under test is, recorded in the evidence (build, capacity, routing).
     [Parameter(Mandatory)][string]$Stack,
     [string]$MetricsUrl = '',
@@ -29,6 +31,7 @@ param(
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'window-threshold'
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
@@ -36,7 +39,7 @@ $evidence = Join-Path $repository "research/evidence/api-load-$stamp-$Study.json
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/threshold-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
-$token = (Resolve-Path -LiteralPath $TokenFile).Path
+Assert-StudyTokenVariable $TokenEnv
 try { Invoke-WebRequest "$Url/health" -UseBasicParsing -TimeoutSec 5 | Out-Null } catch { throw "The scheduler at $Url is not answering /health" }
 $loadThresholdList = @($LoadThresholds -split ',' | ForEach-Object { [int]$_.Trim() })
 if (@($loadThresholdList | Where-Object { $_ -lt 0 -or $_ -gt 1000 }).Count -gt 0) { throw '-LoadThresholds are whole numbers from 0 to 1000' }
@@ -55,7 +58,7 @@ $profiles = @(
     @{ name = 'high'; technicians = 3; args = @('--appointments', '2', '--booked-weekdays', '12', '--booked-appointments', '4') }
 )
 $technicians = { param($profile, $fleet) if ($fleet -eq 0) { $profile.technicians } else { $fleet } }
-$common = @('--url', $Url, '--token-file', $token, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area, '--horizon-weekdays', '10')
+$common = @('--url', $Url, '--token-env', $TokenEnv, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area, '--horizon-weekdays', '10')
 $index = 0
 $failures = @()
 Push-Location $kit

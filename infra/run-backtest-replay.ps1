@@ -17,7 +17,6 @@ param(
     [ValidateRange(1, 4)][int]$Concurrency = 2,
     [string]$Url = 'http://127.0.0.1:18080',
     [string]$PreviewUrl = 'http://127.0.0.1:18001',
-    [string]$TokenFile = '.scratch/rehearsal-backtest.token',
     [string]$RehearsalEnv = 'deploy/vm/rehearsal.env',
     # The campaign-benchmark jar that scores the answers; by default the harness tree's build.
     [string]$Jar = 'C:\Projects\waterflex-worktrees\backtest-tree\campaign-benchmark\target\campaign-benchmark-0.1.0-SNAPSHOT.jar',
@@ -33,6 +32,7 @@ param(
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $vmCompose = Join-Path $repository 'deploy/vm/docker-compose.yml'
 $rehearsalOverride = Join-Path $repository 'deploy/vm/rehearsal.override.yml'
@@ -141,7 +141,6 @@ $health = { param($seconds)
     }
     $false }
 
-$token = Join-Path $repository $TokenFile
 $days = @()
 $ErrorActionPreference = 'Continue'
 $selected = & python (Join-Path $repository 'infra/backtest_summary.py') 'days' '--run' $run '--select' $Select 2>&1
@@ -154,6 +153,7 @@ Write-Output "Replaying $($days.Count) days ($Select) as repetition $Rep through
 if ($DryRun) { Write-Output ($days -join ', '); return }
 
 $started = $false
+$tokenId = $null
 $previous = @{ SCHEDULER_IMAGE = $env:SCHEDULER_IMAGE; SCHEDULER_PULL_POLICY = $env:SCHEDULER_PULL_POLICY; SCHEDULER_STUDY_RECEIPTS = $env:SCHEDULER_STUDY_RECEIPTS
     SCHEDULER_STUDY_PROFILES = $env:SCHEDULER_STUDY_PROFILES; TIMEFOLD_LOG_LEVEL = $env:TIMEFOLD_LOG_LEVEL }
 $since = [DateTime]::UtcNow.ToString('o')
@@ -184,31 +184,14 @@ try {
         if ($inspect[0].Image -ne $imageId) { throw "Container $id does not run $tag" }
         $verified += [ordered]@{ container = $id; imageId = $inspect[0].Image; nanoCpus = $inspect[0].HostConfig.NanoCpus; memory = $inspect[0].HostConfig.Memory }
     }
-    # A token from an earlier rehearsal database answers 401 here: it is kept aside as .stale and a new one issued.
-    if (Test-Path -LiteralPath $token) {
-        $whoami = try { [int](Invoke-WebRequest "$Url/api/v1/whoami" -UseBasicParsing -TimeoutSec 10 -Headers @{ Authorization = "Bearer $((Get-Content -LiteralPath $token -Raw).Trim())" }).StatusCode }
-            catch { if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 } }
-        if ($whoami -eq 401) {
-            Move-Item -LiteralPath $token -Destination "$token.stale" -Force
-            if (Test-Path -LiteralPath "$token.id") { Move-Item -LiteralPath "$token.id" -Destination "$token.id.stale" -Force }
-        } elseif ($whoami -ne 200) { throw "whoami answered $whoami with the study's token" }
-    }
-    if (-not (Test-Path -LiteralPath $token)) {
-        $output = & $dockerOutput (@('compose') + $rehearsal + @('run', '--rm', 'scheduler-admin', '--command=issue-token', 'backtest', 'Backtest replay', $index.runId))
-        $value = [regex]::Match($output, '(?m)^token: (wfs_\S+)').Groups[1].Value
-        if ($value -eq '') { throw "Could not issue the study's token`n$output" }
-        New-Item -ItemType Directory -Force (Split-Path $token -Parent) | Out-Null
-        Set-Content -LiteralPath $token -Value $value -Encoding ascii -NoNewline
-        # The ID revokes it later: scheduler-admin --command=revoke-token <id>.
-        Set-Content -LiteralPath "$token.id" -Value ([regex]::Match($output, '(?m)^id: (\S+)').Groups[1].Value) -Encoding ascii -NoNewline
-        Write-Output "Issued the study's token into $token"
-    }
+    # This pass's token lives only in this process's environment and is revoked when the pass ends (study-token.psm1).
+    $tokenId = New-StudyToken -Compose (@('compose') + $rehearsal) -Tenant 'backtest' -Name 'Backtest replay' -Label $index.runId -Variable 'SCHEDULER_BACKTEST_TOKEN'
     $manifest = [ordered]@{ runId = $index.runId; revision = $sha; image = $tag; imageId = $imageId; url = $Url; metro = $metro; preview = $PreviewUrl
         routingIdentity = $index.routingIdentity; select = $Select; days = $days.Count; rep = $Rep; concurrency = $Concurrency; profiles = $profiles
         containers = $verified; startedAt = $since }
     Write-Json $manifest (Join-Path $logs "manifest-rep$Rep-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')).json") 6
     $ErrorActionPreference = 'Continue'
-    & python -X utf8 (Join-Path $repository 'infra/backtest_replay.py') replay --run $run --url $Url --token-file $token --select $Select --rep $Rep --concurrency $Concurrency --timeout-s $TimeoutSeconds 2>&1 |
+    & python -X utf8 (Join-Path $repository 'infra/backtest_replay.py') replay --run $run --url $Url --token-env SCHEDULER_BACKTEST_TOKEN --select $Select --rep $Rep --concurrency $Concurrency --timeout-s $TimeoutSeconds 2>&1 |
         Tee-Object -FilePath (Join-Path $logs "replay-rep$Rep.log")
     $replayCode = $LASTEXITCODE
     foreach ($id in $daily) { & docker logs --timestamps --since $since $id 2>&1 | ForEach-Object { "$_" } | Set-Content -LiteralPath (Join-Path $logs "scheduler-daily-rep$Rep-$id.log") -Encoding utf8 }
@@ -218,6 +201,7 @@ try {
     $ErrorActionPreference = 'Continue'
     foreach ($name in @($previous.Keys)) {
         if ($null -eq $previous[$name]) { Remove-Item -Path "env:$name" -ErrorAction SilentlyContinue } else { Set-Item -Path "env:$name" -Value $previous[$name] } }
+    if ($null -ne $tokenId) { Remove-StudyToken -Compose (@('compose') + $rehearsal) -Id $tokenId -Variable 'SCHEDULER_BACKTEST_TOKEN' -Log (Join-Path $logs 'revoke.log') }
     if ($started -and -not $KeepStack) {
         Write-Output 'Stopping the study stack; bring the rehearsal back with its own image as deploy/vm/README.md says'
         & docker compose @rehearsal down *> (Join-Path $logs 'down.log')

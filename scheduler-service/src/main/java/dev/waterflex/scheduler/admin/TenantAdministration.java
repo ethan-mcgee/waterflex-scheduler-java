@@ -2,6 +2,8 @@ package dev.waterflex.scheduler.admin;
 
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.TenantTokens;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -21,6 +23,8 @@ public final class TenantAdministration {
 
     public record Issued(String id, String token) { }
     public record TenantRow(String id, String name, boolean disabled, int activeTokens) { }
+    /** A token as the operator sees it: never its plaintext or digest. */
+    public record TokenRow(String id, String label, Instant createdAt, @Nullable Instant revokedAt) { }
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
@@ -78,6 +82,20 @@ public final class TenantAdministration {
                 FROM tenant t ORDER BY t.id""",
                 (rs, _) -> new TenantRow(Required.value(rs.getString(1), "tenant.id"), Required.value(rs.getString(2), "tenant.name"),
                         rs.getBoolean(3), rs.getInt(4))));
+    }
+
+    /** The tenant's tokens, active and revoked, newest first: what a rotation needs to find the token it replaces. */
+    public List<TokenRow> tokens(String tenantId) {
+        Integer tenants = jdbc.queryForObject("SELECT count(*)::int FROM tenant WHERE id=?", Integer.class, tenantId);
+        if (Required.value(tenants, "tenant count") == 0) throw new IllegalArgumentException("No tenant " + tenantId);
+        return Required.value(jdbc.query("""
+                SELECT id, label, "createdAt", "revokedAt" FROM tenant_api_token WHERE "tenantId"=? ORDER BY "createdAt" DESC, id""",
+                (rs, _) -> {
+                    Timestamp revoked = rs.getTimestamp(4);
+                    return new TokenRow(Required.value(rs.getString(1), "tenant_api_token.id"), Required.value(rs.getString(2), "tenant_api_token.label"),
+                            Required.value(Required.value(rs.getTimestamp(3), "tenant_api_token.createdAt").toInstant()),
+                            revoked == null ? null : Required.value(revoked.toInstant()));
+                }, tenantId));
     }
 
     /** Whether this token is active for this enabled tenant, as the scheduler would accept it. */

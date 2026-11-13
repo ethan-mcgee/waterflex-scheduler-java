@@ -147,7 +147,7 @@ services:
       - nominatim-db:/var/lib/postgresql/16/main
     ports: ["127.0.0.1:8082:8080"]
   tiles:
-    image: protomaps/go-pmtiles:v1.22.1@sha256:33fc389ed4f7e13ed08529dd90eb97d670ce999339486e8442efb2b231172b38
+    image: protomaps/go-pmtiles:v1.31.2@sha256:06574f01f55a78f78f887bc7ebf729a5c093c0d6e17d9876300cfcb0758b59d3
     command: ["serve", "/maps", "--public-url=http://localhost:8083", "--cors=http://localhost:3001"]
     volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:8083:8080"]
@@ -266,7 +266,7 @@ services:
     volumes: ["map-data:/maps"]
   tile-import:
     profiles: ["map-import"]
-    image: ghcr.io/onthegomap/planetiler:0.9.0@sha256:937244c33c543c3347c55cc3d088acc8ee14a0c5e76e1d0cf1502d4c84ddeb55
+    image: ghcr.io/onthegomap/planetiler:0.10.2@sha256:cf32202dbc001a9ab4bc11534b642b13de3798179817da8558e567a3d13dd403
     volumes: ["map-data:/maps"]
 volumes:
   app-db:

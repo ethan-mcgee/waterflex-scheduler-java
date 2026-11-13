@@ -6,7 +6,7 @@ also becomes a BacktestTool plan file, which the score command reads over the da
 jar so the API's plan and the harness's are read by the same scorer. A day already answered 201, 400 or 422 is skipped
 on a rerun (the claim replays the same answer for the same requestId), so a stopped replay resumes.
 
-    python infra/backtest_replay.py replay --run <run dir> --url http://127.0.0.1:18080 --token-file <file>
+    python infra/backtest_replay.py replay --run <run dir> --url http://127.0.0.1:18080 [--token-env SCHEDULER_BACKTEST_TOKEN]
         [--select test|calibration|all|sample:120|noise:50|<dates>] [--rep 1] [--concurrency 2]
     python infra/backtest_replay.py score --run <run dir> --jar <campaign-benchmark jar> [--rep 1] [--java java]
 

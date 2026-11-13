@@ -245,10 +245,29 @@ Each client (tenant) has its own bearer tokens, issued by the scheduler's comman
 
 ```sh
 docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env run --rm scheduler-admin --command=issue-token <tenantId> "<tenant name>" "<token label>"
-#   --command=revoke-token <tokenId> | list-tenants | disable-tenant <tenantId> | enable-tenant <tenantId>
+#   --command=revoke-token <tokenId> | list-tokens <tenantId> | list-tenants | disable-tenant <tenantId> | enable-tenant <tenantId>
 ```
 
-The token is printed once and stored only as a digest. A disabled tenant's tokens answer 401 until it is enabled again. To rotate: issue a new token, give it to the host, wait until the host uses it, then revoke the old one. A revoked token answers 401 at once.
+The token is printed once and stored only as a digest; hand it over through a secret channel and never write it to a file on the VM. `list-tokens` shows a tenant's token IDs, labels and dates, never a token. A disabled tenant's tokens answer 401 until it is enabled again. A revoked token answers 401 at once, and revocation cannot be undone.
+
+### Rotate a tenant's token
+
+A tenant may hold several active tokens, so a rotation never interrupts the host:
+
+1. Issue a new token for the tenant with a label that dates it, for example `primary-2027-05`, and give it to WaterFlex Software's operators through their secret store.
+2. They deploy it and confirm that `GET /api/v1/whoami` answers 200 with the new token. The scheduler does not record which token a call used, so their confirmation is the signal.
+3. Find the old token's ID with `--command=list-tokens <tenantId>` (by its label and creation date) and revoke it with `--command=revoke-token <tokenId>`.
+4. Run `list-tokens` again: the old token shows `revoked`, the new one `active`.
+
+Rotate on a schedule agreed with WaterFlex Software, and at once when a token may have been exposed: then revoke first (`revoke-token`, or `disable-tenant` to stop every token of the tenant) and issue the replacement after.
+
+### Study tokens
+
+The study and backtest scripts in `infra/` never write a token to a file. Those that manage the rehearsal or local stack (`run-stack-verification.ps1`, `run-backtest-replay.ps1`, `run-backtest-simulation.ps1`, `run-booking-configuration-study.ps1`, `run-refinement-study.ps1`) issue their own tokens into their process's environment, pass them to the kit's tools with `--token-env`, and revoke them when they end (`infra/study-token.psm1`); a token a script could not revoke is named in a warning. Those that run against a scheduler they do not manage (`run-horizon-study.ps1`, `run-threshold-study.ps1`, `run-shell-probes.ps1`) read the token from `$env:SCHEDULER_STUDY_TOKEN` (or `-TokenEnv <variable>`). Set it in the PowerShell session that starts the study, then revoke the token when the study ends:
+
+```powershell
+$env:SCHEDULER_STUDY_TOKEN = (docker compose run --rm scheduler-admin --command=issue-token loadtest "Load test" "<study>" | Select-String '^token: ').Line.Substring(7)
+```
 
 ## Maps and routing identity
 
