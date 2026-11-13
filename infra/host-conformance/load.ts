@@ -4,7 +4,7 @@
 //     --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60
 // Use a dedicated tenant: the run books and confirms jobs under its own IDs on dates two days ahead and later.
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { cpus, totalmem } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -20,8 +20,9 @@ import { summarize } from "./src/load/stats.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES, type ArrivalBuffer } from "./src/snapshot.ts";
 import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
+import { readToken, TOKEN_USAGE } from "./src/token.ts";
 
-const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
+const USAGE = `Usage: npx tsx load.ts --url <base URL> ${TOKEN_USAGE} --metro <metroId> --time-zone <IANA zone>
     (--area <south,west,north,east> | --points fixture) --scenario booking|daily|mixed --duration-s <seconds>
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
     [--daily-technicians 20] [--daily-mode sync|async] [--daily-proposals <count>] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
@@ -55,7 +56,7 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
   return found;
 }
 
-const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
+const STRING_OPTIONS = ["url", "token-file", "token-env", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "daily-proposals", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
   "cost-seconds", "fairness-seconds", "daily-search", "fairness-budget", "arrival-buffer", "seed", "metrics-url", "docker", "scheduler-log", "label", "out",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold", "refinement-ms"] as const;
@@ -92,11 +93,9 @@ function settings() {
   if ((text("area") === undefined) === (text("points") === undefined)) throw new UsageError("Give exactly one of --area and --points fixture");
   if (text("points") !== undefined && text("points") !== "fixture") throw new UsageError("--points takes only the value fixture");
   let token: string;
-  const tokenFile = required("token-file");
-  // "-" reads standard input, so a token piped from a secret store is never written to a file.
-  try { token = readFileSync(tokenFile === "-" ? 0 : tokenFile, "utf8").trim(); } catch (error) {
-    if (error instanceof UsageError) throw error;
-    throw new UsageError(`Cannot read --token-file: ${error instanceof Error ? error.message : String(error)}`);
+  // "--token-file -" reads standard input and --token-env a variable, so the token is never written to a file.
+  try { token = readToken(text("token-file"), text("token-env")); } catch (error) {
+    throw new UsageError(error instanceof Error ? error.message : String(error));
   }
   const costSeconds = integer("cost-seconds", KIT_POLICY.costSearchSeconds, 5, 240);
   const fairnessSeconds = integer("fairness-seconds", KIT_POLICY.fairnessSearchSeconds, 0, 240);

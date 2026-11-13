@@ -28,8 +28,6 @@ param(
     [Parameter(Mandatory)][string]$Before,
     [Parameter(Mandatory)][string]$After,
     [string]$Url = 'http://127.0.0.1:18080',
-    # The study's tenant token; issued (tenant loadtest) through the rehearsal's scheduler-admin when the file does not exist.
-    [string]$TokenFile = '.scratch/rehearsal-loadtest.token',
     [string]$RehearsalEnv = 'deploy/vm/rehearsal.env',
     # The daily replica's actuator, published by rehearsal.override.yml.
     [string]$MetricsUrl = 'http://127.0.0.1:19011/actuator/prometheus',
@@ -66,6 +64,7 @@ param(
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $vmCompose = Join-Path $repository 'deploy/vm/docker-compose.yml'
@@ -227,14 +226,13 @@ $routingName = (& $dockerOutput @('compose', '-f', $devCompose, 'ps', '--format'
 if ($routingName -eq '') { throw 'The development routing service is not running (docker compose up routing-service)' }
 $routingCapped = $false
 
-$token = Join-Path $repository $TokenFile
 $quoted = { param($arguments) , @($arguments | ForEach-Object { if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }) }
 $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area, '--scenario', 'daily',
     '--cost-seconds', "$CostSeconds", '--fairness-seconds', "$FairnessSeconds", '--daily-search', $DailySearch, '--fairness-budget', $FairnessBudget,
     '--appointments', "$Appointments", '--duration-s', '3600')
 $index = 0
 $skipped = 0
-$tokenChecked = $false
+$tokenId = $null
 $previous = @{ SCHEDULER_IMAGE = $env:SCHEDULER_IMAGE; SCHEDULER_PULL_POLICY = $env:SCHEDULER_PULL_POLICY; SCHEDULER_STUDY_RECEIPTS = $env:SCHEDULER_STUDY_RECEIPTS
     SCHEDULER_STUDY_PROFILES = $env:SCHEDULER_STUDY_PROFILES; TIMEFOLD_LOG_LEVEL = $env:TIMEFOLD_LOG_LEVEL }
 Push-Location $kit
@@ -246,32 +244,15 @@ try {
         $slug = & $slugOf $cell
         if ($null -ne (& $reportOf $cell)) { $skipped++; continue }
         & $useImage $cell.image
-        # A token from an earlier rehearsal database answers 401 here: it is kept aside as .stale and a new one issued.
-        if ((Test-Path -LiteralPath $token) -and -not $tokenChecked) {
-            $status = try { [int](Invoke-WebRequest "$Url/api/v1/whoami" -UseBasicParsing -TimeoutSec 10 -Headers @{ Authorization = "Bearer $((Get-Content -LiteralPath $token -Raw).Trim())" }).StatusCode }
-                catch { if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 } }
-            if ($status -eq 401) {
-                Write-Output "The token in $token is not known to this rehearsal database; keeping it as $token.stale and issuing a new one"
-                Move-Item -LiteralPath $token -Destination "$token.stale" -Force
-                if (Test-Path -LiteralPath "$token.id") { Move-Item -LiteralPath "$token.id" -Destination "$token.id.stale" -Force }
-            } elseif ($status -ne 200) { throw "whoami answered $status with the study's token" }
-            $tokenChecked = $true
-        }
-        if (-not (Test-Path -LiteralPath $token)) {
-            $output = & $dockerOutput (@('compose') + $rehearsal + @('run', '--rm', 'scheduler-admin', '--command=issue-token', 'loadtest', 'Load test', 'stack verification'))
-            $value = [regex]::Match($output, '(?m)^token: (wfs_\S+)').Groups[1].Value
-            if ($value -eq '') { throw "Could not issue the study's token`n$output" }
-            New-Item -ItemType Directory -Force (Split-Path $token -Parent) | Out-Null
-            Set-Content -LiteralPath $token -Value $value -Encoding ascii -NoNewline
-            # The ID revokes it later: scheduler-admin --command=revoke-token <id>.
-            Set-Content -LiteralPath "$token.id" -Value ([regex]::Match($output, '(?m)^id: (\S+)').Groups[1].Value) -Encoding ascii -NoNewline
-            Write-Output "Issued the study's token into $token"
-        }
+        # The study's token, issued once the stack is up (the database outlives image switches), lives only in this
+        # process's environment and is revoked when the study ends (study-token.psm1).
+        if ($null -eq $tokenId) {
+            $tokenId = New-StudyToken -Compose (@('compose') + $rehearsal) -Tenant 'loadtest' -Name 'Load test' -Label 'stack verification' -Variable 'SCHEDULER_STUDY_TOKEN' }
         $directory = Join-Path $runs $slug
         New-Item -ItemType Directory -Force $directory | Out-Null
         Get-ChildItem -LiteralPath $directory -File | Where-Object { $_.Extension -in '.json', '.md' } | Remove-Item -Force
         $daily = & $dailyContainers
-        $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $token, '--concurrency', "$($cell.planners)", '--daily-mode', $cell.mode,
+        $arguments = @('tsx', 'load.ts') + $common + @('--token-env', 'SCHEDULER_STUDY_TOKEN', '--concurrency', "$($cell.planners)", '--daily-mode', $cell.mode,
             '--daily-proposals', "$($cell.proposals)", '--daily-technicians', "$($cell.fleet)", '--seed', "$($cell.seed)",
             '--scheduler-log', ($daily -join ','), '--docker', ((@($daily) + @($routingName)) -join ','), '--metrics-url', $MetricsUrl,
             '--label', $slug, '--out', $directory) + $(if ($images[$cell.image].arrivalBuffer) { @('--arrival-buffer', $images[$cell.image].arrivalBuffer) } else { @() })
@@ -296,6 +277,7 @@ try {
     $ErrorActionPreference = 'Continue'
     foreach ($name in @($previous.Keys)) {
         if ($null -eq $previous[$name]) { Remove-Item -Path "env:$name" -ErrorAction SilentlyContinue } else { Set-Item -Path "env:$name" -Value $previous[$name] } }
+    if ($null -ne $tokenId) { Remove-StudyToken -Compose (@('compose') + $rehearsal) -Id $tokenId -Variable 'SCHEDULER_STUDY_TOKEN' -Log (Join-Path $runs 'revoke.log') }
     if ($null -ne $running) {
         Write-Output 'Stopping the study stack; bring the rehearsal back with its own image as deploy/vm/README.md says'
         & docker compose @rehearsal down *> (Join-Path $runs 'down.log')
