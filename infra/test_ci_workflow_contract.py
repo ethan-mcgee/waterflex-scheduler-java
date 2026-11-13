@@ -17,7 +17,7 @@ class ParallelCiContractTest(unittest.TestCase):
 
     def test_aggregates_require_success_from_every_dependency(self):
         groups = {
-            "build-and-unit": ["java-javac", "java-nullability", "portal-checks", "infrastructure-evidence"],
+            "build-and-unit": ["java-javac", "java-nullability", "portal-checks", "infrastructure-evidence", "api-compatibility"],
             "booking-and-optimizer-integration": ["integration-core", "integration-remote"],
         }
         for gate, dependencies in groups.items():
@@ -33,6 +33,14 @@ class ParallelCiContractTest(unittest.TestCase):
                     self.assertIn(key, self.jobs)
                     self.assertNotIn("    needs:", self.jobs[key])
                     self.assertNotIn("continue-on-error:", self.jobs[key])
+
+    def test_the_v1_contract_is_compared_with_the_one_it_replaces_by_a_pinned_oasdiff(self):
+        job = self.jobs["api-compatibility"]
+        self.assertRegex(job, r"oasdiff/releases/download/v\d+\.\d+\.\d+/oasdiff_\d+\.\d+\.\d+_linux_amd64\.tar\.gz")
+        self.assertRegex(job, r'echo "[0-9a-f]{64}  \$RUNNER_TEMP/oasdiff\.tar\.gz" \| sha256sum --check')
+        self.assertIn("github.event.pull_request.base.sha || github.event.before", job)
+        self.assertIn('git fetch --no-tags --depth=1 origin "$BASE_SHA"', job)
+        self.assertIn('python3 infra/openapi_compat.py --against "$BASE_SHA" --oasdiff "$RUNNER_TEMP/oasdiff"', job)
 
     def test_postgres_service_pulls_are_authenticated(self):
         # Anonymous Docker Hub pulls share a rate limit with every job on the runner's IP; logged-in pulls use the account's own limit.

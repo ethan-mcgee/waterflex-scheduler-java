@@ -1,0 +1,4 @@
+# Changes to docs/api/openapi-v1.yaml that oasdiff reports as possibly breaking and that v1 accepts anyway.
+# infra/openapi-compat/README.md says when an entry is allowed. Each entry is one line, exactly as the gate prints it
+# under "To accept": the method, the path and oasdiff's text. Put a comment above it naming the spec version and the
+# confirmation with WaterFlex Software. Lines starting with # match no change.

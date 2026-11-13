@@ -93,7 +93,7 @@ The public endpoints and what each does:
 
 ### Contract changes
 
-Version 1.0.0 (2026-10-13) is the first stable contract: everything in this table up to it. From 1.0.0 on, changes within v1 are additive only (a new operation, optional request field, response field, error code or enum value), raise the minor version, and are listed here and in the spec's version history before they are deployed; a breaking change is published as `/api/v2` beside v1.
+Version 1.0.0 (2026-10-13) is the first stable contract: everything in this table up to it. From 1.0.0 on, changes within v1 are additive only (a new operation, optional request field, response field, error code or enum value), raise the minor version, and are listed here and in the spec's version history before they are deployed; a breaking change is published as `/api/v2` beside v1. The CI job "Public API compatibility" enforces this with oasdiff on every pull request ([infra/openapi-compat/README.md](../infra/openapi-compat/README.md)).
 
 - **Every refusal carries its retry rule and every answer its contract version: `Problem.retryable` and `StaleProblem.retryable`, the `X-Scheduler-Version` header, and `Problem` bodies for the refusals no operation writes (404 for an unknown path, 405 for a wrong method, 503 `SERVICE_UNAVAILABLE` for a lost database or no replica behind the proxy, 413 from the proxy, 500 `INTERNAL_ERROR` on every operation). The 401 has no body, as documented, where it had carried Spring Boot's error body. A 400 names the field by its JSON path. `RequestId` states its lowercase canonical pattern (spec 1.11.0)**
   - **Since:** every operation.
