@@ -51,10 +51,21 @@ The proxy needs a certificate for the name WaterFlex Software calls (a DNS name 
 
    `curl -H "Authorization: Bearer <token>" https://<name>/api/v1/whoami` answers the tenant, which also proves the certificate.
 7. Prove the install end to end with the [host conformance kit](../../infra/host-conformance/README.md), from the host's network, with a token for a dedicated `conformance` tenant (never a client's). Run it again after every upgrade.
+8. Schedule the daily backup and copy the dumps off the VM ("Backups", below).
 
 ## Upgrade
 
 Tag the new release from a workstation, then run `bash infra/release-vm.sh <tag>` on the VM. `scheduler-admin` applies new migrations before the new scheduler starts, and `/health` answers the new `revision` once it serves. Rolling back is the same command with the earlier tag; the runbook's "Start, stop and upgrade" lists what a rollback past a migration needs.
+
+## Backups
+
+Schedule `infra/backup-vm.sh` daily from the VM's crontab, and copy `/var/backups/scheduler` (or `BACKUP_DIR`) off the VM, for example with the VM provider's backup of that directory:
+
+```sh
+15 3 * * * cd /path/to/waterflex-scheduler-java && bash infra/backup-vm.sh >> /var/log/scheduler-backup.log 2>&1
+```
+
+`bash infra/restore-vm.sh <dump> --replace` restores one, on this VM or on a new one installed through step 3. The runbook's "Backup and restore" says what a restore loses.
 
 ## Scaling the pools
 

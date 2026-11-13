@@ -308,16 +308,23 @@ The identity also names the GraphHopper release the routing service runs (`engin
 
 ## Backup and restore
 
-The thin store holds only what WaterFlex Software can recompute or does not need for its business record: holds, offers, proposals and receipts. The host owns the business record. Back up the scheduler database daily and keep the dumps at least as long as the retention period. On the VM:
+The database holds two kinds of data. The tenants and their token digests cannot be rebuilt: losing them means issuing every client a new token. The thin store (holds, offers, proposals, receipts and the snapshots they were computed from) is not the business record, which the host owns, but losing it loses open holds and the stored answers that make a repeated `requestId` safe. Back up daily, keep the dumps at least as long as the retention period, and copy them off the VM: a dump kept only on the VM is lost with it.
+
+`infra/backup-vm.sh` makes one dump of the `scheduler` database (`pg_dump` custom format, without the route cache's rows, which refill from routing), reads it back before keeping it, and removes dumps older than `BACKUP_KEEP_DAYS` (default `SCHEDULER_RETENTION_DAYS`). Dumps go to `BACKUP_DIR` (default `/var/backups/scheduler`) as `scheduler-<UTC time>.dump`, readable only by the user that ran it, because they hold token digests and client addresses. A failed dump leaves the earlier ones untouched. Run it from cron on the VM:
 
 ```sh
-docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env exec -T scheduler-db \
-  pg_dump -U scheduler_owner -d scheduler -Fc --exclude-table-data=road_route_cache > scheduler-$(date +%F).dump
+15 3 * * * cd /path/to/waterflex-scheduler-java && bash infra/backup-vm.sh >> /var/log/scheduler-backup.log 2>&1
 ```
 
-The route cache is left out; it refills from routing. Roles belong to the server, not the dump, and `--command=migrate` recreates them.
+To restore, on the same VM or a new one installed through step 3 of `deploy/vm/README.md`:
 
-To restore, stop `scheduler-service`, restore the dump into an empty `scheduler` database as the owner (`pg_restore -U scheduler_owner -d scheduler --no-owner`), run `--command=migrate` (it recreates the roles and the login, and applies nothing else when the dump is current), and start the scheduler. Holds and offers older than the dump are lost. Hosts searching again get new offers, and a confirm of a lost hold answers 409 `HOLD_UNAVAILABLE`, which the host treats as "search again".
+```sh
+bash infra/restore-vm.sh /var/backups/scheduler/scheduler-<UTC time>.dump --replace
+```
+
+It stops both scheduler pools (the proxy answers 503 `SERVICE_UNAVAILABLE`, which hosts retry), recreates the `scheduler` database empty, recreates the roles `scheduler_tenant` and `scheduler_app`, restores the dump in one transaction, runs `--command=migrate` (the serving login and any migration newer than the dump) and starts the pools. A dump does not carry roles, because they belong to the Postgres server; on a new server they would be missing, and migrate would not create them because the restored history says the migration that creates them has run. A plain `pg_restore` there fails on the first grant to them. A failed restore is rolled back and leaves the database empty and the pools stopped; restore an earlier dump.
+
+What a restore loses is everything after the dump. Tokens issued since are gone, so reissue them. Holds and offers made since are gone, and a confirm of one answers 409 `HOLD_UNAVAILABLE`, which the host treats as "search again". A `requestId` first sent after the dump runs again as a new request.
 
 ## Scaling, in order
 
