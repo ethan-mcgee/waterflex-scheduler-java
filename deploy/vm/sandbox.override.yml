@@ -16,7 +16,7 @@ services:
     profiles: ["vm-routing"]
 
   fixture-routing:
-    image: node:26-slim
+    image: node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc
     command: ["node", "/srv/fixture-routing.mjs"]
     environment:
       FIXTURE_ROUTING_HOST: 0.0.0.0
@@ -40,7 +40,7 @@ services:
   # A self-signed certificate for localhost and 127.0.0.1, made once and kept in its own volume, so the sandbox also
   # answers over HTTPS like the VM (docs/host-sandbox.md). The JRE image the scheduler is built on has openssl.
   scheduler-tls:
-    image: eclipse-temurin:25-jre
+    image: eclipse-temurin:25-jre@sha256:a640968ae55027b322cedd5f8228b01a84baff0b9e9360e47601c6a111ba1699
     entrypoint: ["sh", "-c"]
     command:
       - >-

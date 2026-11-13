@@ -131,6 +131,7 @@ Spring properties can be supplied as command-line arguments or their standard en
 - **`scheduler.search.queue-limit`:** 16; bounded queue.
 - **`scheduler.search.confirm-slots`:** 1 (`SCHEDULER_SEARCH_CONFIRM_SLOTS`); slots beyond the capacity open to confirms alone, 0 to the capacity; confirms start before waiting searches in any case.
 - **`routing.ch.enabled`:** true (routing-service, `ROUTING_CH_ENABLED`); serves the map version's contraction hierarchy graph (`graph-ch-car-v1`, prepared beside the flexible graph by `infra/prepare-map.ps1`); false serves the flexible graph with another routing identity.
+- **`routing.graph.read-only`:** true (routing-service, `ROUTING_GRAPH_READ_ONLY`); loads the prepared graph without writing or locking it, so the map volume is mounted read-only, and refuses to start when the graph is missing instead of importing one; only map preparation (`routing-prepare`) sets it false.
 - **`routing.parallelism`:** 0 (routing-service, `ROUTING_PARALLELISM`): the pairs of one request are routed on this many threads at once, 0 meaning the processors available.
 - **`routing.identity-ttl-ms`:** 2000 (scheduler, `ROUTING_IDENTITY_TTL_MS`): how long a fetched routing identity is trusted before `/health` is asked again; the routing service still checks the identity on every call and a 409 drops it.
 - **`routing.flights.threads`, `routing.flights.queue`:** 8 and 64 (scheduler): batches of legs fetched from a metro's routing service at once, and batches that may wait; a batch that finds the queue full is refused as busy.
