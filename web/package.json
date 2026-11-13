@@ -50,8 +50,8 @@
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "lucide-react": "^1.70.0",
-    "maplibre-gl": "^6.16.0",
-    "next": "^16.4.5",
+    "maplibre-gl": "^6.17.0",
+    "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
@@ -67,11 +67,11 @@
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "eslint": "^10.14.0",
-    "eslint-config-next": "^16.4.5",
+    "eslint-config-next": "^16.4.6",
     "js-yaml": "5.5.0",
     "prisma": "^7.10.1",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.72.2"
   }
 }
