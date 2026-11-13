@@ -4,13 +4,13 @@
 # with 2 and then 5 search slots on as many CPUs; it shows how far slots keep refinements from being shed and searches
 # from queueing. Runs against the local compose stack, restores it when done, and combines every report into one
 # evidence file. Long (about 3.5 hours with the defaults); the owner starts it.
-#   powershell -ExecutionPolicy Bypass -File infra/run-refinement-study.ps1 -Url http://127.0.0.1:8000 -TokenFile .scratch/loadtest.token `
+#   powershell -ExecutionPolicy Bypass -File infra/run-refinement-study.ps1 -Url http://127.0.0.1:8000 `
 #     -MetricsUrl http://127.0.0.1:9000/actuator/prometheus -Stack 'local compose, Omaha routing'
 param(
     [Parameter(Mandatory)][string]$Url,
-    # Part cap's tenant. Part capacity issues one token per client (tenants loadtest-client-<n>) on first use and keeps
-    # them in -ClientTokenDirectory; revoke them with scheduler-admin --command=revoke-token <id> (ids in the evidence).
-    [Parameter(Mandatory)][string]$TokenFile,
+    # The study issues its tokens through the local stack's scheduler-admin: part cap's (tenant loadtest) and, for part
+    # capacity, one per client (tenants loadtest-client-<n>); they live in its own environment and are revoked when it
+    # ends (study-token.psm1); their IDs are in the evidence.
     # What the scheduler under test is, recorded in the evidence (build, routing).
     [Parameter(Mandatory)][string]$Stack,
     [string]$MetricsUrl = '',
@@ -33,11 +33,11 @@ param(
     [ValidateRange(30, 600)][int]$DurationS = 120,
     # Seeds are this base + a running index (the tools take 0 to 1000); every client of a run has its own.
     [ValidateRange(0, 900)][int]$SeedBase = 300,
-    [string]$ClientTokenDirectory = '.scratch/refinement-clients',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'refinement-cap'
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'study-token.psm1') -Force
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $compose = Join-Path $repository 'docker-compose.yml'
@@ -46,7 +46,6 @@ $evidence = Join-Path $repository "research/evidence/api-load-$stamp-$Study.json
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository "experiments/runs/refinement-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
-$token = (Resolve-Path -LiteralPath $TokenFile).Path
 
 $list = { param($text, $name, $min, $max)
     $items = @($text -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | ForEach-Object { [int]$_ })
@@ -98,29 +97,22 @@ $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area'
 $index = 0
 $failures = @()
 $capacitySettings = @()
-$clientTokens = @()
 $restarted = $false
 # Start-Process in Windows PowerShell joins its arguments with spaces and quotes none of them.
 $quoted = { param($arguments) , @($arguments | ForEach-Object { if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }) }
 
-# One token per client, so each simulated dealership is its own tenant: a booking search replaces its tenant's earlier
-# booking state for the metro and date, so desks sharing a tenant end each other's offers.
-$clientToken = { param($n)
-    $directory = Join-Path $repository $ClientTokenDirectory
-    New-Item -ItemType Directory -Force $directory | Out-Null
-    $file = Join-Path $directory "client-$n.token"
-    if (-not (Test-Path -LiteralPath $file)) {
-        # Docker writes progress to stderr, which must not stop the script.
-        $ErrorActionPreference = 'Continue'
-        $output = docker compose -f $compose run --rm scheduler-admin --command=issue-token "loadtest-client-$n" "Load test client $n" 'refinement capacity study' 2>&1 | Out-String
-        $id = [regex]::Match($output, '(?m)^id: (\S+)').Groups[1].Value
-        $value = [regex]::Match($output, '(?m)^token: (wfs_\S+)').Groups[1].Value
-        if ($id -eq '' -or $value -eq '') { throw "Could not issue a token for client $n`n$output" }
-        Set-Content -LiteralPath $file -Value $value -Encoding ascii -NoNewline
-        Set-Content -LiteralPath "$file.id" -Value $id -Encoding ascii -NoNewline
-    }
-    $script:clientTokens += [ordered]@{ client = $n; tenant = "loadtest-client-$n"; tokenId = (Get-Content -LiteralPath "$file.id" -Raw).Trim() }
-    $file }
+# Tokens issued on first use into this process's environment (the kit's tools inherit it and read --token-env). One
+# per client, so each simulated dealership is its own tenant: a booking search replaces its tenant's earlier booking
+# state for the metro and date, so desks sharing a tenant end each other's offers.
+$tokenCompose = @('compose', '-f', $compose)
+$tokenLabel = 'refinement capacity study'
+$issued = [ordered]@{}
+$tokenVariable = { param($tenant, $title)
+    $variable = 'SCHEDULER_STUDY_TOKEN_' + ($tenant.ToUpperInvariant() -replace '-', '_')
+    if (-not $issued.Contains($tenant)) {
+        $id = New-StudyToken -Compose $tokenCompose -Tenant $tenant -Name $title -Label $tokenLabel -Variable $variable
+        $issued[$tenant] = [ordered]@{ tenant = $tenant; tokenId = $id; variable = $variable } }
+    $variable }
 
 # Restarts the scheduler with the given search slots on as many CPUs; the image and every other setting are unchanged.
 $setCapacity = { param($capacity)
@@ -151,7 +143,7 @@ try {
             $seed = $SeedBase + $index
             $label = "quality $($profile.name) $fleet technicians schedule $schedule seed $seed"
             Write-Output "[$index] $label"
-            $arguments = @('tsx', 'quality.ts') + $common + @('--token-file', $token, '--variants', $QualityVariants, '--cases', "$Cases",
+            $arguments = @('tsx', 'quality.ts') + $common + @('--token-env', (& $tokenVariable 'loadtest' 'Load test'), '--variants', $QualityVariants, '--cases', "$Cases",
                 '--seed', "$seed", '--label', $label, '--out', (Join-Path $runs 'quality'), '--technicians', "$fleet") + $profile.args
             & npx.cmd @arguments *> (Join-Path $runs "run-$index.log")
             if ($LASTEXITCODE -eq 1) { $failures += $label } elseif ($LASTEXITCODE -ne 0) { throw "Run failed: $label (see run-$index.log)" }
@@ -162,7 +154,7 @@ try {
             $seed = $SeedBase + $index
             $label = "cap $($profile.name) $fleet technicians variant $variant c1 seed $seed"
             Write-Output "[$index] $label"
-            $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $token, '--scenario', 'booking', '--concurrency', '1',
+            $arguments = @('tsx', 'load.ts') + $common + @('--token-env', (& $tokenVariable 'loadtest' 'Load test'), '--scenario', 'booking', '--concurrency', '1',
                 '--duration-s', "$DurationS", '--seed', "$seed", '--label', $label, '--out', (Join-Path $runs 'cap'), '--technicians', "$fleet") +
                 (& $variantArgs $variant) + $profile.args
             if ($MetricsUrl -ne '') { $arguments += @('--metrics-url', $MetricsUrl) }
@@ -173,7 +165,7 @@ try {
     }
     if ($doCapacity) {
         $maxClients = ($clientList | Measure-Object -Maximum).Maximum
-        $tokens = @(for ($n = 1; $n -le $maxClients; $n++) { & $clientToken $n })
+        $tokens = @(for ($n = 1; $n -le $maxClients; $n++) { & $tokenVariable "loadtest-client-$n" "Load test client $n" })
         foreach ($capacity in $capacityList) {
             & $setCapacity $capacity
             # Interleaved within a capacity, so a slow drift in the stack shows in every cell rather than in one.
@@ -185,7 +177,7 @@ try {
                     $index++
                     $seed = $SeedBase + $index
                     $label = "$cell client $client of $count seed $seed"
-                    $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $tokens[$client - 1], '--scenario', 'booking', '--concurrency', '1',
+                    $arguments = @('tsx', 'load.ts') + $common + @('--token-env', $tokens[$client - 1], '--scenario', 'booking', '--concurrency', '1',
                         '--duration-s', "$DurationS", '--seed', "$seed", '--label', $label, '--out', (Join-Path $runs "capacity/run-$index"), '--technicians', "$fleet") +
                         (& $variantArgs $variant) + $profile.args
                     # The scheduler's metrics are the whole process's, so one client samples them for the cell.
@@ -206,6 +198,9 @@ try {
     }
 } finally {
     Pop-Location
+    $ErrorActionPreference = 'Continue'
+    foreach ($token in $issued.Values) { Remove-StudyToken -Compose $tokenCompose -Id $token.tokenId -Variable $token.variable -Log (Join-Path $runs 'revoke.log') }
+    $ErrorActionPreference = 'Stop'
     if ($restarted) {
         # Back to the compose file's own settings.
         $ErrorActionPreference = 'Continue'
@@ -243,7 +238,7 @@ if ($unanswered.Count -gt 0) { throw "No search was answered in: $($unanswered -
     runnerRevision = (git -C $repository rev-parse HEAD).Trim()
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
     capacitySettings = $capacitySettings
-    clientTokens = $clientTokens
+    tokensIssued = @($issued.Values | ForEach-Object { [ordered]@{ tenant = $_.tenant; tokenId = $_.tokenId } })
     runsWithDefects = $failures
     quality = $quality
     cap = $cap

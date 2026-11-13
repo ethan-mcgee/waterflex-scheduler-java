@@ -3,7 +3,7 @@
 //     --time-zone America/Chicago --area 41.20,-96.10,41.30,-95.95
 // Exit status: 0 when every case passed, 1 when any failed, 2 for a usage error.
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { Id } from "./src/api.ts";
@@ -12,8 +12,9 @@ import { SchedulerApi } from "./src/client.ts";
 import { areaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_VERSION, markdown, runCase, type CaseResult, type Report } from "./src/report.ts";
 import { requireTimeZone, todayIn } from "./src/time.ts";
+import { readToken, TOKEN_USAGE } from "./src/token.ts";
 
-const USAGE = `Usage: npx tsx conformance.ts --url <scheduler base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
+const USAGE = `Usage: npx tsx conformance.ts --url <scheduler base URL> ${TOKEN_USAGE} --metro <metroId> --time-zone <IANA zone>
                               (--area <south,west,north,east> | --points fixture) [--out <directory>] [--only <group,...>]`;
 
 class UsageError extends Error { }
@@ -28,7 +29,7 @@ function options() {
   let parsed;
   try {
     parsed = parseArgs({ strict: true, allowPositionals: false, options: {
-      url: { type: "string" }, "token-file": { type: "string" }, metro: { type: "string" }, "time-zone": { type: "string" },
+      url: { type: "string" }, "token-file": { type: "string" }, "token-env": { type: "string" }, metro: { type: "string" }, "time-zone": { type: "string" },
       area: { type: "string" }, points: { type: "string" }, out: { type: "string" }, only: { type: "string" }, help: { type: "boolean" },
     } });
   } catch (error) {
@@ -40,7 +41,6 @@ function options() {
     process.exit(0);
   }
   const url = required(values, "url");
-  const tokenFile = required(values, "token-file");
   const metroId = required(values, "metro");
   if (!Id.safeParse(metroId).success) throw new UsageError("--metro is not a valid ID");
   const timeZone = requireTimeZone(required(values, "time-zone"));
@@ -58,10 +58,10 @@ function options() {
   }
   let token: string;
   try {
-    // "-" reads standard input, so a token piped from a secret store is never written to a file.
-    token = readFileSync(tokenFile === "-" ? 0 : tokenFile, "utf8").trim();
+    // "--token-file -" reads standard input and --token-env a variable, so the token is never written to a file.
+    token = readToken(values["token-file"], values["token-env"]);
   } catch (error) {
-    throw new UsageError(`Cannot read --token-file: ${error instanceof Error ? error.message : String(error)}`);
+    throw new UsageError(error instanceof Error ? error.message : String(error));
   }
   const groups = new Set(CASES.map(item => item.group as string));
   const only = values.only === undefined ? null : new Set(values.only.split(",").map(group => group.trim()));

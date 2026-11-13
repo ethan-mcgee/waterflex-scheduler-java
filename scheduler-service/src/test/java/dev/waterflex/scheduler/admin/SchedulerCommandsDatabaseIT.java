@@ -58,6 +58,20 @@ class SchedulerCommandsDatabaseIT {
         assertEquals(0, run("--command=revoke-token", id).status());
         assertNull(tokens.tenantFor(token), "a revoked token is refused");
         assertEquals(1, run("--command=revoke-token", id).status(), "a token is revoked once");
+
+        // A rotation: a second token beside the first, and the listing that finds the one to revoke by its label.
+        Run second = run("--command=issue-token", tenant, "CLI tenant", "second");
+        String secondId = field(second.out(), "id"), secondToken = field(second.out(), "token");
+        Run listed = run("--command=list-tokens", tenant);
+        assertEquals(0, listed.status(), listed.err());
+        String[] lines = listed.out().strip().split("\\R");
+        assertEquals(2, lines.length, listed.out());
+        assertTrue(lines[0].startsWith(secondId + "\tsecond\tcreated ") && lines[0].endsWith("\tactive"), "newest first: " + lines[0]);
+        assertTrue(lines[1].startsWith(id + "\tfirst\tcreated ") && lines[1].contains("\trevoked "), lines[1]);
+        assertFalse(listed.out().contains(token) || listed.out().contains(secondToken), "a listing never shows a token");
+        assertEquals(tenant, tokens.tenantFor(secondToken));
+        assertEquals(1, run("--command=list-tokens", "no-such-" + suffix).status());
+        assertEquals(2, run("--command=list-tokens").status());
         assertEquals(1, run("--command=disable-tenant", "no-such-" + suffix).status());
     }
 

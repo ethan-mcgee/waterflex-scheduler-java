@@ -59,7 +59,7 @@ The scheduler's operator does these once per client, on the scheduler VM (see `d
    ```
 
    It prints `id: <uuid>` and `token: wfs_...` once. Store the token in your secret store, one per client, and send it as `Authorization: Bearer <token>` on every call. The tenant comes only from the token; a request never names one. `GET /api/v1/whoami` answers `{"tenantId": "acme-water"}` for a working token.
-2. **Rotation:** Issue a second token for the tenant (another label), deploy it, then revoke the old one with `--command=revoke-token <id>`. Both work in between. `--command=disable-tenant` stops every token of a tenant at once; `--command=list-tenants` shows tenants and their active token counts.
+2. **Rotation:** Issue a second token for the tenant (another label), deploy it, then revoke the old one with `--command=revoke-token <id>`; `--command=list-tokens <tenantId>` finds its ID by label. Both work in between. The runbook's "Rotate a tenant's token" is the step-by-step procedure. `--command=disable-tenant` stops every token of a tenant at once; `--command=list-tenants` shows tenants and their active token counts.
 3. **Metros:** Every metro you send (`snapshot.metroId`) must have its routing service listed in the scheduler's `ROUTING_METRO_URLS`. An unlisted metro is a 422, never routed elsewhere. Clients in the same metro share its routing service; routing sees only coordinates.
 4. **Geocoding mode:** `GEOCODING_MODE=COORDINATES_REQUIRED` (the default) never locates an address: send coordinates. `NOMINATIM` locates an address-only location when the map has exactly one house matching it (section 3).
 5. **Retention:** The scheduler purges requests, proposals, offers and receipts after `SCHEDULER_RETENTION_DAYS`. Keep your own copy of any receipt you need longer. A `requestId` older than the period is forgotten and runs again.
@@ -391,6 +391,8 @@ TLS terminates at the scheduler VM's proxy (`scheduler-proxy`), with the operato
 - **Scheduler to routing services:** Plain http with a bearer token (`ROUTING_AUTH_TOKEN`) on the VM's internal network, which never leaves the machine; encrypted if a routing service ever runs elsewhere.
 - **Scheduler to Nominatim**, in `NOMINATIM` mode, on the same terms.
 - **Scheduler to a remote solver pool:** already https with a service token for any non-loopback address.
+
+Metros are shared, not assigned to tenants: any working token may name any metro the VM routes (`ROUTING_METRO_URLS`). Every stored row still belongs to one tenant, so a client never sees another's bookings, proposals or answers; the route cache is shared within a metro and holds travel times only. What a token can do in another metro is use routing and solving capacity there. This is accepted while every tenant is a WaterFlex Software client reached only through WaterFlex Software's backend; a per-tenant metro list is the change to make before any other caller gets a token.
 
 Also: store tenant tokens only in a secret store and never log them; the management port (9000, metrics and health) and the proxy's plain listener with the detailed `/health` stay on the VM's loopback or private network only; and the scheduler VM accepts API traffic only from WaterFlex Software's backend. The runbook's TLS section is the operator's checklist for the same work.
 

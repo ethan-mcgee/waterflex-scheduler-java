@@ -15,7 +15,7 @@
     <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency>
     <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId></dependency>
-    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.22.4</version></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.23.0</version></dependency>
     <dependency><groupId>ai.timefold.solver</groupId><artifactId>timefold-solver-spring-boot-starter</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
@@ -40,7 +40,7 @@
       <compilerArgs><arg>-properties</arg><arg>${project.basedir}/../.settings/org.eclipse.jdt.core.prefs</arg></compilerArgs>
     </configuration>
     <dependencies>
-      <dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-compiler-eclipse</artifactId><version>2.17.1</version></dependency><dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-compiler-api</artifactId><version>2.17.1</version></dependency>
+      <dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-compiler-eclipse</artifactId><version>2.18.0</version></dependency><dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-compiler-api</artifactId><version>2.18.0</version></dependency>
       <dependency><groupId>org.eclipse.jdt</groupId><artifactId>ecj</artifactId><version>3.46.100</version></dependency>
     </dependencies>
   </plugin></plugins></build></profile></profiles>
