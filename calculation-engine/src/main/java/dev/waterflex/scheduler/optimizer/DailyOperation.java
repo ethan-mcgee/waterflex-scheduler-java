@@ -145,7 +145,12 @@ public final class DailyOperation {
             finally { org.slf4j.MDC.clear(); }
         });
         try {
-            T result = Required.value(completion.get(operation.deadline.remainingNanos(), TimeUnit.NANOSECONDS));
+            T result;
+            // The worker finishes its deadline before it completes the future, so the measurements are there whenever
+            // the caller has an answer, and are published on the caller's thread, where the request log reads them. A
+            // caller that stops waiting has none to publish and logs its total only.
+            try { result = Required.value(completion.get(operation.deadline.remainingNanos(), TimeUnit.NANOSECONDS)); }
+            finally { if (completion.isDone()) SearchDeadline.publish(operation.deadline.finished()); }
             operation.deadline.requireTime();
             return result;
         } catch (TimeoutException expired) {
@@ -162,10 +167,12 @@ public final class DailyOperation {
     private <T> void run(SearchAdmission admission, Supplier<Preparation<T>> prepare, CompletableFuture<T> completion) {
         String outcome = "FAILED";
         boolean late = false;
+        // This worker runs the whole deadline, so its CPU time is the operation's.
+        deadline.telemetry().adoptCurrentThread();
         var watchdog = WATCHDOG.scheduleWithFixedDelay(this::tick, 0, 10, TimeUnit.MILLISECONDS);
         try {
             CURRENT.set(this);
-            T result = deadline.within(() -> {
+            T result = deadline.withinUnobserved(() -> {
                 deadline.requireTime();
                 Preparation<T> prepared = prepare.get();
                 T value;

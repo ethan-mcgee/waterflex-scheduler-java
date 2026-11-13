@@ -52,6 +52,18 @@ class RouteEvaluationsTest {
         assertEquals(List.of(), evaluation.skippedTechnicianDays());
     }
 
+    @Test void theEvaluationsOwnTimeIsTheCallsCalculationTime() {
+        var measured = new java.util.concurrent.atomic.AtomicReference<dev.waterflex.scheduler.SearchTelemetry.@org.jspecify.annotations.Nullable Measurements>();
+        dev.waterflex.scheduler.SearchDeadline.observe(measured::set);
+        try {
+            assertEquals(200, evaluations(600).evaluate("acme", request()).status());
+            var finished = measured.get();
+            assertNotNull(finished, "the worker's measurements reach the calling thread");
+            assertTrue(finished.calculationNanos() > 0, "timing the routes is recorded as calculation time");
+            assertNotNull(finished.foregroundCpuNanos(), "the worker's CPU time is known");
+        } finally { dev.waterflex.scheduler.SearchDeadline.observe(null); }
+    }
+
     @Test void aDayThatNoLongerHoldsIsReportedNotRefused() {
         // Twelve hours each way: no appointment can be reached inside its window.
         var reply = evaluations(43_200).evaluate("acme", request());

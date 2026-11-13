@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./schedule.module.css";
 import { addCalendarDays, weekDates } from "@/lib/date";
+import type { MoveCheckResult } from "@/lib/contracts";
+import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
+import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
@@ -73,18 +76,23 @@ function AppointmentCard({
   timezone,
   onSelect,
   timelineStyle,
+  drag,
 }: {
   appointment: ScheduleAppointment;
   timezone: string;
   onSelect: (appointment: ScheduleAppointment) => void;
   timelineStyle?: CSSProperties;
+  /** Present on the weekly grid, where a card can be dragged to another technician. */
+  drag?: { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; dragging: boolean };
 }) {
   return (
     <button
-      className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""}`}
+      className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""} ${drag?.dragging ? styles.draggingCard : ""}`}
       style={timelineStyle}
       type="button"
-      onClick={() => onSelect(appointment)}
+      data-appointment-id={appointment.id}
+      onPointerDown={drag ? (event) => drag.press(appointment, event) : undefined}
+      onClick={() => { if (!drag?.clickSuppressed()) onSelect(appointment); }}
     >
       <span className={styles.cardTime}>
         {formatTime(appointment.plannedStart, timezone)}
@@ -105,6 +113,8 @@ function TimelineCell({
   timelineEnd,
   timezone,
   onSelect,
+  drag,
+  dropState,
 }: {
   day: string;
   technician: ScheduleTechnician;
@@ -114,6 +124,9 @@ function TimelineCell({
   timelineEnd: number;
   timezone: string;
   onSelect: (appointment: ScheduleAppointment) => void;
+  drag: { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; draggingId: string | null };
+  /** While a card is dragged: whether this cell can take it, and whether the pointer is over it. */
+  dropState: "none" | "valid" | "over";
 }) {
   const daily = scheduleDay(technician, day);
   const closed = !daily.member || !daily.available;
@@ -125,7 +138,12 @@ function TimelineCell({
   const hourCount = (timelineEnd - timelineStart) / 60;
 
   return (
-    <div className={`${styles.cell} ${closed ? styles.closedCell : ""}`} style={{ height: timelineHeight }}>
+    <div
+      className={`${styles.cell} ${closed ? styles.closedCell : ""} ${dropState === "valid" ? styles.dropTarget : ""} ${dropState === "over" ? styles.dropOver : ""}`}
+      style={{ height: timelineHeight }}
+      data-drop-technician={technician.id}
+      data-drop-date={day}
+    >
       {!daily.member && <span className={styles.subtle}>Assigned to another metro</span>}
       {!closed && (
         <div
@@ -165,6 +183,7 @@ function TimelineCell({
             timezone={timezone}
             onSelect={onSelect}
             timelineStyle={{ top, height }}
+            drag={{ press: drag.press, clickSuppressed: drag.clickSuppressed, dragging: drag.draggingId === appointment.id }}
           />
         );
       })}
@@ -177,12 +196,18 @@ function AppointmentPanel({
   timezone,
   onClose,
   onDeleted,
+  moveTargets,
+  onCheckMove,
 }: {
   appointment: ScheduleAppointment;
   timezone: string;
   onClose: () => void;
   onDeleted: () => void;
+  /** Technicians working that day who could take the appointment: the keyboard path to the same check as a drag. */
+  moveTargets: Array<{ id: string; name: string }>;
+  onCheckMove: (targetTechnicianId: string) => void;
 }) {
+  const [moveTarget, setMoveTarget] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -248,6 +273,19 @@ function AppointmentPanel({
           <dt>Appointment ID</dt>
           <dd>{appointment.id}</dd>
         </dl>
+        {moveTargets.length > 0 && (
+          <form className={styles.moveCheck} onSubmit={(event) => { event.preventDefault(); if (moveTarget) onCheckMove(moveTarget); }}>
+            <label>
+              <span>Check a move to</span>
+              <select className={styles.select} value={moveTarget} onChange={(event) => setMoveTarget(event.target.value)}>
+                <option value="">Choose a technician</option>
+                {moveTargets.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}
+              </select>
+            </label>
+            <button className={styles.button} type="submit" disabled={!moveTarget}>Check move</button>
+            <span className={styles.subtle}>Checking saves nothing.</span>
+          </form>
+        )}
         <div className={styles.panelActions}>
           <Link className={styles.dispatchLink} href={`/dispatch?date=${appointment.date}`}>
             View dispatch day
@@ -307,6 +345,61 @@ export default function ScheduleView({
     return cells;
   }, [appointments]);
 
+  const [check, setCheck] = useState<MoveCheck | null>(null);
+  const checkCount = useRef(0);
+  const inFlight = useRef<AbortController | null>(null);
+  const recorded = useRef(0);
+
+  const takes = useCallback((technicianId: string, date: string) => {
+    const technician = technicians.find(item => item.id === technicianId);
+    const day = technician?.days[date];
+    return day !== undefined && day.member && day.available;
+  }, [technicians]);
+
+  const canDrop = useCallback((appointment: ScheduleAppointment, cell: DropCell) =>
+    cell.date === appointment.date && cell.technicianId !== appointment.technicianId && takes(cell.technicianId, cell.date), [takes]);
+
+  /** Asks whether the day still works with the move. A newer check replaces an older one still waiting. */
+  const runCheck = useCallback((appointment: ScheduleAppointment, targetTechnicianId: string, started: number) => {
+    inFlight.current?.abort();
+    const controller = new AbortController();
+    inFlight.current = controller;
+    const id = ++checkCount.current;
+    const targetName = technicians.find(item => item.id === targetTechnicianId)?.name ?? targetTechnicianId;
+    const base = { id, appointment, targetTechnicianId, targetName, started };
+    setCheck({ ...base, state: "checking" });
+    requestMoveCheck({ metroId, serviceDate: appointment.date, appointmentId: appointment.id, targetTechnicianId }, controller.signal)
+      .then(result => { if (!controller.signal.aborted) setCheck({ ...base, state: "done", result }); })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setCheck({ ...base, state: "error", message: error instanceof Error ? error.message : "The move could not be checked. Try again." });
+      });
+  }, [metroId, technicians]);
+
+  const { drag, press, clickSuppressed } = useAppointmentDrag({
+    canDrop,
+    onDrop: (appointment, cell, droppedAt) => runCheck(appointment, cell.technicianId, droppedAt),
+  });
+
+  // The timing ends once the answer is on screen: two animation frames after React commits it, the frame is painted.
+  useEffect(() => {
+    if (check === null || check.state === "checking" || recorded.current === check.id) return;
+    recorded.current = check.id;
+    const detail = { outcome: check.state === "done" ? check.result.outcome : "ERROR" as const,
+      appointmentId: check.appointment.id, targetTechnicianId: check.targetTechnicianId };
+    let second = 0;
+    const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => recordMoveCheck(check.started, detail)); });
+    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+  }, [check]);
+
+  useEffect(() => () => inFlight.current?.abort(), []);
+
+  const cardDrag = { press, clickSuppressed, draggingId: drag?.appointment.id ?? null };
+  const dropState = (technicianId: string, date: string): "none" | "valid" | "over" => {
+    if (drag === null || !canDrop(drag.appointment, { technicianId, date })) return "none";
+    return drag.over?.technicianId === technicianId && drag.over.date === date ? "over" : "valid";
+  };
+
   function goToWeek(nextMonday: string) {
     router.push(`/schedule?metroId=${encodeURIComponent(metroId)}&week=${nextMonday}`);
   }
@@ -341,6 +434,8 @@ export default function ScheduleView({
           </select>
         </label>
       </div>
+
+      {check !== null && <MoveCheckBanner check={check} onDismiss={() => { inFlight.current?.abort(); setCheck(null); }} />}
 
       {technicians.length === 0 ? (
         <div className={styles.empty}>No active technicians are configured.</div>
@@ -403,6 +498,8 @@ export default function ScheduleView({
                       timelineEnd={timelineEnd}
                       timezone={timezone}
                       onSelect={setSelected}
+                      drag={cardDrag}
+                      dropState={dropState(technician.id, day)}
                     />
                   );
                 }),
@@ -448,9 +545,46 @@ export default function ScheduleView({
             setSelected(null);
             router.refresh();
           }}
+          moveTargets={technicians.filter(item => item.id !== selected.technicianId && takes(item.id, selected.date))
+            .map(item => ({ id: item.id, name: item.name }))}
+          onCheckMove={(targetTechnicianId) => {
+            const appointment = selected;
+            setSelected(null);
+            runCheck(appointment, targetTechnicianId, moveCheckStart());
+          }}
         />
       )}
+      {drag !== null && (
+        <div className={styles.dragLabel} style={{ left: drag.x + 12, top: drag.y + 12 }} aria-hidden="true">
+          {drag.appointment.customerName}
+          {drag.over === null ? "" : ` to ${technicians.find(item => item.id === drag.over?.technicianId)?.name ?? ""}`}
+        </div>
+      )}
     </main>
+  );
+}
+
+type MoveCheck = { id: number; appointment: ScheduleAppointment; targetTechnicianId: string; targetName: string; started: number }
+  & ({ state: "checking" } | { state: "done"; result: MoveCheckResult } | { state: "error"; message: string });
+
+const OUTCOME_LABEL: Record<MoveCheckResult["outcome"], string> = { FEASIBLE: "Feasible", NOT_FEASIBLE: "Not feasible", NOT_CHECKED: "Not checked" };
+
+/** The answer to the last move check. The card stays where it was: a check never saves the move. */
+function MoveCheckBanner({ check, onDismiss }: { check: MoveCheck; onDismiss: () => void }) {
+  const who = `${check.appointment.customerName} on ${check.targetName}'s route`;
+  const outcomeClass = check.state === "done"
+    ? check.result.outcome === "FEASIBLE" ? styles.moveFeasible : styles.moveNotFeasible
+    : check.state === "error" ? styles.moveNotFeasible : "";
+  return (
+    <div className={`${styles.moveBanner} ${outcomeClass}`} data-move-check={check.state === "done" ? check.result.outcome : check.state.toUpperCase()}
+      role={check.state === "error" ? "alert" : "status"} aria-live="polite">
+      <span>
+        {check.state === "checking" && `Checking ${who}...`}
+        {check.state === "done" && `${OUTCOME_LABEL[check.result.outcome]}: ${who}. ${check.result.message} Nothing was saved.`}
+        {check.state === "error" && `Could not check ${who}: ${check.message}`}
+      </span>
+      <button className={styles.button} type="button" onClick={onDismiss}>Dismiss</button>
+    </div>
   );
 }
 

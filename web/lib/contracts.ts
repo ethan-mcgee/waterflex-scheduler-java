@@ -282,3 +282,12 @@ export async function readResponse<T>(response: Response, schema: z.ZodType<T>):
   if (!parsed.success) throw new Error("Invalid response. Reload before continuing.");
   return parsed.data;
 }
+
+// A dispatcher's question: would the day still work with this appointment on another technician? Nothing is saved.
+export const moveCheckRequest = z.object({ metroId: text, serviceDate: date, appointmentId: text, targetTechnicianId: text }).strict();
+export const moveOutcome = z.enum(["FEASIBLE", "NOT_FEASIBLE", "NOT_CHECKED"]);
+/** `overtimeMinutes` is present only when both days were timed; `saved` is always false, since a check changes nothing. */
+export const moveCheckResult = z.object({ outcome: moveOutcome, message: text, overtimeMinutes: z.int().min(0).max(1440).nullable(),
+  saved: z.literal(false) }).strict().refine(value => value.outcome === "FEASIBLE" || value.overtimeMinutes === null, "Only a timed day has overtime");
+export type MoveCheckRequest = z.infer<typeof moveCheckRequest>;
+export type MoveCheckResult = z.infer<typeof moveCheckResult>;

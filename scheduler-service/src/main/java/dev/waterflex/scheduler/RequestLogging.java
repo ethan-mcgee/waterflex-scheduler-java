@@ -42,7 +42,16 @@ public final class RequestLogging extends OncePerRequestFilter {
     @org.springframework.beans.factory.annotation.Autowired
     public RequestLogging(io.micrometer.core.instrument.MeterRegistry registry) {
         this.registry = registry;
-        SearchDeadline.observe(FINISHED::set);
+        SearchDeadline.observe(measured -> finished(Required.value(measured, "finished deadline measurements")));
+    }
+
+    /**
+     * Adds a finished deadline's measurements to the call's: a daily proposal routes under one deadline on the request
+     * thread and searches under another on a worker, and its line counts both.
+     */
+    private static void finished(SearchTelemetry.Measurements measured) {
+        SearchTelemetry.Measurements before = FINISHED.get();
+        FINISHED.set(before == null ? measured : before.plus(measured));
     }
 
     /** Records a finished deadline's phases; nothing for a call that ran under none. */

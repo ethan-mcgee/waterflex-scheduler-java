@@ -9,6 +9,7 @@
     "conformance": "tsx conformance.ts",
     "load": "tsx load.ts",
     "quality": "tsx quality.ts",
+    "move-check-report": "tsx move-check-report.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
   },

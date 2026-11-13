@@ -154,6 +154,88 @@ class RequestLoggingTest {
         } finally { SearchDeadline.observe(null); }
     }
 
+    /** The summary lines logged while running the call. */
+    private static java.util.List<String> logged(org.junit.jupiter.api.function.Executable call) throws Throwable {
+        var logger = (ch.qos.logback.classic.Logger) Required.value(org.slf4j.LoggerFactory.getLogger("dev.waterflex.scheduler.api.requests"));
+        var lines = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        lines.start();
+        logger.addAppender(lines);
+        try { call.execute(); }
+        finally { logger.detachAppender(lines); }
+        return Required.value(lines.list.stream().map(event -> Required.value(event).getFormattedMessage()).toList());
+    }
+
+    /** Work a daily worker runs, recording routing and calculation time as a route evaluation does. */
+    private static Boolean measuredWork(long routingMillis, long calculationMillis) {
+        SearchDeadline deadline = Required.value(SearchDeadline.current(), "the worker's deadline");
+        deadline.telemetry().routingWait(routingMillis * 1_000_000L);
+        deadline.telemetry().calculation(calculationMillis * 1_000_000L);
+        deadline.telemetry().database(3_000_000L, false);
+        return Required.value(Boolean.TRUE);
+    }
+
+    @Test void workRunOnADailyWorkerIsSummarizedOnTheRequestThread() throws Throwable {
+        // A route evaluation runs on a worker thread; its line used to carry the total only.
+        var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var logging = new RequestLogging(registry);
+        try {
+            var request = new MockHttpServletRequest("POST", "/api/v1/routes/evaluate");
+            request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/routes/evaluate");
+            var lines = logged(() -> logging.doFilter(request, new MockHttpServletResponse(), (_, _) ->
+                    DailyOperation.execute(new SearchAdmission(1, 1), Required.value(java.time.Duration.ofSeconds(5)), () -> measuredWork(120, 15), _ -> { })));
+            String line = lines.getLast();
+            for (String field : java.util.List.of(" queueMs=", " routingMs=120 ", " calculationMs=15 ", " dbMs=3 ", " dbCalls=1 ", " cpuMs="))
+                assertTrue(line.contains(field), "missing" + field + " in: " + line);
+            var routing = registry.find("scheduler.request.phase").tag("operation", "POST /api/v1/routes/evaluate").tag("phase", "routing").timer();
+            assertNotNull(routing, "the worker's phases are recorded as timers");
+            assertEquals(120, Math.round(routing.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS)));
+        } finally { SearchDeadline.observe(null); }
+    }
+
+    @Test void aCallWithARequestThreadDeadlineAndAWorkerCountsBoth() throws Throwable {
+        // A daily proposal routes on the request thread, then searches on a worker: neither part may replace the other.
+        var logging = new RequestLogging();
+        try {
+            var lines = logged(() -> logging.doFilter(new MockHttpServletRequest("POST", "/api/v1/daily/proposals"), new MockHttpServletResponse(), (_, _) -> {
+                var routed = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)));
+                routed.within(() -> { routed.telemetry().routingWait(100_000_000L); return Boolean.TRUE; });
+                DailyOperation.execute(new SearchAdmission(1, 1), Required.value(java.time.Duration.ofSeconds(5)), () -> measuredWork(20, 15), _ -> { });
+            }));
+            String line = lines.getLast();
+            assertTrue(line.contains(" routingMs=120 "), "routing from both deadlines: " + line);
+            assertTrue(line.contains(" calculationMs=15 "), line);
+            assertTrue(line.contains(" cpuMs="), "the request thread's deadline ran on it and the worker's on the worker, so both CPU times are known: " + line);
+        } finally { SearchDeadline.observe(null); }
+    }
+
+    @Test void aCallerThatStopsWaitingLogsItsTotalOnly() throws Throwable {
+        var logging = new RequestLogging();
+        try {
+            var lines = logged(() -> assertThrows(SearchDeadline.Expired.class, () ->
+                    logging.doFilter(new MockHttpServletRequest("POST", "/api/v1/routes/evaluate"), new MockHttpServletResponse(), (_, _) ->
+                            DailyOperation.execute(new SearchAdmission(1, 1), Required.value(java.time.Duration.ofMillis(200)), () -> {
+                                try { Thread.sleep(600); } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+                                return Boolean.TRUE;
+                            }, _ -> { }))));
+            String line = lines.getLast();
+            assertTrue(line.contains(" elapsedMs="), line);
+            assertFalse(line.contains(" queueMs="), "the worker had not finished, so there is nothing measured to report: " + line);
+        } finally { SearchDeadline.observe(null); }
+    }
+
+    @Test void measurementsFromTwoDeadlinesAddUpAndKeepUnknownsUnknown() {
+        var known = new SearchTelemetry.Measurements(1, 2, 0, 3, 1, 1, 1, 5L, 10, 20, 30, null);
+        var committed = new SearchTelemetry.Measurements(1, 2, 0, 3, 1, 1, 1, 7L, 10, 20, 30, 4L);
+        var noCpu = new SearchTelemetry.Measurements(0, 0, 0, 0, 0, 0, 0, null, 0, 0, 0, null);
+        var sum = known.plus(committed);
+        assertEquals(2, sum.databaseExecutions());
+        assertEquals(20, sum.routingNanos());
+        assertEquals(12L, sum.foregroundCpuNanos());
+        assertEquals(4L, sum.commitNanos(), "one part committed");
+        assertNull(known.plus(noCpu).foregroundCpuNanos(), "a CPU time that covers only part of the call is not reported");
+        assertNull(known.plus(noCpu).commitNanos(), "neither part committed");
+    }
+
     @Test void theDailyWorkerLogsWithTheCallersRequestId() {
         RequestLogging.requestId("3b1f6c1e-2a7d-4f0e-8c52-9a1d7e6b4c21");
         String onWorker = DailyOperation.execute(new SearchAdmission(1, 1), DailyOperation.Allowance.forSearch(DailyCalculation.Allocation.client(5, 0)),

@@ -68,7 +68,14 @@ public class RouteEvaluations {
         var prepared = DailyPreparation.prepare(new DailyProposalRequest(Required.value(UUID.randomUUID().toString()), request.serviceDate(), request.snapshot()),
                 routing, locator);
         var plan = prepared.plan();
-        var result = RouteEvaluator.evaluate(plan);
+        long started = System.nanoTime();
+        RouteEvaluator.Result result;
+        try { result = RouteEvaluator.evaluate(plan); }
+        finally {
+            // The timing itself is the call's calculation time; routing was measured while the day was prepared.
+            SearchDeadline deadline = SearchDeadline.current();
+            if (deadline != null) deadline.telemetry().calculation(System.nanoTime() - started);
+        }
         // A day that does not hold cannot be timed as given: the evaluation stops at the first stop it cannot reach.
         // Untimed stops cannot be counted, so a day that does not hold reports no buffer count.
         if (!result.feasible()) return new RouteEvaluation(false, Required.value(List.of()), prepared.skipped(), result.costCents(), Math.toIntExact(result.overtimeMinutes()), null);
