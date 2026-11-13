@@ -22,15 +22,21 @@ x-hardened: &hardened
   cap_drop: [ALL]
   security_opt: ["no-new-privileges:true"]
 
+# Images are tagged by the commit they were built from. On the VM, infra/release-vm.sh builds a release's images and
+# sets SCHEDULER_RELEASE (the git tag), SCHEDULER_REVISION (its commit) and ROUTING_REVISION (the last commit that
+# changed what the routing image is built from, so a release that leaves routing alone does not restart it) in .env,
+# whose pull policies (missing) keep `up` from rebuilding them from the checkout. Without them (sandbox, rehearsal, CI)
+# the tag is dev, rebuilt on each up.
 # A study pins a tag built from one commit with SCHEDULER_IMAGE and SCHEDULER_PULL_POLICY=never, so compose runs that
-# image rather than rebuilding the working tree (infra/run-stack-verification.ps1). Normal use leaves both unset.
+# image rather than rebuilding the working tree (infra/run-stack-verification.ps1).
 x-scheduler-image: &scheduler-image
   <<: *hardened
-  image: ${SCHEDULER_IMAGE:-waterflex-scheduler-engine:vm}
+  image: ${SCHEDULER_IMAGE:-waterflex-scheduler-engine:${SCHEDULER_REVISION:-dev}}
   pull_policy: ${SCHEDULER_PULL_POLICY:-build}
   build:
     context: ../..
     dockerfile: scheduler-service/Dockerfile
+    args: { RELEASE: "${SCHEDULER_RELEASE:-dev}", REVISION: "${SCHEDULER_REVISION:-dev}" }
 
 # What every scheduler replica runs with; each pool adds its role, admission and compute.
 x-scheduler-runtime: &scheduler-runtime
@@ -179,12 +185,13 @@ services:
   # with no prepared graph stops the start instead of being imported here.
   routing-omaha:
     <<: *hardened
-    image: waterflex-scheduler-routing:vm
+    image: waterflex-scheduler-routing:${ROUTING_REVISION:-dev}
     stop_grace_period: 20s
-    pull_policy: build
+    pull_policy: ${ROUTING_PULL_POLICY:-build}
     build:
       context: ../..
       dockerfile: routing-service/Dockerfile
+      args: { RELEASE: "${SCHEDULER_RELEASE:-dev}", REVISION: "${ROUTING_REVISION:-dev}" }
     environment:
       ROUTING_OSM_FILE: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
       ROUTING_GRAPH_DIR: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/graph

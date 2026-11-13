@@ -11,7 +11,9 @@ DOCKERFILES = ["scheduler-service/Dockerfile", "routing-service/Dockerfile",
                "web/Dockerfile", "infra/map-import/Dockerfile"]
 JAVA_SERVICES = ["scheduler-service", "routing-service"]
 # Images built from this repository are tagged locally, so they carry no registry digest.
-LOCAL_IMAGE = re.compile(r"^(waterflex-[\w-]+:[\w.-]+|\$\{SCHEDULER_IMAGE:-waterflex-[\w-]+:[\w.-]+\})$")
+# Built here and tagged by commit: a literal tag, or the release's commit with dev as the default.
+LOCAL_TAG = r"(?:[\w.-]+|\$\{[A-Z_]+:-[\w.-]+\})"
+LOCAL_IMAGE = re.compile(rf"^(waterflex-[\w-]+:{LOCAL_TAG}|\$\{{SCHEDULER_IMAGE:-waterflex-[\w-]+:{LOCAL_TAG}\}})$")
 PINNED = re.compile(r"^(?P<name>[\w./-]+:[\w.-]+)@sha256:[0-9a-f]{64}$")
 
 
@@ -56,8 +58,9 @@ class NonRootImageTest(unittest.TestCase):
             with self.subTest(service=name):
                 runtime = read(f"{name}/Dockerfile").split("\nFROM ")[-1]
                 self.assertIn("useradd --system --uid 10001 --gid waterflex", runtime)
-                # The user is set after the jar is copied and before the service starts.
-                self.assertRegex(runtime, r"COPY --from=build [^\n]+\nUSER 10001:10001\n(EXPOSE \d+\n)?ENTRYPOINT ")
+                # The user is set after the jar is copied and before the service starts; only metadata (the release's
+                # build arguments, labels and environment) comes between.
+                self.assertRegex(runtime, r"COPY --from=build [^\n]+\n(?:(?:#|ARG |LABEL |ENV | )[^\n]*\n)*USER 10001:10001\n(EXPOSE \d+\n)?ENTRYPOINT ")
 
 
 class VmComposeTest(unittest.TestCase):
