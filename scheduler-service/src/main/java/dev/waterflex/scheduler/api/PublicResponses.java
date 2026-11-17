@@ -123,6 +123,111 @@ public final class PublicResponses {
         }
     }
 
+    /** What one timed route uses (spec 1.12.0): buffered drive and paid minutes, road meters, modeled cost and late-arrival buffer seconds. */
+    public record RouteTotals(Long driveMinutes, Long meters, Long paidMinutes, Long costCents, Long bufferSeconds) {
+        public RouteTotals {
+            if (Input.present(driveMinutes, "driveMinutes") < 0 || Input.present(meters, "meters") < 0 || Input.present(paidMinutes, "paidMinutes") < 0
+                    || Input.present(costCents, "costCents") < 0 || Input.present(bufferSeconds, "bufferSeconds") < 0)
+                throw new IllegalArgumentException("Route totals must not be negative");
+        }
+    }
+
+    /** One road leg of an insertion: its road seconds and meters, and its minutes with the client's travel buffer. */
+    public record InsertionLeg(Long seconds, Long meters, Integer bufferedMinutes) {
+        public InsertionLeg {
+            if (Input.present(seconds, "seconds") < 0 || Input.present(meters, "meters") < 0) throw new IllegalArgumentException("seconds and meters must not be negative");
+            Input.integer(bufferedMinutes, "bufferedMinutes", 0, Integer.MAX_VALUE);
+        }
+    }
+
+    /**
+     * A planned start the route holds with the job in this gap, and the arrival window it would promise.
+     * {@code keepsWindow} is present only when the job carried a promised window: true when this start keeps it.
+     * {@code stops} is present only when the request asked for routes.
+     */
+    public record InsertionStart(Instant plannedStart, Window window,
+                                 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Boolean keepsWindow,
+                                 RouteTotals timed,
+                                 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable List<PlannedStop> stops) {
+        public InsertionStart {
+            Input.present(plannedStart, "plannedStart");
+            Input.present(window, "window");
+            if (plannedStart.isBefore(window.start()) || !plannedStart.isBefore(window.end())) throw new IllegalArgumentException("plannedStart must be inside window");
+            Input.present(timed, "timed");
+            if (stops != null) stops = Input.list(stops, "stops");
+        }
+    }
+
+    /**
+     * One place the job could go: after {@code afterAppointmentId} (null at the start of the day) and before
+     * {@code beforeAppointmentId} (null at its end). The legs and the added values are present exactly when the gap is
+     * routable; a leg with no road route is never reported as zero. {@code replaced} is the leg the job would break,
+     * absent on a day with no appointments, where nothing is replaced.
+     */
+    public record InsertionGap(@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable String afterAppointmentId,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable String beforeAppointmentId,
+                               Boolean routable,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable InsertionLeg toJob,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable InsertionLeg fromJob,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable InsertionLeg replaced,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Long addedSeconds,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Long addedMeters,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Integer addedBufferedMinutes,
+                               List<InsertionStart> starts) {
+        public InsertionGap {
+            if (afterAppointmentId != null) Input.id(afterAppointmentId, "afterAppointmentId");
+            if (beforeAppointmentId != null) Input.id(beforeAppointmentId, "beforeAppointmentId");
+            boolean routed = Input.present(routable, "routable");
+            if (routed != (toJob != null) || routed != (fromJob != null) || routed != (addedSeconds != null) || routed != (addedMeters != null)
+                    || routed != (addedBufferedMinutes != null))
+                throw new IllegalArgumentException("A gap has its legs and added values exactly when it is routable");
+            if (replaced != null && !routed) throw new IllegalArgumentException("A gap that is not routable has no replaced leg");
+            starts = Input.list(starts, "starts");
+            if (!routed && !starts.isEmpty()) throw new IllegalArgumentException("A gap that is not routable has no starts");
+        }
+    }
+
+    /**
+     * One technician-day of an insertion answer. {@code holdsAsGiven} says whether the day holds before the job is
+     * added and {@code qualified} whether the technician can do the job's service; a day that fails either has no
+     * starts in any gap. {@code asGiven} is present exactly when the day holds as given, and {@code stops} only when it
+     * does and the request asked for routes.
+     */
+    public record InsertionTechnicianDay(String technicianId, LocalDate serviceDate, Boolean holdsAsGiven, Boolean qualified,
+                                         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable RouteTotals asGiven,
+                                         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable List<PlannedStop> stops,
+                                         List<InsertionGap> gaps) {
+        public InsertionTechnicianDay {
+            Input.id(technicianId, "technicianId");
+            Input.present(serviceDate, "serviceDate");
+            if (Input.present(holdsAsGiven, "holdsAsGiven") != (asGiven != null)) throw new IllegalArgumentException("A day has its totals exactly when it holds as given");
+            Input.present(qualified, "qualified");
+            if (stops != null) {
+                if (!holdsAsGiven) throw new IllegalArgumentException("A day that does not hold has no timed stops");
+                stops = Input.list(stops, "stops");
+            }
+            gaps = Input.list(gaps, "gaps");
+            if (gaps.isEmpty()) throw new IllegalArgumentException("A technician-day has at least one gap");
+            if (!holdsAsGiven || !qualified) for (InsertionGap gap : gaps)
+                if (!gap.starts().isEmpty()) throw new IllegalArgumentException("A day that does not hold, or an unqualified technician, has no starts");
+        }
+    }
+
+    /** POST /api/v1/routes/insertions: every technician-day that could be located, with the gaps the job could go in. */
+    public record RouteInsertionResult(String routingIdentity, List<InsertionTechnicianDay> technicianDays, List<SkippedTechnicianDay> skippedTechnicianDays) {
+        public RouteInsertionResult {
+            if (Input.present(routingIdentity, "routingIdentity").isBlank()) throw new IllegalArgumentException("Blank routingIdentity");
+            technicianDays = Input.list(technicianDays, "technicianDays");
+            skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
+            Set<PublicTypes.Key> answered = new HashSet<>();
+            for (InsertionTechnicianDay day : technicianDays)
+                if (!answered.add(new PublicTypes.Key(day.technicianId(), day.serviceDate()))) throw new IllegalArgumentException("Duplicate technician-day " + day.technicianId());
+            for (SkippedTechnicianDay skipped : skippedTechnicianDays)
+                if (!answered.add(new PublicTypes.Key(skipped.technicianId(), skipped.serviceDate())))
+                    throw new IllegalArgumentException("Technician-day " + skipped.technicianId() + " is both answered and skipped");
+        }
+    }
+
     /** A located appointment on a drawn route. */
     /** A drawn stop and where its coordinates came from. */
     public record LocatedStop(String appointmentId, Integer sequence, Double lat, Double lng, PublicTypes.CoordinateSource source) {

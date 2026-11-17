@@ -27,7 +27,7 @@ class PublicApiErrorsTest {
         when(tokens.tenantFor(TenantAuthenticationTest.VECTOR)).thenReturn("acme");
         var controller = new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class),
                 mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class),
-                mock(dev.waterflex.scheduler.api.BookingConfirm.class), routes, mock(dev.waterflex.scheduler.api.RouteGeometries.class),
+                mock(dev.waterflex.scheduler.api.BookingConfirm.class), routes, mock(dev.waterflex.scheduler.api.RouteGeometries.class), mock(dev.waterflex.scheduler.api.RouteInsertions.class),
                 new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests()));
         return Required.value(MockMvcBuilders.standaloneSetup(controller, new Outside()).setControllerAdvice(new PublicApiErrors())
                 .addFilters(new ApiVersionHeader(), new TenantAuthentication(tokens)).build());
