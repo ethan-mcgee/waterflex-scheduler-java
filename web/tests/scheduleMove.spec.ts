@@ -67,6 +67,15 @@ const card = (page: Page, appointmentId: string) => grid(page).locator(`[data-ap
 const banner = (page: Page) => page.locator("[data-move-check]");
 const cell = (page: Page, technicianId: string, date = DATE) => grid(page).locator(`[data-drop-technician="${technicianId}"][data-drop-date="${date}"]`);
 
+/** Opens a visit's details from the keyboard and checks a move to another technician there. */
+async function checkFromDetails(page: Page, appointmentId: string, technicianName: string) {
+  await card(page, appointmentId).focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Check a move to").selectOption({ label: technicianName });
+  await dialog.getByRole("button", { name: "Check move" }).click();
+}
+
 /** A real mouse drag: press on the card, move in steps, release over the cell. */
 async function dragTo(page: Page, appointmentId: string, technicianId: string, date = DATE) {
   const from = await card(page, appointmentId).boundingBox();
@@ -88,9 +97,9 @@ test.describe("checking a move on the weekly schedule", () => {
   });
   test.afterEach(async () => { await fixture.cleanup(); });
 
-  test("dragging a visit to another technician shows the answer, saves nothing and records the timing", async ({ page }) => {
+  test("checking a move from a visit's details shows the answer, saves nothing and records the timing", async ({ page }) => {
     const sent = await mockMoveCheck(page, [{ status: 200, body: answer("FEASIBLE", "Every arrival window, shift and paid limit still holds.") }]);
-    await dragTo(page, fixture.north, fixture.second.id);
+    await checkFromDetails(page, fixture.north, "Move Second Tech");
     await expect(banner(page)).toHaveAttribute("role", "status");
     await expect(banner(page)).toContainText("Feasible: Move North on Move Second Tech's route.");
     await expect(banner(page)).toContainText("Nothing was saved.");
@@ -104,20 +113,25 @@ test.describe("checking a move on the weekly schedule", () => {
   test("a move that does not fit and a check that fails are both shown", async ({ page }) => {
     await mockMoveCheck(page, [{ status: 200, body: answer("NOT_FEASIBLE", "With this move a customer's arrival window, a shift or a paid limit would be missed.") },
       { status: 503, body: { error: "The scheduler is busy. Try again shortly." } }]);
-    await dragTo(page, fixture.south, fixture.second.id);
+    await checkFromDetails(page, fixture.south, "Move Second Tech");
     await expect(page.locator("[data-move-check]")).toHaveAttribute("data-move-check", "NOT_FEASIBLE");
     await expect(banner(page)).toContainText("Not feasible: Move South on Move Second Tech's route.");
-    await dragTo(page, fixture.north, fixture.second.id);
+    await checkFromDetails(page, fixture.north, "Move Second Tech");
     await expect(banner(page)).toHaveAttribute("role", "alert");
     await expect(banner(page)).toContainText("Could not check Move North on Move Second Tech's route: The scheduler is busy. Try again shortly.");
   });
 
-  test("a drop on the same technician or another day sends nothing, and a click still opens the visit", async ({ page }) => {
+  test("dragging a visit now places it rather than checking a move, and a click still opens the visit", async ({ page }) => {
     const sent = await mockMoveCheck(page, []);
-    await dragTo(page, fixture.north, fixture.first.id);
-    await dragTo(page, fixture.north, fixture.second.id, "2026-10-06");
-    await expect(page.locator("[data-move-check]")).toHaveCount(0);
+    const previews: unknown[] = [];
+    await page.route("**/api/schedule/placement", async route => {
+      previews.push(route.request().postDataJSON());
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Scheduling is not connected for this client." }) });
+    });
+    await dragTo(page, fixture.north, fixture.second.id);
+    await expect(page.getByRole("complementary", { name: "Place a job" })).toContainText("Scheduling is not connected for this client.");
     expect(sent).toHaveLength(0);
+    expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north }]);
     await card(page, fixture.north).click();
     await expect(page.getByRole("dialog")).toContainText("Appointment details");
   });

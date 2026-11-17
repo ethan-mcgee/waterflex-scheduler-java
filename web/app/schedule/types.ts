@@ -28,5 +28,21 @@ export interface ScheduleAbsence {
   endMin: number;
 }
 
+/** A job waiting to be placed on the calendar: PENDING, with no appointment yet. */
+export interface ScheduleJob {
+  id: string;
+  customerName: string;
+  serviceName: string;
+  durationMin: number;
+  addressLine: string;
+  /** False until the address has coordinates; such a job needs its pin confirmed before it can be placed. */
+  located: boolean;
+  /** The manual follow-up the job is waiting on, or null when there is none. */
+  followUp: string | null;
+}
+
+/** A service the new-job form offers. */
+export interface ScheduleService { code: string; name: string }
+
 /** The default day view (technicians as columns on one time axis) or the weekly grid kept for existing links. */
 export type ScheduleViewMode = "day" | "week";

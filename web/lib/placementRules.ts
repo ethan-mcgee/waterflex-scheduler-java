@@ -197,3 +197,26 @@ export function verdict(answer: RouteInsertions, original: Original | null, spot
   }
   return { kind: "CHANGES_PROMISE", start, previous: { serviceDate: original.serviceDate, window: original.window }, comparison };
 }
+
+/**
+ * The spot and start a drop lands on: in the technician-day's route, the gap after every stop that starts before the
+ * dropped minute, and in that gap the start nearest the minute. A drop on a day the answer does not list (not working,
+ * or skipped) is still a spot, with no start, so the reason can be shown. `stopMinute` gives a stop's planned start as
+ * a minute of the day in the metro's time zone, or undefined when the page does not know it.
+ */
+export function spotAt(answer: RouteInsertions, technicianId: string, serviceDate: string, minute: number | null,
+  stopMinute: (appointmentId: string) => number | undefined, startMinute: (start: InsertionStart) => number): { spot: Spot; plannedStart: string | null } {
+  const day = answer.technicianDays.find(item => item.technicianId === technicianId && item.serviceDate === serviceDate);
+  if (day === undefined) return { spot: { technicianId, serviceDate }, plannedStart: null };
+  const gap = minute === null ? day.gaps[0] : day.gaps.find(item => {
+    if (item.beforeAppointmentId === undefined) return true;
+    const next = stopMinute(item.beforeAppointmentId);
+    return next === undefined || next >= minute;
+  });
+  // Every listed day has at least one gap; the last has no stop after it, so a gap is always found.
+  const chosen = gap ?? day.gaps[day.gaps.length - 1];
+  if (chosen === undefined) return { spot: { technicianId, serviceDate }, plannedStart: null };
+  const nearest = minute === null ? chosen.starts[0] : [...chosen.starts]
+    .sort((a, b) => Math.abs(startMinute(a) - minute) - Math.abs(startMinute(b) - minute) || startMinute(a) - startMinute(b))[0];
+  return { spot: gapSpot(day, chosen), plannedStart: nearest?.plannedStart ?? null };
+}

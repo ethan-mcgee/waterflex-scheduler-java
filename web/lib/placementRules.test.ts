@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { comparisonSentence, rankedFits, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { comparisonSentence, rankedFits, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -89,4 +89,18 @@ test("the comparison names only differences that show in their unit, and cost de
   assert.deepEqual(comparisonSentence(totals(60, 15000), totals(50, 15100, 60000, 600)),
     { better: "PREVIOUS", sentence: "The previous assignment was better: with the move, the routes drive 10 minutes less, cost $1.00 more and use 10 minutes more of late-arrival buffer." });
   assert.equal(comparisonSentence(totals(60, 15000), totals(61, 15000, 60000)).better, "PREVIOUS", "a cost tie goes to drive time");
+});
+
+test("a drop lands in the gap after every stop that starts before it, at the nearest start", () => {
+  const minutes = new Map([["a1", 13 * 60], ["a2", 18 * 60], ["b1", 13 * 60]]);
+  const stopMinute = (id: string) => minutes.get(id);
+  const startMinute = (item: InsertionStart) => new Date(item.plannedStart).getUTCHours() * 60 + new Date(item.plannedStart).getUTCMinutes();
+  assert.deepEqual(spotAt(answer, "a", DATE, 15 * 60 + 20, stopMinute, startMinute),
+    { spot: { technicianId: "a", serviceDate: DATE, afterAppointmentId: "a1", beforeAppointmentId: "a2" }, plannedStart: at(15, 30) });
+  assert.deepEqual(spotAt(answer, "a", DATE, 12 * 60, stopMinute, startMinute),
+    { spot: { technicianId: "a", serviceDate: DATE, beforeAppointmentId: "a1" }, plannedStart: null }, "before the first stop, where nothing fits");
+  assert.deepEqual(spotAt(answer, "b", DATE, 19 * 60, stopMinute, startMinute), { spot: endOfB, plannedStart: at(18, 0) });
+  assert.deepEqual(spotAt(answer, "z", DATE, 10 * 60, stopMinute, startMinute), { spot: { technicianId: "z", serviceDate: DATE }, plannedStart: null },
+    "a technician the answer does not list");
+  assert.equal(verdict(answer, original, { technicianId: "z", serviceDate: DATE }, null).kind, "CANNOT_HOLD");
 });
