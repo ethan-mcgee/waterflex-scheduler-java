@@ -1,6 +1,6 @@
 # Integrating WaterFlex Software with the scheduler
 
-For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.11.0); where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use [docs/operations-runbook.md](operations-runbook.md).
+For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.12.0); where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use [docs/operations-runbook.md](operations-runbook.md).
 
 The portal in `web/` is a working client of this API and the reference for every step below: it builds snapshots (`web/lib/clientSnapshot.ts`), books (`web/lib/apiBooking.ts`), writes receipts with a compare-and-set (`web/lib/apiReceipt.ts`), and runs an overnight schedule (`web/lib/overnightCore.ts`, `web/scripts/overnight-worker.ts`).
 
@@ -363,6 +363,29 @@ The scheduler never changes your records. For changes that move existing work, c
 - **Time off and shift edits:** request a repair (section 5) for days with appointments; otherwise just send the new facts in later snapshots.
 - **Maps:** `POST /api/v1/routes/geometry` returns each day's road legs as GeoJSON positions (`[lng, lat]`) for your dispatch maps; nothing is stored.
 
+### Placing or moving an appointment by hand
+
+`POST /api/v1/routes/insertions` (since 1.12.0) answers, for one job, every place it could go in the routes you send. Use it behind a scheduling calendar: send it once when the dispatcher picks a job, then work out every hover and drag from the answer without calling again. Nothing is stored.
+
+```json
+{
+  "snapshot": { "...": "the days on screen, without the job" },
+  "job": { "id": "job-31", "serviceId": "softener-service", "durationMinutes": 60, "location": { "lat": 41.2405, "lng": -96.0102 } },
+  "windowMinutes": 120,
+  "startStepMinutes": 30,
+  "routes": false
+}
+```
+
+- **Gaps:** each technician-day lists one gap more than it has appointments, in route order. A gap names the appointment before it (`afterAppointmentId`) and after it (`beforeAppointmentId`); either is absent at the ends of the day.
+- **Drive:** `toJob` and `fromJob` are the two new legs and `replaced` the leg they break, each in road seconds, meters and minutes with your travel buffer. `addedSeconds`, `addedMeters` and `addedBufferedMinutes` are the two new legs less the replaced one.
+- **No road route:** a gap with `routable: false` has no legs and no added values. Never show it as zero drive.
+- **Starts:** each gap lists the planned starts, `startStepMinutes` apart, at which the day still holds every window, shift, absence and paid limit and uses no more late-arrival buffer than it does now. Each start carries the arrival `window` it would promise. An empty list means the job does not fit there.
+- **Days that take nothing:** `holdsAsGiven: false` (the day already misses a window or limit) and `qualified: false` (the technician cannot do the job's service) both leave every gap without starts.
+- **Moving an appointment:** send it as the job with its promised `window`, and send the snapshot without it. Starts inside that window carry `keepsWindow: true`; any other start carries `false` and the new window it would promise, so you can tell the dispatcher when a move changes what the customer was told. The gap at the appointment's old position describes its current assignment, and each day's `asGiven` and each start's `timed` totals let you compare the two.
+- **Saving:** the answer is a preview. Before you write a placement, ask again with `routes: true` for the technician-days you will change and with current facts; write the `stops` of the start you chose, in one write that moves `lastModified`.
+- **Limits:** at most 200 technician-days a call. This operation does not wait behind daily or booking calculations; a `429 BUSY` means its own limit was full, so send the same call again after one second.
+
 ## 9. Proving the integration
 
 1. Develop against the [scheduler sandbox](host-sandbox.md), and run the kit against it as that page shows.
@@ -397,4 +420,4 @@ Also: store tenant tokens only in a secret store and never log them; the managem
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.11.0). Within v1, changes are additive only and raise the minor version: a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor version before the scheduler is upgraded; a lenient reader needs no change. A breaking change (a removed or renamed field, a new required request field, a changed meaning) is published as `/api/v2` beside v1, never in place, and v1 keeps being served until every host has moved. A CI check compares every change to the spec with the version it replaces and refuses one that can break a v1 client or that does not raise the version ([infra/openapi-compat/README.md](../infra/openapi-compat/README.md)). The one exception is narrowing a value's range to bounds no host sends, confirmed with WaterFlex Software before it is deployed: spec 1.7.0 narrowed the cost rates so.
+The API is version 1 (`/api/v1`, spec version 1.12.0). Within v1, changes are additive only and raise the minor version: a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor version before the scheduler is upgraded; a lenient reader needs no change. A breaking change (a removed or renamed field, a new required request field, a changed meaning) is published as `/api/v2` beside v1, never in place, and v1 keeps being served until every host has moved. A CI check compares every change to the spec with the version it replaces and refuses one that can break a v1 client or that does not raise the version ([infra/openapi-compat/README.md](../infra/openapi-compat/README.md)). The one exception is narrowing a value's range to bounds no host sends, confirmed with WaterFlex Software before it is deployed: spec 1.7.0 narrowed the cost rates so.

@@ -54,7 +54,7 @@ The answer names the tenant, and every answer names the contract version that se
 ```text
 HTTP/1.1 200
 Content-Type: application/json
-X-Scheduler-Version: 1.11.0
+X-Scheduler-Version: 1.12.0
 
 {"tenantId":"acme-dev"}
 ```
