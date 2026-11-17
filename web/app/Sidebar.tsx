@@ -26,7 +26,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/book", label: "Book Service Visit", icon: ClipboardPlus },
-  { href: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
+  { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/dispatch", label: "Dispatch Board", icon: Route },
   { href: "/technicians", label: "Technicians", icon: Users },
   { href: "/dealerships", label: "Dealerships", icon: Users },

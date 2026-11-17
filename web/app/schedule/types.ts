@@ -27,3 +27,6 @@ export interface ScheduleAbsence {
   startMin: number;
   endMin: number;
 }
+
+/** The default day view (technicians as columns on one time axis) or the weekly grid kept for existing links. */
+export type ScheduleViewMode = "day" | "week";

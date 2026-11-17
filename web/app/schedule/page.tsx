@@ -2,6 +2,7 @@ import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
+import type { ScheduleViewMode } from "./types";
 import ScheduleView from "./ScheduleView";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
 import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
@@ -17,7 +18,7 @@ function validDateKey(value: string | undefined): value is string {
 export default async function SchedulePage({
   searchParams: query,
 }: {
-  searchParams: Promise<{ week?: string; metroId?: string }>;
+  searchParams: Promise<{ week?: string; date?: string; view?: string; metroId?: string }>;
 }) {
   const searchParams = await query;
   const clientId = (await activeClient()).id;
@@ -31,8 +32,11 @@ export default async function SchedulePage({
     );
   }
 
-  const requestedDate = validDateKey(searchParams.week)
-    ? searchParams.week
+  // The day view is the default. A `week` link, or `view=week`, opens the weekly grid as it was, so links and tests
+  // written for it keep working. Both views load the week that contains the date.
+  const view: ScheduleViewMode = searchParams.view === "week" || searchParams.week !== undefined ? "week" : "day";
+  const requestedDate = validDateKey(searchParams.date) ? searchParams.date
+    : validDateKey(searchParams.week) ? searchParams.week
     : tomorrowInTz(metro.timezone);
   const monday = mondayOfWeek(requestedDate);
   const nextMonday = addCalendarDays(monday, 7);
@@ -103,11 +107,13 @@ export default async function SchedulePage({
 
   return <>
     {metros.length > 1 && <nav aria-label="Schedule metro" style={{ display: "flex", gap: 12, padding: 16 }}>
-      {metros.map(item => <Link key={item.id} href={`/schedule?metroId=${encodeURIComponent(item.id)}&week=${monday}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
+      {metros.map(item => <Link key={item.id} href={view === "week" ? `/schedule?metroId=${encodeURIComponent(item.id)}&week=${monday}` : `/schedule?metroId=${encodeURIComponent(item.id)}&date=${requestedDate}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
     </nav>}
     <ScheduleView
       metroId={metro.id}
       monday={monday}
+      view={view}
+      date={requestedDate}
       timezone={metro.timezone}
       technicians={metroTechnicians.map(technician => {
         const versions = validateVersions(technician.availabilityVersions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));

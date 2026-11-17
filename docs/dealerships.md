@@ -34,7 +34,7 @@ Each depot policy selects `HOME` or `DEPOT` for departure and for return indepen
 
 ## Technician profiles and weekly availability
 
-`Technician` stores nullable email, phone and bio, legacy home address components, and a required hex color used by the Dispatch Board, Dispatch Map, roster avatars and Weekly Schedule.
+`Technician` stores nullable email, phone and bio, legacy home address components, and a required hex color used by the Dispatch Board, Dispatch Map, roster avatars and the schedule's day and week views.
 
 Weekly hours are versioned. `technician_availability_version` stores the date a seven-day template takes effect, with seven `technician_availability_day` rows (Sunday through Saturday). Available days need a valid start and end minute; off days store null hours. Missing versions, missing days and invalid available hours are errors, never treated as off days. A date-specific `technician_shift_override` takes precedence over the weekly day.
 
