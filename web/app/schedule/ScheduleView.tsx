@@ -13,7 +13,7 @@ import { usePlacement, type PlacementSubject } from "./usePlacement";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
 import { findGap, gapSpot, recommendation, relativeToBest, spotAt, spotKey, verdict, type Fit, type Spot } from "@/lib/placementRules";
 import type { InsertionGap } from "@/lib/insertionContract";
-import { driveLabel, type VisitDrive } from "@/lib/scheduleDrive";
+import { driveLabel, previewDrives, type VisitDrive } from "@/lib/scheduleDrive";
 import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
 import type { PlacementPreview, PlacementSaved } from "@/lib/contracts";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician, ScheduleViewMode } from "./types";
@@ -251,26 +251,29 @@ function TimelineCell({
       {overlay?.ghost != null && (() => {
         const ghost = overlay.ghost;
         const kinds = ghost.hover ? { "data-hover-ghost": ghost.kind } : { "data-placement-ghost": ghost.kind };
-        const classes = `${styles.placementGhost} ${ghost.hover ? styles.hoverGhost : ""} ${ghost.ok ? "" : styles.placementGhostProblem}`;
+        const classes = `${styles.placementGhost} ${ghost.hover ? styles.hoverGhost : ""} ${ghost.ok ? "" : styles.placementGhostProblem} ${ghost.onPress === null ? "" : styles.ghostMovable}`;
         const detail = ghost.detail === null ? null : <span className={styles.ghostDetail}>{ghost.detail}</span>;
-        if (ghost.toJob === null || ghost.fromJob === null) return (
-          <div className={classes} {...kinds}
+        // The chosen place can be picked up and dropped again, as often as needed, until Save or Cancel.
+        const grab = ghost.onPress === null ? {} : { onPointerDown: ghost.onPress, title: "Drag to try another place" };
+        const bands = ghost.bands;
+        if (bands === null) return (
+          <div className={classes} {...kinds} {...grab}
             style={{ top: px(Math.max(ghost.startMinute, timelineStart)) + 3, height: Math.max(40, (ghost.durationMinutes / 60) * TIMELINE_HOUR_HEIGHT_PX - 6) }}>
             {detail}{ghost.label}
           </div>
         );
-        // With the gap's road legs, the preview is drawn like a booked visit: the drive in, the visit, the drive on.
-        const top = px(Math.max(ghost.startMinute - ghost.toJob, timelineStart));
+        // With its road legs, the preview is drawn like a booked visit: the drive in when it is first, the visit, the drive on.
+        const top = px(Math.max(ghost.startMinute - (bands.before?.minutes ?? 0), timelineStart));
         const visitTop = px(ghost.startMinute), visitBottom = px(ghost.startMinute + ghost.durationMinutes);
-        const bottom = px(Math.min(ghost.startMinute + ghost.durationMinutes + ghost.fromJob, timelineEnd));
+        const bottom = px(Math.min(ghost.startMinute + ghost.durationMinutes + bands.after.minutes, timelineEnd));
         return (
-          <div className={`${classes} ${styles.ghostBlock}`} {...kinds} style={{ top, height: Math.max(bottom - top, 0) }}>
-            <span className={styles.ghostDrive} style={{ height: Math.max(0, visitTop - top) }}>
-              <span className={styles.driveLabel}>{ghost.toJob} min there</span>
-            </span>
+          <div className={`${classes} ${styles.ghostBlock}`} {...kinds} {...grab} style={{ top, height: Math.max(bottom - top, 0) }}>
+            {bands.before !== null && <span className={styles.ghostDrive} style={{ height: Math.max(0, visitTop - top) }} data-drive="before">
+              <span className={styles.driveLabel}>{bands.before.label}</span>
+            </span>}
             <span className={styles.ghostBody}>{detail}{ghost.label}</span>
-            <span className={styles.ghostDrive} style={{ height: Math.max(0, bottom - visitBottom) }}>
-              <span className={styles.driveLabel}>{ghost.fromJob} min on</span>
+            <span className={styles.ghostDrive} style={{ height: Math.max(0, bottom - visitBottom) }} data-drive="after">
+              <span className={styles.driveLabel}>{bands.after.label}</span>
             </span>
           </div>
         );
@@ -291,10 +294,11 @@ interface CellOverlay {
   gaps: GapMarker[];
   /**
    * The chosen start's preview, or while dragging, where a drop under the pointer would land (`hover`, with `detail`
-   * saying the start and the drive). `toJob` and `fromJob` are the gap's buffered road legs, null with no road route.
+   * saying the start and the drive). `bands` are its drive in (when it is first) and on, null with no road route;
+   * `onPress` picks the chosen place up again.
    */
-  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean; toJob: number | null; fromJob: number | null;
-    hover: boolean; detail: string | null } | null;
+  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean; bands: GhostBands | null;
+    hover: boolean; detail: string | null; onPress: ((event: ReactPointerEvent) => void) | null } | null;
   /** The appointment being moved, drawn faded at the place it is leaving. */
   movingId: string | null;
   onChoose: (spot: Spot, plannedStart: string | null) => void;
@@ -310,10 +314,15 @@ function gapLabel(gap: InsertionGap, key: string, best: Fit | null): string {
   return best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
 }
 
+/** The drive drawn on a preview: in (only when it is first of its stretch) and on, each with its label. */
+interface GhostBands { before: { minutes: number; label: string } | null; after: { minutes: number; label: string } }
+
 /** Where a drop under the pointer would land, for the preview drawn while dragging. */
 interface Hover {
   technicianId: string; date: string; who: string; gapKey: string | null; startMinute: number | null; durationMinutes: number;
-  kind: string; ok: boolean; detail: string; toJob: number | null; fromJob: number | null;
+  kind: string; ok: boolean; detail: string;
+  /** The gap and start a drop would take, when a start fits there. */
+  spot: Spot | null;
 }
 
 /** What a drag carries: an appointment to move, or a job waiting for the calendar. */
@@ -344,6 +353,7 @@ function DayGrid({
   dropState,
   overlay,
   drive,
+  visitDrives,
 }: {
   date: string;
   technicians: ScheduleTechnician[];
@@ -357,6 +367,8 @@ function DayGrid({
   dropState: (technicianId: string, date: string) => "none" | "valid" | "over";
   overlay: (technicianId: string, date: string) => CellOverlay | undefined;
   drive: DriveState;
+  /** The drive around each visit as drawn, with any placement preview applied. */
+  visitDrives: Map<string, VisitDrive> | undefined;
 }) {
   const hours = Array.from({ length: Math.max(1, (timelineEnd - timelineStart) / 60) }, (_, index) => timelineStart + index * 60);
   const columns: CSSProperties = { gridTemplateColumns: `72px repeat(${Math.max(1, technicians.length)}, minmax(170px, 1fr))` };
@@ -396,7 +408,7 @@ function DayGrid({
           drag={drag}
           dropState={dropState(technician.id, date)}
           overlay={overlay(technician.id, date)}
-          drives={drive.status === "ready" ? drive.visits : undefined}
+          drives={visitDrives}
         />
       ))}
     </div>
@@ -691,7 +703,7 @@ export default function ScheduleView({
       const durationMinutes = item.kind === "job" ? item.job.durationMin
         : minuteOfDay(item.appointment.plannedEnd, timezone) - minuteOfDay(item.appointment.plannedStart, timezone);
       return { ...base, gapKey: null, startMinute: pointer, durationMinutes, kind: "LOADING", ok: true,
-        detail: placement.status === "error" ? "Places could not be found" : "Finding places...", toJob: null, fromJob: null };
+        detail: placement.status === "error" ? "Places could not be found" : "Finding places...", spot: null };
     }
     const { answer, original, job } = placement.preview;
     const landed = landing(answer, over);
@@ -705,7 +717,48 @@ export default function ScheduleView({
       startMinute: landed.plannedStart === null ? pointer : minuteOfDay(landed.plannedStart, timezone),
       kind: decided?.kind ?? "CANNOT_HOLD", ok: decided !== null && decided.kind !== "CANNOT_HOLD",
       detail: landed.plannedStart === null ? `${label} here` : `${formatTime(landed.plannedStart, timezone)}: ${label}${note}`,
-      toJob: found?.gap.toJob?.bufferedMinutes ?? null, fromJob: found?.gap.fromJob?.bufferedMinutes ?? null };
+      spot: found === undefined || landed.plannedStart === null ? null : landed.spot };
+  })();
+
+  /**
+   * The day's drive as it would be with the subject where it is previewed: under the pointer while dragging, otherwise
+   * at the chosen place. Worked out from the one cached answer every time, so the subject can be moved again and again
+   * until Save or Cancel without asking for anything.
+   */
+  const previewSpot = placement === null || placement.status !== "ready" ? null : drag !== null ? hover?.spot ?? null
+    : placement.chosen !== null && placement.chosen.plannedStart !== null ? placement.chosen.spot : null;
+  const drivePreview = drive.status !== "ready" || placement === null || placement.status !== "ready" ? null
+    : previewDrives(drive.visits, drive.endpoints, placement.preview.answer, placement.preview.original, previewSpot);
+  const shownDrives = drive.status !== "ready" ? undefined : drivePreview?.visits ?? drive.visits;
+
+  /**
+   * The preview's own drive: in the day view, as the drive preview has it; otherwise straight from the gap's legs.
+   * Null when the gap has no road route, so nothing is drawn that the answer does not give.
+   */
+  const ghostBands = (spot: Spot): GhostBands | null => {
+    if (drivePreview !== null) {
+      const placed = drivePreview.placed;
+      return placed === null ? null : { before: placed.before === null ? null
+        : { minutes: placed.before.minutes, label: driveLabel(placed.before.minutes, { from: placed.before.from }) },
+        after: { minutes: placed.after.minutes, label: driveLabel(placed.after.minutes, { to: placed.after.to }) } };
+    }
+    if (placement === null || placement.status !== "ready") return null;
+    const gap = findGap(placement.preview.answer, spot)?.gap;
+    const toJob = gap?.toJob?.bufferedMinutes, fromJob = gap?.fromJob?.bufferedMinutes;
+    return toJob === undefined || fromJob === undefined ? null
+      : { before: { minutes: toJob, label: `${toJob} min there` }, after: { minutes: fromJob, label: `${fromJob} min on` } };
+  };
+
+  /** What picking the chosen place up again drags: the same appointment or job, so its answer is reused. */
+  const subjectItem: DragItem | null = (() => {
+    if (placement === null) return null;
+    const { subject } = placement;
+    if (subject.kind === "appointment") {
+      const appointment = appointments.find(item => item.id === subject.id);
+      return appointment === undefined ? null : { kind: "appointment", appointment };
+    }
+    const job = jobs.find(item => item.id === subject.id);
+    return job === undefined ? null : { kind: "job", job };
   })();
   /** The gaps and the chosen start's preview for one technician-day, while something is being placed. */
   const overlay = (technicianId: string, date: string): CellOverlay | undefined => {
@@ -714,7 +767,7 @@ export default function ScheduleView({
     // While dragging, the only preview is where a drop under the pointer would land.
     const hoverGhost = hover === null || hover.technicianId !== technicianId || hover.date !== date || hover.startMinute === null ? null
       : { startMinute: hover.startMinute, durationMinutes: hover.durationMinutes, label: placement.subject.label, kind: hover.kind, ok: hover.ok,
-        toJob: hover.toJob, fromJob: hover.fromJob, hover: true, detail: hover.detail };
+        bands: hover.spot === null ? null : ghostBands(hover.spot), hover: true, detail: hover.detail, onPress: null };
     if (placement.status !== "ready") return { gaps: [], ghost: hoverGhost, movingId, onChoose: choose };
     const { answer, job } = placement.preview;
     const day = answer.technicianDays.find(item => item.technicianId === technicianId && item.serviceDate === date);
@@ -736,11 +789,11 @@ export default function ScheduleView({
     });
     const chosen = placement.chosen;
     const here = chosen !== null && chosen.spot.technicianId === technicianId && chosen.spot.serviceDate === date;
-    const legs = here ? findGap(answer, chosen.spot)?.gap : undefined;
+    const item = subjectItem;
     const ghost = drag !== null ? hoverGhost : !here || chosen.plannedStart === null ? null : { startMinute: minuteOfDay(chosen.plannedStart, timezone),
       durationMinutes: job.durationMinutes, label: placement.subject.label, kind: chosenVerdict?.kind ?? "CANNOT_HOLD",
-      ok: chosenVerdict !== null && chosenVerdict.kind !== "CANNOT_HOLD",
-      toJob: legs?.toJob?.bufferedMinutes ?? null, fromJob: legs?.fromJob?.bufferedMinutes ?? null, hover: false, detail: null };
+      ok: chosenVerdict !== null && chosenVerdict.kind !== "CANNOT_HOLD", bands: ghostBands(chosen.spot), hover: false, detail: null,
+      onPress: item === null ? null : (event: ReactPointerEvent) => press(item, event) };
     return { gaps, ghost, movingId, onChoose: choose };
   };
 
@@ -853,7 +906,7 @@ export default function ScheduleView({
           {view === "day" && <DriveNotice drive={drive} technicians={technicians} />}
           {view === "day" ? (
             <DayGrid date={date} technicians={visibleTechnicians} byCell={byCell} absences={absences} timelineStart={timelineStart}
-              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} />
+              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} />
           ) : (
           <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
             <div className={styles.corner}>Technician</div>

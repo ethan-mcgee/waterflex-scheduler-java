@@ -958,6 +958,14 @@
   outline-offset: 1px;
 }
 
+/* The chosen place, picked up again to try another until Save or Cancel. */
+.ghostMovable {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
 @media (max-width: 1100px) {
   .scheduleBody {
     flex-direction: column;

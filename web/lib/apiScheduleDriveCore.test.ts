@@ -43,10 +43,14 @@ test("a leg's minutes are the scheduler's: road seconds raised by the travel buf
 test("the drawing becomes each technician's stretches, with stops shared out in sequence order and minutes allowed per leg", () => {
   const drive = scheduleDriveOf(DATE, snapshot, drawn(), anchors);
   assert.deepEqual(scheduleDrive.parse(drive), drive, "The page accepts what the server sends");
-  assert.deepEqual(drive.technicians.map(item => item.technicianId), ["a"], "A day with no visits has nothing to draw");
+  assert.deepEqual(drive.technicians.map(item => [item.technicianId, item.segments.length]), [["a", 2], ["b", 0], ["c", 0]],
+    "Every working technician is listed with the points a placed visit drives from and to; one with no visits has no stretches");
   assert.deepEqual(drive.technicians[0]?.segments.map(item => item.appointmentIds), [["x"], ["y", "w"]]);
   assert.deepEqual(drive.technicians[0]?.segments[1]?.legs.map(item => item.minutes), [14, 5, 20]);
   assert.deepEqual(drive.skipped, [{ technicianId: "c", message: "Stop z has no location." }]);
+  const empty = scheduleDriveOf(DATE, snapshot, null, anchors);
+  assert.deepEqual(empty.technicians.map(item => [item.technicianId, item.departure, item.returnTo, item.segments.length]),
+    [["a", "DEPOT", "HOME", 0], ["b", "DEPOT", "HOME", 0], ["c", "DEPOT", "HOME", 0]], "A day with no visits still has its start and end points");
 });
 
 test("a drawing that does not match the day is refused, never guessed around", () => {
@@ -62,7 +66,7 @@ test("each visit carries the drive after it, and the first visit of a stretch al
   assert.deepEqual(drives.get("y"), { before: { minutes: 14, from: "DEPOT" }, after: { minutes: 5, to: "NEXT" } });
   assert.deepEqual(drives.get("w"), { before: null, after: { minutes: 20, to: "HOME" } });
   assert.equal(drives.get("z"), undefined, "A visit the scheduler could not draw has no drive, not a zero one");
-  assert.deepEqual(driveMinutes(scheduleDriveOf(DATE, snapshot, drawn(), anchors)), new Map([["a", 61]]));
+  assert.deepEqual(driveMinutes(scheduleDriveOf(DATE, snapshot, drawn(), anchors)), new Map([["a", 61]]), "No minutes for a day with no visits");
 });
 
 test("a drive band names where it goes", () => {

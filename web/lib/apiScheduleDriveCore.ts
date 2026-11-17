@@ -24,19 +24,21 @@ export function bufferedMinutes(seconds: number, pct: string, extraMinutes: numb
 }
 
 /**
- * The schedule's drive times for one day from the scheduler's drawing of it. Stops are taken in sequence order and
- * shared out to the working stretches in turn, each stretch taking one stop fewer than it has legs. A drawing that
- * does not match the snapshot is a fault, never something to guess around.
+ * The schedule's drive times for one day from the scheduler's drawing of it: every technician working the day with the
+ * start and end points a placed visit would use, and the stretches of those the scheduler drew. Stops are taken in
+ * sequence order and shared out to the stretches in turn, each taking one stop fewer than it has legs. `drawn` is null
+ * for a day with no visits, which has nothing to draw. A drawing that does not match the snapshot is a fault, never
+ * something to guess around.
  */
-export function scheduleDriveOf(serviceDate: string, snapshot: PublicSnapshot, drawn: RouteGeometry,
+export function scheduleDriveOf(serviceDate: string, snapshot: PublicSnapshot, drawn: RouteGeometry | null,
   anchors: (technicianId: string) => { departure: DriveAnchor; returnTo: DriveAnchor }): ScheduleDrive {
   const { travelBufferPct, travelBufferMinutes } = snapshot.rates;
-  const technicians: ScheduleDrive["technicians"] = [];
-  for (const route of drawn.routes) {
+  const working = snapshot.technicianDays.filter(day => day.serviceDate === serviceDate).map(day => day.technicianId);
+  const stretches = new Map<string, ScheduleDrive["technicians"][number]["segments"]>();
+  for (const route of drawn?.routes ?? []) {
     const { technicianId } = route;
     if (route.serviceDate !== serviceDate) throw new Error(`The scheduler drew ${technicianId} on ${route.serviceDate}, not ${serviceDate}`);
-    if (!snapshot.technicianDays.some(day => day.technicianId === technicianId && day.serviceDate === serviceDate))
-      throw new Error(`The scheduler drew ${technicianId}, who does not work on ${serviceDate} in the snapshot`);
+    if (!working.includes(technicianId)) throw new Error(`The scheduler drew ${technicianId}, who does not work on ${serviceDate} in the snapshot`);
     if (route.stops.length === 0) continue;
     const stops = [...route.stops].sort((a, b) => a.sequence - b.sequence).map(stop => stop.appointmentId);
     const bySegment = new Map<number, RouteGeometry["routes"][number]["legs"]>();
@@ -54,8 +56,9 @@ export function scheduleDriveOf(serviceDate: string, snapshot: PublicSnapshot, d
         minutes: bufferedMinutes(leg.seconds, travelBufferPct, travelBufferMinutes) })) };
     });
     if (taken !== stops.length) throw new Error(`The scheduler drew ${technicianId} with stops outside every stretch`);
-    technicians.push({ technicianId, ...anchors(technicianId), segments });
+    stretches.set(technicianId, segments);
   }
-  return { serviceDate, technicians, skipped: drawn.skippedTechnicianDays.filter(day => day.serviceDate === serviceDate)
-    .map(day => ({ technicianId: day.technicianId, message: day.message })) };
+  return { serviceDate, technicians: working.map(technicianId => ({ technicianId, ...anchors(technicianId), segments: stretches.get(technicianId) ?? [] })),
+    skipped: (drawn?.skippedTechnicianDays ?? []).filter(day => day.serviceDate === serviceDate)
+      .map(day => ({ technicianId: day.technicianId, message: day.message })) };
 }

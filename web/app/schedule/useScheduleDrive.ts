@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { errorMessage } from "@/lib/contracts";
-import { driveMinutes, scheduleDrive, visitDrives, type ScheduleDrive, type VisitDrive } from "@/lib/scheduleDrive";
+import { driveEndpoints, driveMinutes, scheduleDrive, visitDrives, type Endpoints, type ScheduleDrive, type VisitDrive } from "@/lib/scheduleDrive";
 
 /** The day's drive times: not asked for (the weekly view), on their way, drawn, or unavailable with the reason. */
 export type DriveState =
   | { status: "off" }
   | { status: "loading" }
-  | { status: "ready"; drive: ScheduleDrive; visits: Map<string, VisitDrive>; minutes: Map<string, number> }
+  | { status: "ready"; drive: ScheduleDrive; visits: Map<string, VisitDrive>; minutes: Map<string, number>; endpoints: Endpoints }
   | { status: "error"; message: string };
 
 /**
@@ -29,7 +29,7 @@ export function useScheduleDrive(metroId: string, date: string, enabled: boolean
         const parsed = scheduleDrive.safeParse(payload);
         if (!parsed.success || parsed.data.serviceDate !== date) throw new Error("The portal sent drive times this page cannot read.");
         const drive = parsed.data;
-        setStored({ key, state: { status: "ready", drive, visits: visitDrives(drive), minutes: driveMinutes(drive) } });
+        setStored({ key, state: { status: "ready", drive, visits: visitDrives(drive), minutes: driveMinutes(drive), endpoints: driveEndpoints(drive) } });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;

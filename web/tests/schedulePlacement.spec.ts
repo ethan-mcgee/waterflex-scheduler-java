@@ -242,6 +242,51 @@ test.describe("placing and moving on the schedule", () => {
     expect(sent.previews).toHaveLength(1);
   });
 
+  test("a moved visit can be picked up again and again until Cancel, its legs and its neighbors' taken from the one answer", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE" } });
+    const leg = (minutes: number) => ({ seconds: minutes * 50, meters: minutes * 900, minutes });
+    await page.route(url => url.pathname === "/api/schedule/drive", route => route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ serviceDate: DATE, skipped: [], technicians: [
+        { technicianId: fixture.first, departure: "DEPOT", returnTo: "HOME", segments: [{ appointmentIds: [fixture.north, fixture.south], legs: [leg(17), leg(12), leg(15)] }] },
+        { technicianId: fixture.second, departure: "DEPOT", returnTo: "DEPOT", segments: [] }] }) }));
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const northAfter = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"] [data-drive="after"]`);
+    await expect(northAfter).toHaveText("12 min to next stop");
+
+    // First move, to the second route's empty day: it drives from that route's depot and back to it.
+    await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
+    const onSecond = cell(page, fixture.second).locator("[data-placement-ghost]");
+    await expect(onSecond).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    await expect(onSecond.locator('[data-drive="before"]')).toHaveText("9 min from depot");
+    await expect(onSecond.locator('[data-drive="after"]')).toHaveText("8 min to depot");
+    // South has left the first route: North now drives home, and South's old place is drawn without its legs.
+    await expect(northAfter).toHaveText("8 min to home");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive]`)).toHaveCount(0);
+
+    // Second move: the preview itself is picked up and dropped back after North at 1:30 PM.
+    await dragTo(page, onSecond, fixture.first, 13 * 60 + 30);
+    const onFirst = cell(page, fixture.first).locator("[data-placement-ghost]");
+    await expect(onFirst).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    await expect(panel(page).getByRole("radio", { name: "1:30 PM" })).toBeChecked();
+    await expect(northAfter).toHaveText("14 min to next stop");
+    await expect(onFirst.locator('[data-drive="before"]')).toHaveCount(0);
+    await expect(onFirst.locator('[data-drive="after"]')).toHaveText("8 min to home");
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveCount(0);
+
+    // Third move, outside the promised window: the violation comes back, and still nothing is asked again.
+    await dragTo(page, onFirst, fixture.second, 15 * 60 + 30);
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveAttribute("data-placement-ghost", "CHANGES_PROMISE");
+    await expect(panel(page).getByRole("alert").filter({ hasText: "Dealership policy violation" })).toBeVisible();
+    expect(sent.previews).toHaveLength(1);
+
+    // Cancel puts every leg back as it is booked and saves nothing.
+    await panel(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+    await expect(northAfter).toHaveText("12 min to next stop");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive="after"]`)).toHaveText("15 min to home");
+    expect(sent.saves).toHaveLength(0);
+  });
+
   test("a move to another arrival window is a policy violation that saves only once acknowledged", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);

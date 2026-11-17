@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { RouteInsertions } from "./insertionContract";
+import { findGap, type Original, type Spot } from "./placementRules";
 
 /**
  * The drive times the schedule draws around each visit (GET /api/schedule/drive), browser-safe so the page checks the
@@ -12,7 +14,9 @@ const leg = z.object({ seconds: z.int().min(0), meters: z.int().min(0), minutes:
 // A working stretch (a day, or the part of it between approved absences): the start point, its stops, the end point.
 const segment = z.object({ appointmentIds: z.array(id).min(1), legs: z.array(leg) }).strict()
   .refine(value => value.legs.length === value.appointmentIds.length + 1, "A working stretch has one leg more than it has stops");
-const technicianDrive = z.object({ technicianId: id, departure: anchor, returnTo: anchor, segments: z.array(segment).min(1) }).strict();
+// Every technician working the day, with the start and end points a placed visit would drive from and to; a day with no
+// visits, or one the scheduler could not draw, has no stretches.
+const technicianDrive = z.object({ technicianId: id, departure: anchor, returnTo: anchor, segments: z.array(segment) }).strict();
 
 export const scheduleDrive = z.object({
   serviceDate: z.iso.date(),
@@ -55,10 +59,63 @@ export function visitDrives(drive: ScheduleDrive): Map<string, VisitDrive> {
   return drives;
 }
 
-/** Each drawn technician's buffered drive minutes for the day, every leg counted once. */
+/** Each drawn technician's buffered drive minutes for the day, every leg counted once; a day with no visits has none. */
 export function driveMinutes(drive: ScheduleDrive): Map<string, number> {
-  return new Map(drive.technicians.map(technician => [technician.technicianId,
+  return new Map(drive.technicians.filter(technician => technician.segments.length > 0).map(technician => [technician.technicianId,
     technician.segments.reduce((total, stretch) => total + stretch.legs.reduce((sum, item) => sum + item.minutes, 0), 0)]));
+}
+
+/** Where each technician working the day starts and ends. */
+export type Endpoints = ReadonlyMap<string, { departure: DriveAnchor; returnTo: DriveAnchor }>;
+
+export function driveEndpoints(drive: ScheduleDrive): Endpoints {
+  return new Map(drive.technicians.map(technician => [technician.technicianId, { departure: technician.departure, returnTo: technician.returnTo }]));
+}
+
+/** The drive drawn while a visit is being placed: the day's visits with their legs as they would be, and the placed visit's own. */
+export interface DrivePreview { visits: Map<string, VisitDrive>; placed: VisitDrive | null }
+
+/**
+ * The drive around every visit as it would be with the subject at `spot`, from the cached insertion answer alone, so a
+ * dispatcher can move it again and again without another request. A moved appointment leaves its place: the visit
+ * before it now drives straight to the one after it, the answer's `replaced` leg, since the answer was computed without
+ * it. At `spot`, the visit before drives to the subject (`toJob`) and the subject drives on (`fromJob`); a first or last
+ * place drives from or to the technician's start or end point. A leg the answer cannot give is not drawn at all: the
+ * neighbor is shown without drive rather than with a leg that no longer exists. `spot` null previews only the removal.
+ */
+export function previewDrives(visits: ReadonlyMap<string, VisitDrive>, endpoints: Endpoints, answer: RouteInsertions,
+  original: Original | null, spot: Spot | null): DrivePreview {
+  const next = new Map(visits);
+  const update = (id: string | undefined, change: (drive: VisitDrive) => VisitDrive) => {
+    if (id === undefined) return;
+    const drive = next.get(id);
+    if (drive !== undefined) next.set(id, change(drive));
+  };
+  if (original !== null) {
+    next.delete(original.appointmentId);
+    const { afterAppointmentId: after, beforeAppointmentId: before } = original;
+    const closed = findGap(answer, { technicianId: original.technicianId, serviceDate: original.serviceDate,
+      ...(after === undefined ? {} : { afterAppointmentId: after }), ...(before === undefined ? {} : { beforeAppointmentId: before }) });
+    const leg = closed?.gap.replaced?.bufferedMinutes, ends = endpoints.get(original.technicianId);
+    if (leg === undefined || ends === undefined) {
+      if (after !== undefined) next.delete(after);
+      else if (before !== undefined) next.delete(before);
+    } else if (after !== undefined) update(after, drive => ({ ...drive, after: { minutes: leg, to: before === undefined ? ends.returnTo : "NEXT" } }));
+    else update(before, drive => ({ ...drive, before: { minutes: leg, from: ends.departure } }));
+  }
+  if (spot === null) return { visits: next, placed: null };
+  const found = findGap(answer, spot), ends = endpoints.get(spot.technicianId);
+  const toJob = found?.gap.toJob?.bufferedMinutes, fromJob = found?.gap.fromJob?.bufferedMinutes;
+  const { afterAppointmentId: after, beforeAppointmentId: before } = spot;
+  if (toJob === undefined || fromJob === undefined || ends === undefined) {
+    // No road route here: the visit before can no longer be said to drive to the visit after.
+    if (after !== undefined) next.delete(after);
+    return { visits: next, placed: null };
+  }
+  update(after, drive => ({ ...drive, after: { minutes: toJob, to: "NEXT" } }));
+  if (after === undefined) update(before, drive => ({ ...drive, before: null }));
+  return { visits: next, placed: { before: after === undefined ? { minutes: toJob, from: ends.departure } : null,
+    after: { minutes: fromJob, to: before === undefined ? ends.returnTo : "NEXT" } } };
 }
 
 /** What a drive band says: "17 min from depot", "12 min to next stop", "15 min to home". */
