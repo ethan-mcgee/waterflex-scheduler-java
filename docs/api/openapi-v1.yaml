@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.11.0
+  version: 1.12.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -46,6 +46,12 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.12.0 (2026-11-17): New operation POST /api/v1/routes/insertions. For one job and a snapshot that does not
+      contain it, it answers every place the job could go in each technician-day's current order: the road legs into
+      and out of the job, the leg it would break, the drive it adds, and the planned starts at which the day still
+      holds. A host sends an appointment it wants to move as the job, with its promised window, and the snapshot
+      without it. Nothing is stored. It never waits for a calculation slot, so a running daily search does not
+      refuse it.
     - 1.11.0 (2026-11-12): Problem and StaleProblem gain `retryable`, each code's retry rule. Every /api/v1 answer
       from the scheduler carries `X-Scheduler-Version`. A refusal no operation writes is now a Problem too: 404
       NOT_FOUND for an unknown path, 405 INVALID_REQUEST for a wrong method, 503 SERVICE_UNAVAILABLE (with
@@ -275,6 +281,48 @@ paths:
               schema: { $ref: '#/components/schemas/RouteGeometry' }
               examples:
                 drawn: { $ref: '#/components/examples/RouteGeometry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/routes/insertions:
+    post:
+      operationId: insertIntoRoutes
+      tags: [Daily]
+      summary: Find every place one job could go in the snapshot's routes.
+      description: >-
+        Since 1.12.0. For every technician-day of the snapshot, lists each gap in the day's current order (before the
+        first appointment, between each two, and after the last) with the road legs into and out of the job, the leg
+        the job would break, and the drive it adds, in road seconds and meters and in minutes with the client's travel
+        buffer. Each gap also lists the planned starts, spaced startStepMinutes apart, at which the day still holds
+        every window, shift, absence and paid limit, uses no more late-arrival buffer than it does now, and the job
+        itself arrives before its own window's buffer. Each start carries the arrival window it would promise: the
+        job's own window when the start falls inside it, otherwise a window of windowMinutes that opens on the hour
+        at or before the start. Nothing is optimized or stored, and the other appointments keep their order. The
+        snapshot may cover several service dates and must not contain the job. To move an appointment, send it as
+        the job with its promised window and send the snapshot without it; the gap at its old position then
+        describes its current assignment. A leg with no road route makes its gap not routable; it is never reported
+        as zero. This operation does not wait for a calculation slot: BUSY means its own limit, or the shared
+        routing queue, was full, and Retry-After is 1.
+      x-implementation: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RouteInsertionRequest' }
+            examples:
+              newJob: { $ref: '#/components/examples/RouteInsertionRequest' }
+      responses:
+        '200':
+          description: The gaps of every technician-day that could be located.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RouteInsertionResult' }
+              examples:
+                gaps: { $ref: '#/components/examples/RouteInsertionResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -1116,6 +1164,153 @@ components:
           description: >-
             Since 1.9.0. Timed stops inside their late-arrival buffer. Present only when the snapshot carries
             Rates.arrivalBuffer and feasible is true.
+    RouteInsertionRequest:
+      type: object
+      additionalProperties: false
+      required: [snapshot, job, windowMinutes, startStepMinutes, routes]
+      properties:
+        snapshot:
+          $ref: '#/components/schemas/Snapshot'
+          description: One or more service dates, at most 200 technician-days, without the job.
+        job: { $ref: '#/components/schemas/InsertionJob' }
+        windowMinutes:
+          type: integer
+          minimum: 60
+          maximum: 480
+          multipleOf: 60
+          description: The client's own arrival window length. Required; never assumed.
+        startStepMinutes:
+          type: integer
+          enum: [15, 30, 60]
+          description: The spacing of the planned starts offered, counted from the hour in the metro's time zone.
+        routes:
+          type: boolean
+          description: True to also receive the timed stops of every day as given and of every start.
+    InsertionJob:
+      type: object
+      additionalProperties: false
+      required: [id, serviceId, durationMinutes, location]
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+          description: Must differ from every appointment and technician ID in the snapshot.
+        serviceId: { $ref: '#/components/schemas/Id' }
+        durationMinutes: { type: integer, minimum: 1, maximum: 720 }
+        location: { $ref: '#/components/schemas/Location' }
+        window:
+          $ref: '#/components/schemas/Window'
+          description: >-
+            The arrival window already promised to the customer, sent when the job is an appointment being moved.
+            Leave it out for a job with no promise yet.
+    RouteTotals:
+      type: object
+      additionalProperties: false
+      required: [driveMinutes, meters, paidMinutes, costCents, bufferSeconds]
+      description: What one timed route uses.
+      properties:
+        driveMinutes: { type: integer, minimum: 0, description: Drive minutes with the client's travel buffer. }
+        meters: { type: integer, minimum: 0 }
+        paidMinutes: { type: integer, minimum: 0 }
+        costCents: { type: integer, minimum: 0, description: Modeled cost of this route alone. }
+        bufferSeconds: { type: integer, minimum: 0, description: Late-arrival buffer the route's arrivals use. }
+    InsertionLeg:
+      type: object
+      additionalProperties: false
+      required: [seconds, meters, bufferedMinutes]
+      properties:
+        seconds: { type: integer, minimum: 0, description: 'Road seconds, without any buffer.' }
+        meters: { type: integer, minimum: 0 }
+        bufferedMinutes: { type: integer, minimum: 0, description: 'Minutes with the client''s travel buffer, as route timing counts the leg.' }
+    InsertionStart:
+      type: object
+      additionalProperties: false
+      required: [plannedStart, window, timed]
+      properties:
+        plannedStart: { $ref: '#/components/schemas/Instant' }
+        window:
+          $ref: '#/components/schemas/Window'
+          description: The arrival window this start would promise; plannedStart is inside it and before its late-arrival buffer.
+        keepsWindow:
+          type: boolean
+          description: Present only when the job carried a window. True when this start keeps that window.
+        timed:
+          $ref: '#/components/schemas/RouteTotals'
+          description: The technician-day's totals with the job at this start.
+        stops:
+          type: array
+          description: Present only when the request's routes is true. The day's stops, the job included, timed with the job at this start.
+          items: { $ref: '#/components/schemas/PlannedStop' }
+    InsertionGap:
+      type: object
+      additionalProperties: false
+      required: [routable, starts]
+      description: >-
+        One place the job could go. toJob, fromJob, addedSeconds, addedMeters and addedBufferedMinutes are present
+        exactly when routable is true. The added values are toJob plus fromJob less replaced, and can be negative.
+      properties:
+        afterAppointmentId:
+          $ref: '#/components/schemas/Id'
+          description: The appointment the job would follow; absent at the start of the day.
+        beforeAppointmentId:
+          $ref: '#/components/schemas/Id'
+          description: The appointment the job would precede; absent at the end of the day.
+        routable:
+          type: boolean
+          description: False when a leg this gap needs has no road route. Such a gap has no legs, added values or starts.
+        toJob:
+          $ref: '#/components/schemas/InsertionLeg'
+          description: From the stop before the job, or the day's start point, to the job.
+        fromJob:
+          $ref: '#/components/schemas/InsertionLeg'
+          description: From the job to the stop after it, or the day's end point.
+        replaced:
+          $ref: '#/components/schemas/InsertionLeg'
+          description: The leg the job would break. Absent on a day with no appointments, where nothing is replaced.
+        addedSeconds: { type: integer }
+        addedMeters: { type: integer }
+        addedBufferedMinutes: { type: integer }
+        starts:
+          type: array
+          description: Ascending planned starts at which the day holds with the job here; empty when there is none.
+          items: { $ref: '#/components/schemas/InsertionStart' }
+    InsertionTechnicianDay:
+      type: object
+      additionalProperties: false
+      required: [technicianId, serviceDate, holdsAsGiven, qualified, gaps]
+      properties:
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        holdsAsGiven:
+          type: boolean
+          description: Whether the day holds every window, shift, absence and paid limit before the job is added. A day that does not has no starts.
+        qualified:
+          type: boolean
+          description: Whether the technician is qualified for the job's service. One who is not has no starts.
+        asGiven:
+          $ref: '#/components/schemas/RouteTotals'
+          description: The day's totals without the job. Present exactly when holdsAsGiven is true.
+        stops:
+          type: array
+          description: Present only when the request's routes is true and holdsAsGiven is true. The day's stops timed without the job.
+          items: { $ref: '#/components/schemas/PlannedStop' }
+        gaps:
+          type: array
+          minItems: 1
+          description: In route order; one more than the day's appointments.
+          items: { $ref: '#/components/schemas/InsertionGap' }
+    RouteInsertionResult:
+      type: object
+      additionalProperties: false
+      required: [routingIdentity, technicianDays, skippedTechnicianDays]
+      properties:
+        routingIdentity: { type: string, minLength: 1, description: The road graph every leg came from. }
+        technicianDays:
+          type: array
+          description: By service date, then technician ID.
+          items: { $ref: '#/components/schemas/InsertionTechnicianDay' }
+        skippedTechnicianDays:
+          type: array
+          items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
     LocatedStop:
       type: object
       additionalProperties: false
@@ -1551,6 +1746,45 @@ components:
         skippedTechnicianDays: []
         costCents: 18942
         overtimeMinutes: 0
+    RouteInsertionRequest:
+      value:
+        snapshot: *snapshot
+        job:
+          id: job-31
+          serviceId: softener-service
+          durationMinutes: 60
+          location: { lat: 41.2405, lng: -96.0102 }
+        windowMinutes: 120
+        startStepMinutes: 30
+        routes: false
+    RouteInsertionResult:
+      value:
+        routingIdentity: 225f3cb33bd59525ec5ad38627ba78e3ddefe7ad492c7d48cfd0039091001e55
+        technicianDays:
+          - technicianId: tech-2
+            serviceDate: '2026-10-12'
+            holdsAsGiven: true
+            qualified: true
+            asGiven: { driveMinutes: 0, meters: 0, paidMinutes: 0, costCents: 0, bufferSeconds: 0 }
+            gaps:
+              - routable: true
+                toJob: { seconds: 1260, meters: 21400, bufferedMinutes: 28 }
+                fromJob: { seconds: 1290, meters: 21900, bufferedMinutes: 28 }
+                addedSeconds: 2550
+                addedMeters: 43300
+                addedBufferedMinutes: 56
+                starts:
+                  - plannedStart: '2026-10-12T13:30:00Z'
+                    window: { start: '2026-10-12T13:00:00Z', end: '2026-10-12T15:00:00Z' }
+                    timed: { driveMinutes: 56, meters: 43300, paidMinutes: 116, costCents: 5669, bufferSeconds: 0 }
+                  - plannedStart: '2026-10-12T14:00:00Z'
+                    window: { start: '2026-10-12T14:00:00Z', end: '2026-10-12T16:00:00Z' }
+                    timed: { driveMinutes: 56, meters: 43300, paidMinutes: 116, costCents: 5669, bufferSeconds: 0 }
+        skippedTechnicianDays:
+          - technicianId: tech-1
+            serviceDate: '2026-10-12'
+            reason: LOCATION_UNRESOLVED
+            message: No coordinates and no certain address match for appointment appt-8; send coordinates to include this technician-day
     RouteGeometry:
       value:
         routingIdentity: omaha-2026-09

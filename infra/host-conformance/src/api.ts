@@ -13,7 +13,7 @@ export const ERROR_CODES = ["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMIT
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 /** The contract this kit proves: a scheduler's X-Scheduler-Version must be this or a later 1.x (spec 1.11.0). */
-export const CONTRACT_VERSION = "1.11.0";
+export const CONTRACT_VERSION = "1.12.0";
 
 /** The codes a host may retry unchanged, with the same requestId; every Problem's retryable says so (spec 1.11.0). */
 export const RETRYABLE_CODES: ReadonlySet<ErrorCode> = new Set<ErrorCode>(["BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "SERVICE_UNAVAILABLE"]);
@@ -106,10 +106,30 @@ export const RequestResult = z.strictObject({ status: z.int().min(200).max(599),
 export const RequestStatus = z.strictObject({ requestId: z.uuid(), operation: z.enum(["DAILY_PROPOSAL", "REPAIR_PROPOSAL"]),
   state: z.enum(["QUEUED", "RUNNING", "COMPLETED"]), queuedAt: Instant.optional(), startedAt: Instant.optional(), result: RequestResult.optional() });
 
+// Route insertions (1.12.0). A gap's legs and added values are present exactly when it is routable; a start's
+// keepsWindow only when the job carried a window, and stops only when the request asked for routes.
+export const RouteTotals = z.strictObject({ driveMinutes: z.int().min(0), meters: z.int().min(0), paidMinutes: z.int().min(0),
+  costCents: z.int().min(0), bufferSeconds: z.int().min(0) });
+
+export const InsertionLeg = z.strictObject({ seconds: z.int().min(0), meters: z.int().min(0), bufferedMinutes: z.int().min(0) });
+
+export const InsertionStart = z.strictObject({ plannedStart: Instant, window: Window, keepsWindow: z.boolean().optional(), timed: RouteTotals,
+  stops: z.array(PlannedStop).optional() });
+
+export const InsertionGap = z.strictObject({ afterAppointmentId: Id.optional(), beforeAppointmentId: Id.optional(), routable: z.boolean(),
+  toJob: InsertionLeg.optional(), fromJob: InsertionLeg.optional(), replaced: InsertionLeg.optional(), addedSeconds: z.int().optional(),
+  addedMeters: z.int().optional(), addedBufferedMinutes: z.int().optional(), starts: z.array(InsertionStart) });
+
+export const InsertionTechnicianDay = z.strictObject({ technicianId: Id, serviceDate: ServiceDate, holdsAsGiven: z.boolean(), qualified: z.boolean(),
+  asGiven: RouteTotals.optional(), stops: z.array(PlannedStop).optional(), gaps: z.array(InsertionGap).min(1) });
+
+export const RouteInsertionResult = z.strictObject({ routingIdentity: z.string().min(1), technicianDays: z.array(InsertionTechnicianDay),
+  skippedTechnicianDays: z.array(SkippedTechnicianDay) });
+
 /** Every object above under its name in the spec's components.schemas, for the drift test. */
 export const SPEC_SCHEMAS = { Problem, TechnicianDayVersion, StaleProblem, SkippedTechnicianDay, PlannedStop, PlannedRoute, DailyProposal,
   RouteEvaluation, LocatedStop, GeometryLeg, GeometryRoute, RouteGeometry, Window, Offer, OfferSet, Hold, Released, Assignment, CommitReceipt,
-  WhoAmI, RequestResult, RequestStatus } as const;
+  WhoAmI, RequestResult, RequestStatus, RouteTotals, InsertionLeg, InsertionStart, InsertionGap, InsertionTechnicianDay, RouteInsertionResult } as const;
 
 export type DailyProposal = z.infer<typeof DailyProposal>;
 export type RequestStatus = z.infer<typeof RequestStatus>;

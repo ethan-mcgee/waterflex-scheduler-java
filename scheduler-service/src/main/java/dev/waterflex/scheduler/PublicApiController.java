@@ -8,6 +8,7 @@ import dev.waterflex.scheduler.api.DailyProposals;
 import dev.waterflex.scheduler.api.RequestCancellation;
 import dev.waterflex.scheduler.api.RouteEvaluations;
 import dev.waterflex.scheduler.api.RouteGeometries;
+import dev.waterflex.scheduler.api.RouteInsertions;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -31,11 +32,12 @@ public class PublicApiController {
     private final BookingConfirm bookingConfirm;
     private final RouteEvaluations routeEvaluations;
     private final RouteGeometries routeGeometries;
+    private final RouteInsertions routeInsertions;
     private final RequestCancellation cancellation;
 
     public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds,
                                BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations, RouteGeometries routeGeometries,
-                               RequestCancellation cancellation) {
+                               RouteInsertions routeInsertions, RequestCancellation cancellation) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
         this.bookingOffers = bookingOffers;
@@ -43,6 +45,7 @@ public class PublicApiController {
         this.bookingConfirm = bookingConfirm;
         this.routeEvaluations = routeEvaluations;
         this.routeGeometries = routeGeometries;
+        this.routeInsertions = routeInsertions;
         this.cancellation = cancellation;
     }
 
@@ -85,6 +88,12 @@ public class PublicApiController {
     @PostMapping("/routes/geometry")
     public void drawRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, routeGeometries.draw(TenantAuthentication.tenant(request), body(request)));
+    }
+
+    /** Every place one job could go in the snapshot's routes; it never waits for a calculation slot. */
+    @PostMapping("/routes/insertions")
+    public void insertIntoRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        reply(response, routeInsertions.insert(TenantAuthentication.tenant(request), body(request)));
     }
 
     @PostMapping("/booking/offers")

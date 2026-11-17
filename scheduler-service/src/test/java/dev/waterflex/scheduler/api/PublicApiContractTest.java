@@ -48,6 +48,14 @@ class PublicApiContractTest {
         types.put("RepairProposalRequest", PublicRequests.RepairProposalRequest.class);
         types.put("RouteEvaluationRequest", PublicRequests.RouteEvaluationRequest.class);
         types.put("RouteEvaluation", PublicResponses.RouteEvaluation.class);
+        types.put("RouteInsertionRequest", PublicRequests.RouteInsertionRequest.class);
+        types.put("InsertionJob", PublicRequests.InsertionJob.class);
+        types.put("RouteInsertionResult", PublicResponses.RouteInsertionResult.class);
+        types.put("InsertionTechnicianDay", PublicResponses.InsertionTechnicianDay.class);
+        types.put("InsertionGap", PublicResponses.InsertionGap.class);
+        types.put("InsertionLeg", PublicResponses.InsertionLeg.class);
+        types.put("InsertionStart", PublicResponses.InsertionStart.class);
+        types.put("RouteTotals", PublicResponses.RouteTotals.class);
         types.put("RouteGeometry", PublicResponses.RouteGeometry.class);
         types.put("GeometryRoute", PublicResponses.GeometryRoute.class);
         types.put("GeometryLeg", PublicResponses.GeometryLeg.class);

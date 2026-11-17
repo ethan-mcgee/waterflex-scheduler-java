@@ -52,6 +52,47 @@ public final class PublicRequests {
         }
     }
 
+    /**
+     * The job a route insertion places (spec 1.12.0). {@code window} is the arrival window already promised to the
+     * customer, sent when the job is an appointment being moved; null or absent for a job that has no promise yet.
+     */
+    public record InsertionJob(String id, String serviceId, Integer durationMinutes, Location location,
+                               @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @org.jspecify.annotations.Nullable Window window) {
+        public InsertionJob {
+            Input.id(id, "job.id");
+            Input.id(serviceId, "job.serviceId");
+            Input.integer(durationMinutes, "job.durationMinutes", 1, 720);
+            Input.present(location, "job.location");
+        }
+    }
+
+    /**
+     * POST /api/v1/routes/insertions (spec 1.12.0): every place one job could go in the snapshot's routes. The snapshot
+     * does not contain the job, and may cover several service dates. {@code windowMinutes} is the client's arrival
+     * window length and {@code startStepMinutes} the spacing of the planned starts offered; neither is assumed.
+     * {@code routes} asks for the timed stops of every route as well as its totals.
+     */
+    public record RouteInsertionRequest(Snapshot snapshot, InsertionJob job, Integer windowMinutes, Integer startStepMinutes, Boolean routes) {
+        public static final int MAX_TECHNICIAN_DAYS = 200;
+        public static final int MIN_WINDOW_MINUTES = 60, MAX_WINDOW_MINUTES = 480;
+
+        public RouteInsertionRequest {
+            Input.present(snapshot, "snapshot");
+            Input.present(job, "job");
+            if (Input.integer(windowMinutes, "windowMinutes", MIN_WINDOW_MINUTES, MAX_WINDOW_MINUTES) % 60 != 0)
+                throw new IllegalArgumentException("windowMinutes must be whole hours");
+            int step = Input.present(startStepMinutes, "startStepMinutes");
+            if (step != 15 && step != 30 && step != 60) throw new IllegalArgumentException("startStepMinutes must be 15, 30 or 60");
+            Input.present(routes, "routes");
+            if (snapshot.technicianDays().size() > MAX_TECHNICIAN_DAYS)
+                throw new IllegalArgumentException("A route insertion covers at most " + MAX_TECHNICIAN_DAYS + " technician-days");
+            for (TechnicianDay day : snapshot.technicianDays())
+                if (day.technicianId().equals(job.id())) throw new IllegalArgumentException("job.id " + job.id() + " is also a technician ID");
+            for (PublicTypes.Appointment appointment : snapshot.appointments())
+                if (appointment.id().equals(job.id())) throw new IllegalArgumentException("job.id " + job.id() + " is already an appointment in the snapshot");
+        }
+    }
+
     public record RepairProposalRequest(String requestId, Absence absence, Snapshot snapshot) {
         public RepairProposalRequest {
             Input.requestId(requestId);
