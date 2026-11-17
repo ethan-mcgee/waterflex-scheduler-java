@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public final class ApiVersionHeader extends OncePerRequestFilter {
     public static final String HEADER = "X-Scheduler-Version";
     /** The contract this build serves; PublicApiContractTest keeps it equal to docs/api/openapi-v1.yaml's info.version. */
-    public static final String SPEC_VERSION = "1.11.0";
+    public static final String SPEC_VERSION = "1.12.0";
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

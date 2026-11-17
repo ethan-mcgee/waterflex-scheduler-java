@@ -71,6 +71,9 @@ Each setting, whether it is required, and what it controls:
 - **`SCHEDULER_SEARCH_BACKGROUND_LIMIT`**
   - **Required:** No.
   - **Meaning:** Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas.
+- **`SCHEDULER_INSERTIONS_CONCURRENT_LIMIT`**
+  - **Required:** No.
+  - **Meaning:** Route insertion calls (`POST /api/v1/routes/insertions`) this replica answers at once, 1 to 64, default 4. They take no search slot, so this is their only limit; a call past it answers 429 `BUSY` with `Retry-After: 1` at once.
 - **`SCHEDULER_DAILY_QUEUE_WORKERS`**
   - **Required:** No.
   - **Meaning:** Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`.
@@ -227,7 +230,7 @@ Each `/api/v1` call writes one line to the logger `dev.waterflex.scheduler.api.r
 INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374 queueMs=12 routingMs=212 calculationMs=97 dbMs=18 dbCalls=9 routingPairs=310 cacheHits=280 fetched=30 cpuMs=141
 ```
 
-A call that ran under a deadline (booking offers and confirms, route evaluation and geometry, and a synchronous daily proposal's routing and search) also says how its time was spent: `queueMs` waiting for a search slot, `routingMs` waiting on routing (identity checks, leg fetches and the route cache reads around them), `calculationMs` in the calculation engine (for a route evaluation, timing the routes), `dbMs` and `dbCalls` in the thin store, `routingPairs` the legs the call needed with `cacheHits` served from memory or the route cache and `fetched` from the routing service, and `cpuMs` the CPU time of the threads that ran the work. Route evaluation, geometry and the daily search run on a worker thread; the call's line still carries the worker's figures, added to any the request thread measured itself, and `cpuMs` is left out when one thread's CPU time is unknown. A call whose caller stopped waiting at its deadline logs `elapsedMs` only. A slow search with high `routingMs` and `fetched` is cold routing (new addresses, or a cache gone cold after a map change); one with high `calculationMs` is the engine; one with high `queueMs` waited for a slot behind other calls (add capacity or replicas).
+A call that ran under a deadline (booking offers and confirms, route evaluation, geometry and insertions, and a synchronous daily proposal's routing and search) also says how its time was spent: `queueMs` waiting for a search slot, `routingMs` waiting on routing (identity checks, leg fetches and the route cache reads around them), `calculationMs` in the calculation engine (for a route evaluation, timing the routes), `dbMs` and `dbCalls` in the thin store, `routingPairs` the legs the call needed with `cacheHits` served from memory or the route cache and `fetched` from the routing service, and `cpuMs` the CPU time of the threads that ran the work. Route evaluation, geometry and the daily search run on a worker thread; the call's line still carries the worker's figures, added to any the request thread measured itself, and `cpuMs` is left out when one thread's CPU time is unknown. A call whose caller stopped waiting at its deadline logs `elapsedMs` only. A slow search with high `routingMs` and `fetched` is cold routing (new addresses, or a cache gone cold after a map change); one with high `calculationMs` is the engine; one with high `queueMs` waited for a slot behind other calls (add capacity or replicas).
 
 Every line written while serving the call, including the solver's worker thread, carries the same tenant and the host's `requestId`. Search by `requestId` to follow one call. With `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` the same fields are JSON properties.
 
@@ -378,7 +381,7 @@ The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs mor
 
 - **`scheduler-booking`**
   - **`SCHEDULER_ROLE`:** `booking`.
-  - **Receives:** Everything except the routes below: booking searches, holds and confirms, commits, route evaluation and geometry, whoami, `/health`.
+  - **Receives:** Everything except the routes below: booking searches, holds and confirms, commits, route evaluation, geometry and insertions, whoami, `/health`.
   - **Tuned for:** Latency. No queued daily work runs here, so bookings never wait behind a 20 second solve.
 - **`scheduler-daily`**
   - **`SCHEDULER_ROLE`:** `daily`.
