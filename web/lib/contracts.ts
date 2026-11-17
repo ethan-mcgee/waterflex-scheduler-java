@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidPhone } from "./phone";
+import { routeInsertions } from "./insertionContract";
 
 // Browser-safe decoders. Keep network and database values unknown until parsed.
 export const text = z.string().trim().min(1);
@@ -291,3 +292,25 @@ export const moveCheckResult = z.object({ outcome: moveOutcome, message: text, o
   saved: z.literal(false) }).strict().refine(value => value.outcome === "FEASIBLE" || value.overtimeMinutes === null, "Only a timed day has overtime");
 export type MoveCheckRequest = z.infer<typeof moveCheckRequest>;
 export type MoveCheckResult = z.infer<typeof moveCheckResult>;
+
+/** What to place on the schedule: an unscheduled job, or an appointment to move. Exactly one is named. */
+const placementSubject = { jobId: text.optional(), appointmentId: text.optional() };
+const oneSubject = (value: { jobId?: string; appointmentId?: string }) => (value.jobId === undefined) !== (value.appointmentId === undefined);
+/** A preview covers the week starting on `monday` in one call; hovering and dropping need no other. */
+export const placementPreviewRequest = z.object({ metroId: text, monday: date, ...placementSubject }).strict()
+  .refine(oneSubject, "Name a job or an appointment, not both");
+const spot = z.object({ technicianId: text, serviceDate: date, afterAppointmentId: text.optional(), beforeAppointmentId: text.optional() }).strict();
+const original = z.object({ appointmentId: text, technicianId: text, serviceDate: date, window: z.object({ start: instant, end: instant }).strict(),
+  plannedStart: instant, afterAppointmentId: text.optional(), beforeAppointmentId: text.optional() }).strict();
+/** The scheduler's answer for the week, and for a move, where the appointment is now. */
+export const placementPreview = z.object({ answer: routeInsertions, original: original.nullable(),
+  job: z.object({ id: text, durationMinutes: z.int().min(1).max(720) }).strict() }).strict();
+/** Saving a start at a spot. `acknowledged` is the dispatcher's acknowledgement of a changed promise. */
+export const placementSaveRequest = z.object({ metroId: text, ...placementSubject, spot, plannedStart: instant, acknowledged: z.boolean() }).strict()
+  .refine(oneSubject, "Name a job or an appointment, not both");
+export const placementSaved = z.object({ saved: z.literal(true), appointmentId: text,
+  kind: z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]) }).strict();
+export type PlacementPreviewRequest = z.infer<typeof placementPreviewRequest>;
+export type PlacementPreview = z.infer<typeof placementPreview>;
+export type PlacementSaveRequest = z.infer<typeof placementSaveRequest>;
+export type PlacementSaved = z.infer<typeof placementSaved>;
