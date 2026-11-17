@@ -82,6 +82,29 @@ export function recommendation(answer: RouteInsertions, moving: boolean): Fit | 
   return null;
 }
 
+/** A stop's planned visit, as an instant pair. */
+export interface PlannedTimes { plannedStart: string; plannedEnd: string }
+
+/**
+ * Every stop's planned visit on the days a placement touches, as the scheduler timed them with the subject at
+ * `plannedStart` in `spot`: a moved appointment's own day without it, then the chosen day with it, which wins when they
+ * are the same day. The subject itself is listed too. Stops the answer did not time (asked without routes, or a day
+ * that does not hold as given) are left out, so they keep their booked times rather than an invented one.
+ */
+export function previewTimes(answer: RouteInsertions, original: Original | null, spot: Spot | null, plannedStart: string | null): Map<string, PlannedTimes> {
+  const times = new Map<string, PlannedTimes>();
+  const put = (stops: ReadonlyArray<{ appointmentId: string } & PlannedTimes> | undefined) => {
+    for (const stop of stops ?? []) times.set(stop.appointmentId, { plannedStart: stop.plannedStart, plannedEnd: stop.plannedEnd });
+  };
+  if (original !== null)
+    put(answer.technicianDays.find(day => day.technicianId === original.technicianId && day.serviceDate === original.serviceDate)?.stops);
+  if (spot !== null && plannedStart !== null) {
+    const found = findGap(answer, spot);
+    put(found === undefined ? undefined : findStart(found.gap, plannedStart)?.stops);
+  }
+  return times;
+}
+
 /** How a gap's added drive compares with the recommendation's: "+4 min vs best", "3 min less than best" or "Same as best". */
 export function relativeToBest(addedBufferedMinutes: number, best: Fit): string {
   const difference = addedBufferedMinutes - best.addedBufferedMinutes;

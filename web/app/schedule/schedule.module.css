@@ -978,3 +978,9 @@
     max-height: none;
   }
 }
+
+/* A visit the placement preview moves to a later or earlier time; it is not saved until Save. */
+.retimedCard {
+  outline: 2px dashed #2563eb;
+  outline-offset: -2px;
+}

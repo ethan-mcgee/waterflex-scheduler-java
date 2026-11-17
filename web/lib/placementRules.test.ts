@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { comparisonSentence, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -124,4 +124,21 @@ test("a drop lands in the gap after every stop that starts before it, at the nea
   assert.deepEqual(spotAt(answer, "z", DATE, 10 * 60, stopMinute, startMinute), { spot: { technicianId: "z", serviceDate: DATE }, plannedStart: null },
     "a technician the answer does not list");
   assert.equal(verdict(answer, original, { technicianId: "z", serviceDate: DATE }, null).kind, "CANNOT_HOLD");
+});
+
+test("a preview takes every later stop's times from the answer: the moved visit's day without it, the chosen day with it", () => {
+  const stop = (appointmentId: string, sequence: number, hour: number, minute: number, minutes: number) =>
+    ({ appointmentId, sequence, plannedStart: at(hour, minute), plannedEnd: new Date(Date.parse(at(hour, minute)) + minutes * 60000).toISOString() });
+  const timedStart = { ...start(15, 30, totals(66, 15900), true), stops: [stop("b1", 0, 14, 0, 45), stop("m", 1, 15, 30, 60)] };
+  const timed: RouteInsertions = { ...answer, technicianDays: [
+    day("a", totals(80, 20000), [gap("a1", "a2", 9, [])], { stops: [stop("a1", 0, 14, 0, 45), stop("a2", 1, 15, 0, 45)] }),
+    day("b", totals(60, 15000), [gap("b1", undefined, 5, [timedStart])]),
+  ] };
+  const moved = previewTimes(timed, original, endOfB, at(15, 30));
+  assert.equal(moved.get("a2")?.plannedStart, at(15, 0), "a2 closes up on a's day once m has left");
+  assert.equal(moved.get("m")?.plannedStart, at(15, 30), "The moved visit is listed at its new start");
+  assert.equal(moved.get("b1")?.plannedEnd, at(14, 45));
+  assert.deepEqual([...previewTimes(timed, original, null, null).keys()], ["a1", "a2"], "With no place chosen, only the day it leaves is re-timed");
+  assert.equal(previewTimes(timed, null, endOfB, at(18, 0)).size, 0, "A start the answer does not offer times nothing");
+  assert.equal(previewTimes(answer, original, endOfB, at(15, 30)).size, 0, "An answer without timed stops leaves every stop as booked");
 });

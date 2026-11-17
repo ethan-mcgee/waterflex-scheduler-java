@@ -55,12 +55,15 @@ async function insertions(clientId: string, plan: PlacementPlan, routes: boolean
   return joined(answers);
 }
 
-/** Every place on the week's routes where the job or appointment could go. Nothing is saved. */
+/**
+ * Every place on the week's routes where the job or appointment could go. Nothing is saved. The answer carries timed
+ * stops, so the page can show every later visit moving as the subject is placed and moved, without asking again.
+ */
 export async function previewPlacement(clientId: string, metroId: string, input: SubjectInput, dates: readonly string[], phases: Phases): Promise<PlacementPreview> {
   const { subject } = await timed(phases, "subject", () => subjectFor(clientId, input));
   const facts = await timed(phases, "facts", () => loadSnapshotFacts(clientId, metroId, dates));
   const plan = placementPlan(facts, subject);
-  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, false));
+  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, true));
   return { answer, original: plan.original, job: { id: plan.job.id, durationMinutes: plan.job.durationMinutes } };
 }
 

@@ -287,6 +287,39 @@ test.describe("placing and moving on the schedule", () => {
     expect(sent.saves).toHaveLength(0);
   });
 
+  test("the preview moves every later visit to the time the scheduler gave it, from the one answer, and Cancel puts them back", async ({ page }) => {
+    // The job's answer with timed stops: at 11:30 AM South keeps 1:15 PM; at 12:00 PM it is pushed to 1:30 PM.
+    const stop = (appointmentId: string, sequence: number, from: [number, number], to: [number, number]) =>
+      ({ appointmentId, sequence, plannedStart: utc(...from), plannedEnd: utc(...to) });
+    const timed = placementPreview.parse({ original: null, job: { id: fixture.job, durationMinutes: 60 }, answer: { routingIdentity: "omaha", skippedTechnicianDays: [], technicianDays: [
+      { technicianId: fixture.first, serviceDate: DATE, holdsAsGiven: true, qualified: true, asGiven: totals(60, 15000), gaps: [
+        { ...gap(fixture.north, fixture.south, 6, []), starts: [
+          { ...start(16, 30, totals(66, 15900), 16), stops: [stop(fixture.north, 0, [15, 15], [16, 0]), stop(fixture.job, 1, [16, 30], [17, 30]), stop(fixture.south, 2, [18, 15], [19, 0])] },
+          { ...start(17, 0, totals(66, 16000), 17), stops: [stop(fixture.north, 0, [15, 15], [16, 0]), stop(fixture.job, 1, [17, 0], [18, 0]), stop(fixture.south, 2, [18, 30], [19, 15])] }] }] },
+    ] } });
+    const sent = await mockPlacement(page, timed, { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await marker(page, fixture.first, fixture.north, fixture.south).click();
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
+    await expect(south).not.toHaveAttribute("data-retimed");
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+
+    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
+    await expect(south).toHaveAttribute("data-retimed", "true");
+    await expect(south).toContainText("1:30 PM - 2:15 PM");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"]`)).not.toHaveAttribute("data-retimed");
+    expect(sent.previews).toHaveLength(1);
+
+    await panel(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(south).not.toHaveAttribute("data-retimed");
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+    expect(sent.saves).toHaveLength(0);
+  });
+
   test("a move to another arrival window is a policy violation that saves only once acknowledged", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
