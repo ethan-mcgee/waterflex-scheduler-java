@@ -18,7 +18,7 @@ The upstream projects this repository started from, with the version used here a
   - **Version used here:** v1.22.1.
   - **Source revision checked 2026-10-22:** `f1c24e64f3085877d57c8e0f07233e0a3ef25a99` (checked 2026-09-16).
 - **[Apache Maven Wrapper](https://github.com/apache/maven-wrapper/tree/maven-wrapper-3.3.4)**
-  - **Version used here:** Wrapper 3.3.4, Maven distribution 3.10.0 (`.mvn/wrapper/maven-wrapper.properties`).
+  - **Version used here:** Wrapper 3.3.4 in `only-script` mode (no `maven-wrapper.jar`), Maven distribution 3.10.1 (`.mvn/wrapper/maven-wrapper.properties`).
   - **Source revision checked 2026-10-22:** `c82bcee2275b9ee2afd0fab17fdec05e1c6f67aa` (tag `maven-wrapper-3.3.4`).
 
 The routing code follows GraphHopper's [Java car profile example](https://github.com/graphhopper/graphhopper/blob/11.1/example/src/main/java/com/graphhopper/example/RoutingExample.java). No upstream source code was copied into the services.
