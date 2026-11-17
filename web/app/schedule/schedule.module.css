@@ -405,8 +405,69 @@
   display: none;
 }
 
+/* The day view: one column per technician on one shared time axis, so the same time lines up across technicians. */
+.dayGrid {
+  display: grid;
+  max-width: 1500px;
+  margin: 0 auto;
+  overflow-x: auto;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dayCorner,
+.dayColumnHeader {
+  padding: 0.65rem;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.dayCorner {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  color: #475569;
+  font-size: 0.75rem;
+}
+
+.dayColumnHeader {
+  border-top: 4px solid transparent;
+}
+
+.timeAxis {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 1px solid #e2e8f0;
+  background: #f1f5f9;
+}
+
+.viewSwitch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.viewSwitch a {
+  padding: 0.45rem 0.8rem;
+  color: #1e293b;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.viewSwitch a[aria-current="page"] {
+  background: #1e293b;
+  color: #fff;
+}
+
 @media (max-width: 850px) {
-  .grid {
+  .grid,
+  .dayGrid {
     display: none;
   }
 

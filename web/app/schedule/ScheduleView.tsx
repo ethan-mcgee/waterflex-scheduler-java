@@ -5,15 +5,16 @@ import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./schedule.module.css";
-import { addCalendarDays, weekDates } from "@/lib/date";
+import { addCalendarDays, todayInTz, weekDates } from "@/lib/date";
 import type { MoveCheckResult } from "@/lib/contracts";
 import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
-import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician, ScheduleViewMode } from "./types";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 const TIMELINE_HOUR_HEIGHT_PX = 64;
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
 function localDate(dateKey: string): Date {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -124,7 +125,7 @@ function TimelineCell({
   timelineEnd: number;
   timezone: string;
   onSelect: (appointment: ScheduleAppointment) => void;
-  drag: { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; draggingId: string | null };
+  drag: CardDrag;
   /** While a card is dragged: whether this cell can take it, and whether the pointer is over it. */
   dropState: "none" | "valid" | "over";
 }) {
@@ -187,6 +188,84 @@ function TimelineCell({
           />
         );
       })}
+    </div>
+  );
+}
+
+type CardDrag = { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; draggingId: string | null };
+
+/** What a technician's column header says about the day: the shift, or why there is none. */
+function columnStatus(technician: ScheduleTechnician, date: string): { label: string; working: boolean } {
+  const day = scheduleDay(technician, date);
+  if (!day.member) return { label: "Assigned to another metro", working: false };
+  if (!day.available || day.shiftStartMin == null || day.shiftEndMin == null) return { label: "Off", working: false };
+  return { label: `${formatMinuteOfDay(day.shiftStartMin)} to ${formatMinuteOfDay(day.shiftEndMin)}`, working: true };
+}
+
+/**
+ * One day with a column per technician and one time axis down the left, so appointments at the same time line up
+ * across technicians. A technician who is off keeps a muted column, so columns do not shift from day to day.
+ */
+function DayGrid({
+  date,
+  technicians,
+  byCell,
+  absences,
+  timelineStart,
+  timelineEnd,
+  timezone,
+  onSelect,
+  drag,
+  dropState,
+}: {
+  date: string;
+  technicians: ScheduleTechnician[];
+  byCell: Map<string, ScheduleAppointment[]>;
+  absences: ScheduleAbsence[];
+  timelineStart: number;
+  timelineEnd: number;
+  timezone: string;
+  onSelect: (appointment: ScheduleAppointment) => void;
+  drag: CardDrag;
+  dropState: (technicianId: string, date: string) => "none" | "valid" | "over";
+}) {
+  const hours = Array.from({ length: Math.max(1, (timelineEnd - timelineStart) / 60) }, (_, index) => timelineStart + index * 60);
+  const columns: CSSProperties = { gridTemplateColumns: `72px repeat(${Math.max(1, technicians.length)}, minmax(170px, 1fr))` };
+  return (
+    <div className={styles.dayGrid} style={columns} aria-label="Daily technician schedule" data-schedule-view="day">
+      <div className={styles.dayCorner}>Time</div>
+      {technicians.map((technician) => {
+        const status = columnStatus(technician, date);
+        return (
+          <div className={`${styles.dayColumnHeader} ${status.working ? "" : styles.closedDayHeader}`}
+            style={{ borderTopColor: technician.color }} key={`${technician.id}-header`} data-technician-column={technician.id}>
+            <span className={styles.techName}>{technician.name}</span>
+            <span className={styles.techShift}>{status.label}</span>
+          </div>
+        );
+      })}
+      <div className={styles.timeAxis} style={{ height: hours.length * TIMELINE_HOUR_HEIGHT_PX }} aria-hidden="true">
+        {hours.map((hour, index) => (
+          <span className={styles.timeLabel} style={{ top: index * TIMELINE_HOUR_HEIGHT_PX + TIMELINE_HOUR_HEIGHT_PX / 2 }} key={hour}>
+            {formatMinuteOfDay(hour)}
+          </span>
+        ))}
+      </div>
+      {technicians.map((technician) => (
+        <TimelineCell
+          key={`${technician.id}:${date}`}
+          day={date}
+          technician={technician}
+          entries={byCell.get(`${technician.id}:${date}`) ?? []}
+          absences={absences.filter((absence) => absence.technicianId === technician.id && absence.date === date)}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          timezone={timezone}
+          onSelect={onSelect}
+          drag={drag}
+          dropState={dropState(technician.id, date)}
+        />
+      ))}
     </div>
   );
 }
@@ -303,6 +382,8 @@ function AppointmentPanel({
 export default function ScheduleView({
   metroId,
   monday,
+  view,
+  date,
   timezone,
   technicians,
   appointments,
@@ -310,6 +391,10 @@ export default function ScheduleView({
 }: {
   metroId: string;
   monday: string;
+  /** The day view (the default) or the weekly grid. */
+  view: ScheduleViewMode;
+  /** The day the day view shows; in the weekly view, the date the week was opened from. */
+  date: string;
   timezone: string;
   technicians: ScheduleTechnician[];
   appointments: ScheduleAppointment[];
@@ -319,10 +404,12 @@ export default function ScheduleView({
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const days = weekDates(monday);
+  // The days on screen: the day view's one day, or the week. The time axis covers only their shifts.
+  const shown = view === "day" ? [date] : days;
   const visibleTechnicians = technicians.filter(
     (technician) => technicianFilter === "all" || technician.id === technicianFilter
   );
-  const shiftHours = technicians.flatMap(technician => Object.values(technician.days).flatMap(day =>
+  const shiftHours = technicians.flatMap(technician => shown.flatMap(key => technician.days[key] ?? []).flatMap(day =>
     day.member && day.available && day.shiftStartMin != null && day.shiftEndMin != null ? [{ start: day.shiftStartMin, end: day.shiftEndMin }] : []));
   const timelineStart = shiftHours.length
     ? Math.floor(Math.min(...shiftHours.map(shift => shift.start)) / 60) * 60
@@ -404,20 +491,60 @@ export default function ScheduleView({
     router.push(`/schedule?metroId=${encodeURIComponent(metroId)}&week=${nextMonday}`);
   }
 
+  // The day a click asked for. Navigation is asynchronous, so a second click before the page arrives counts from
+  // the first click's day rather than from the one still on screen; quick clicks add up instead of repeating.
+  const targetDate = useRef(date);
+  useEffect(() => { targetDate.current = date; }, [date]);
+
+  function goToDay(nextDate: string) {
+    targetDate.current = nextDate;
+    router.push(`/schedule?metroId=${encodeURIComponent(metroId)}&date=${nextDate}`);
+  }
+
+  const viewSwitch = (
+    <nav className={styles.viewSwitch} aria-label="Schedule view">
+      <Link href={`/schedule?metroId=${encodeURIComponent(metroId)}&date=${days.includes(date) ? date : monday}`}
+        aria-current={view === "day" ? "page" : undefined}>Day</Link>
+      <Link href={`/schedule?metroId=${encodeURIComponent(metroId)}&week=${monday}`} aria-current={view === "week" ? "page" : undefined}>Week</Link>
+    </nav>
+  );
+
   return (
     <main className={styles.wrap}>
       <div className={styles.toolbar}>
-        <h1 className={styles.title}>Weekly schedule</h1>
-        <span className={styles.subtle}>Week of {formatWeekLabel(monday)}</span>
-        <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, -7))}>
-          Previous
-        </button>
-        <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, 7))}>
-          Next
-        </button>
-        <button className={styles.button} type="button" onClick={() => goToWeek(mondayOfToday(timezone))}>
-          This week
-        </button>
+        {view === "day" ? <>
+          <h1 className={styles.title}>Daily schedule</h1>
+          <span className={styles.subtle} data-schedule-date={date}>
+            {localDate(date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </span>
+          <button className={styles.button} type="button" onClick={() => goToDay(addCalendarDays(targetDate.current, -1))}>
+            Previous day
+          </button>
+          <button className={styles.button} type="button" onClick={() => goToDay(addCalendarDays(targetDate.current, 1))}>
+            Next day
+          </button>
+          <button className={styles.button} type="button" onClick={() => goToDay(todayInTz(timezone))}>
+            Today
+          </button>
+          <label>
+            <span className={styles.srOnly}>Go to date</span>
+            <input className={styles.select} type="date" value={date}
+              onChange={(event) => { if (DATE_KEY.test(event.target.value)) goToDay(event.target.value); }} />
+          </label>
+        </> : <>
+          <h1 className={styles.title}>Weekly schedule</h1>
+          <span className={styles.subtle}>Week of {formatWeekLabel(monday)}</span>
+          <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, -7))}>
+            Previous
+          </button>
+          <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, 7))}>
+            Next
+          </button>
+          <button className={styles.button} type="button" onClick={() => goToWeek(mondayOfToday(timezone))}>
+            This week
+          </button>
+        </>}
+        {viewSwitch}
         <label>
           <span className={styles.srOnly}>Filter technician</span>
           <select
@@ -453,7 +580,11 @@ export default function ScheduleView({
             </span>
             <span><i className={styles.absenceSwatch} />Approved time off splits the working shift</span>
           </div>
-          <div className={styles.grid} aria-label="Weekly technician schedule">
+          {view === "day" ? (
+            <DayGrid date={date} technicians={visibleTechnicians} byCell={byCell} absences={absences} timelineStart={timelineStart}
+              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} />
+          ) : (
+          <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
             <div className={styles.corner}>Technician</div>
             {days.map((day) => (
               <div className={`${styles.dayHeader} ${technicians.every(technician => !scheduleDay(technician, day).member || !scheduleDay(technician, day).available) ? styles.closedDayHeader : ""}`} key={day}>
@@ -506,8 +637,9 @@ export default function ScheduleView({
               ]
             )}
           </div>
-          <div className={styles.agenda} aria-label="Weekly schedule agenda">
-            {days.map((day) => {
+          )}
+          <div className={styles.agenda} aria-label={view === "day" ? "Daily schedule agenda" : "Weekly schedule agenda"}>
+            {shown.map((day) => {
               const entries = visibleTechnicians.flatMap(
                 (technician) => byCell.get(`${technician.id}:${day}`) ?? []
               );

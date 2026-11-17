@@ -155,7 +155,7 @@ The portal runs each client's overnight optimization itself: Solver Settings set
 ### Views
 
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh and immediate confirmation. See [address matching and booking location](docs/address-and-location.md).
-- `/schedule`: weekly routes, approved time-off blocks, promises and reasoned cancellation.
+- `/schedule`: one day with technicians as columns on a shared time axis (the default, paged a day at a time), or the weekly grid (`?view=week` or `?week=<date>`); approved time-off blocks, promises and reasoned cancellation.
 - `/dispatch`: route review and optimization proposals. A preview optimizes only the active client's routes through `/api/v1/daily/proposals`, and applying it writes the proposal only if none of its technician-days changed since.
 - `/dealerships`: create an organization, then add its metro depots and their route policies. See [dealerships and depots](docs/dealerships.md).
 - `/technicians`: create technicians at a depot and schedule same-dealership depot moves by service date. Home lookup searches the full address, then retries without the state filter. Only candidates whose country, ZIP, city or town, street, and house number and state when present agree are used; the best house result is selected, with a street-only result as fallback. An unchanged house pin can be used directly; a moved house pin needs map confirmation within 250 meters of its geocoder result, and a street-only candidate within 100 meters of its street bounds. Every home pin must be inside the depot metro's service area, and the server repeats these checks on create.
