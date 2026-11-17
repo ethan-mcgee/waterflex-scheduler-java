@@ -4,10 +4,11 @@ import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import type { ScheduleViewMode } from "./types";
 import ScheduleView from "./ScheduleView";
-import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleTechnician } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician } from "./types";
 import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
 import { weekDates } from "@/lib/date";
 import Link from "next/link";
+import { colorOf, serviceColors } from "@/lib/serviceColors";
 
 export const dynamic = "force-dynamic";
 
@@ -82,14 +83,17 @@ export default async function SchedulePage({
   }));
 
   // Jobs waiting to be placed, newest first, and the services a new job can be for.
-  const [pendingJobs, services] = await Promise.all([
+  // Every service, retired ones too, is given its color from the whole catalog, so a service's color never shifts.
+  const [pendingJobs, services, catalog] = await Promise.all([
     prisma.job.findMany({ where: { status: "PENDING", appointment: null, customer: { clientId } }, orderBy: { createdAt: "desc" }, take: 50,
-      include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { name: true } },
+      include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { code: true, name: true } },
         address: { select: { line1: true, city: true, state: true, lat: true, lng: true } } } }),
     prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { code: true, name: true } }),
+    prisma.serviceCatalog.findMany({ select: { code: true } }),
   ]);
+  const colors = serviceColors(catalog.map(item => item.code));
   const jobs: ScheduleJob[] = pendingJobs.map(job => ({ id: job.id, customerName: `${job.customer.firstName} ${job.customer.lastName}`,
-    serviceName: job.service.name, durationMin: job.durationMin, addressLine: `${job.address.line1}, ${job.address.city}, ${job.address.state}`,
+    serviceName: job.service.name, serviceColor: colorOf(colors, job.service.code), durationMin: job.durationMin, addressLine: `${job.address.line1}, ${job.address.city}, ${job.address.state}`,
     located: job.address.lat !== null && job.address.lng !== null, followUp: job.manualFollowUpStatus }));
   const scheduleServices: ScheduleService[] = services;
 
@@ -102,6 +106,7 @@ export default async function SchedulePage({
     date: appointment.serviceDate.toISOString().slice(0, 10),
     customerName: `${appointment.job.customer.firstName} ${appointment.job.customer.lastName}`,
     serviceName: appointment.job.service.name,
+    serviceColor: colorOf(colors, appointment.job.service.code),
     addressLine: [
       appointment.job.address.line1,
       appointment.job.address.line2,
@@ -116,6 +121,13 @@ export default async function SchedulePage({
     plannedStart: appointment.plannedStart.toISOString(),
     plannedEnd: appointment.plannedEnd.toISOString(),
   }));
+
+  // The legend names the services on screen this week: booked visits and jobs waiting for the calendar.
+  const legendCodes = new Map<string, string>();
+  for (const appointment of appointments) legendCodes.set(appointment.job.service.code, appointment.job.service.name);
+  for (const job of pendingJobs) legendCodes.set(job.service.code, job.service.name);
+  const serviceLegend: ScheduleServiceLegend[] = [...legendCodes.entries()].sort(([, a], [, b]) => a.localeCompare(b))
+    .map(([code, name]) => ({ name, color: colorOf(colors, code) }));
 
   return <>
     {metros.length > 1 && <nav aria-label="Schedule metro" style={{ display: "flex", gap: 12, padding: 16 }}>
@@ -144,6 +156,7 @@ export default async function SchedulePage({
       absences={absences}
       jobs={jobs}
       services={scheduleServices}
+      serviceLegend={serviceLegend}
       placeJobId={searchParams.placeJob ?? null}
     />
   </>;

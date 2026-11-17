@@ -1,3 +1,5 @@
+import type { ServiceColor } from "@/lib/serviceColors";
+
 export interface ScheduleTechnician {
   id: string;
   name: string;
@@ -14,6 +16,8 @@ export interface ScheduleAppointment {
   date: string;
   customerName: string;
   serviceName: string;
+  /** The color the visit is drawn in, from its service. */
+  serviceColor: ServiceColor;
   addressLine: string;
   windowStart: string;
   windowEnd: string;
@@ -33,6 +37,7 @@ export interface ScheduleJob {
   id: string;
   customerName: string;
   serviceName: string;
+  serviceColor: ServiceColor;
   durationMin: number;
   addressLine: string;
   /** False until the address has coordinates; such a job needs its pin confirmed before it can be placed. */
@@ -40,6 +45,9 @@ export interface ScheduleJob {
   /** The manual follow-up the job is waiting on, or null when there is none. */
   followUp: string | null;
 }
+
+/** A service on screen and the color it is drawn in, for the legend. */
+export interface ScheduleServiceLegend { name: string; color: ServiceColor }
 
 /** A service the new-job form offers. */
 export interface ScheduleService { code: string; name: string }

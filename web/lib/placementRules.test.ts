@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { comparisonSentence, rankedFits, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { comparisonSentence, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -39,6 +39,27 @@ test("the best fits are the gaps with a start, least added drive first", () => {
   assert.equal(fits[0]?.addedBufferedMinutes, 5);
   assert.equal(fits[0]?.firstStart.plannedStart, at(15, 30));
   assert.equal(spotKey({ technicianId: "a", serviceDate: DATE }), "a|2026-11-18|start|end", "an empty day's only gap");
+});
+
+test("the recommendation is the best fit; a move is recommended only where it keeps its promise, from the first start that does", () => {
+  assert.equal(recommendation(answer, false)?.key, spotKey(endOfB));
+  assert.equal(recommendation(answer, true)?.firstStart.plannedStart, at(15, 30));
+  // When the cheapest place offers only a changed window, the move is recommended to the cheapest place that keeps it.
+  const changing: RouteInsertions = { ...answer, technicianDays: answer.technicianDays.map(item => item.technicianId !== "b" ? item
+    : day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])) };
+  assert.equal(recommendation(changing, false)?.key, spotKey(endOfB));
+  assert.equal(recommendation(changing, true)?.key, spotKey({ technicianId: "a", serviceDate: DATE, afterAppointmentId: "a1", beforeAppointmentId: "a2" }));
+  const nothingKeeps: RouteInsertions = { ...answer, technicianDays: [day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])] };
+  assert.equal(recommendation(nothingKeeps, true), null);
+  assert.equal(recommendation({ ...answer, technicianDays: [] }, false), null);
+});
+
+test("a gap's drive is said against the recommendation's", () => {
+  const best = recommendation(answer, false);
+  assert.ok(best !== null);
+  assert.equal(relativeToBest(5, best), "Same as best");
+  assert.equal(relativeToBest(9, best), "+4 min vs best");
+  assert.equal(relativeToBest(2, best), "3 min less than best");
 });
 
 test("a drop that cannot hold says why, and never pretends a missing route is a short one", () => {

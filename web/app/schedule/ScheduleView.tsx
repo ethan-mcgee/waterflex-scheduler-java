@@ -11,9 +11,11 @@ import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveChe
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
 import { usePlacement, type PlacementSubject } from "./usePlacement";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
-import { findGap, gapSpot, spotAt, spotKey, type Spot } from "@/lib/placementRules";
+import { findGap, gapSpot, recommendation, relativeToBest, spotAt, spotKey, type Spot } from "@/lib/placementRules";
+import { driveLabel, type VisitDrive } from "@/lib/scheduleDrive";
+import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
 import type { PlacementPreview, PlacementSaved } from "@/lib/contracts";
-import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleTechnician, ScheduleViewMode } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician, ScheduleViewMode } from "./types";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
@@ -76,12 +78,16 @@ function formatWeekLabel(monday: string): string {
   )}`;
 }
 
+/** A drive band of a visit's block: its height on the timeline and what it says. */
+interface DriveBand { px: number; minutes: number; label: string }
+
 function AppointmentCard({
   appointment,
   timezone,
   onSelect,
   timelineStyle,
   drag,
+  drive,
 }: {
   appointment: ScheduleAppointment;
   timezone: string;
@@ -89,22 +95,34 @@ function AppointmentCard({
   timelineStyle?: CSSProperties;
   /** Present on the timelines, where a card can be dragged to another place. */
   drag?: { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; dragging: boolean };
+  /** On the day view once drive times are in: the drive drawn before (first visit of a stretch) and after the visit. */
+  drive?: { before: DriveBand | null; after: DriveBand };
 }) {
+  const colors = appointment.serviceColor;
+  const band = (part: DriveBand, edge: "before" | "after") => (
+    <span className={styles.driveBand} style={{ height: part.px, background: colors.drive }} data-drive={edge} data-drive-minutes={part.minutes}>
+      <span className={styles.driveLabel} style={{ color: colors.text }}>{part.label}</span>
+    </span>
+  );
   return (
     <button
-      className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""} ${drag?.dragging ? styles.draggingCard : ""}`}
-      style={timelineStyle}
+      className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""} ${drive ? styles.driveBlock : ""} ${drag?.dragging ? styles.draggingCard : ""}`}
+      style={{ borderColor: colors.border, borderLeftColor: colors.color, background: colors.tint, color: colors.text, ...timelineStyle }}
       type="button"
       data-appointment-id={appointment.id}
       onPointerDown={drag ? (event) => drag.press(appointment, event) : undefined}
       onClick={() => { if (!drag?.clickSuppressed()) onSelect(appointment); }}
     >
-      <span className={styles.cardTime}>
-        {formatTime(appointment.plannedStart, timezone)}
-        {timelineStyle && ` - ${formatTime(appointment.plannedEnd, timezone)}`}
+      {drive?.before && band(drive.before, "before")}
+      <span className={styles.cardBody}>
+        <span className={styles.cardTime}>
+          {formatTime(appointment.plannedStart, timezone)}
+          {timelineStyle && ` - ${formatTime(appointment.plannedEnd, timezone)}`}
+        </span>
+        <span className={styles.cardCustomer}>{appointment.customerName}</span>
+        <span className={styles.cardService}>{appointment.serviceName}</span>
       </span>
-      <span className={styles.cardCustomer}>{appointment.customerName}</span>
-      <span className={styles.cardService}>{appointment.serviceName}</span>
+      {drive && band(drive.after, "after")}
     </button>
   );
 }
@@ -121,6 +139,7 @@ function TimelineCell({
   drag,
   dropState,
   overlay,
+  drives,
 }: {
   day: string;
   technician: ScheduleTechnician;
@@ -135,8 +154,11 @@ function TimelineCell({
   dropState: "none" | "valid" | "over";
   /** While a job or an appointment is being placed: this day's gaps and the preview of the chosen start. */
   overlay?: CellOverlay;
+  /** The drive around each visit, on the day view once it is in; a visit without one is drawn on its own. */
+  drives?: Map<string, VisitDrive>;
 }) {
   const daily = scheduleDay(technician, day);
+  const px = (minute: number) => ((minute - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
   const closed = !daily.member || !daily.available;
   const timelineHeight = ((timelineEnd - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
   const shiftStart = Math.max(daily.shiftStartMin ?? timelineStart, timelineStart);
@@ -182,17 +204,32 @@ function TimelineCell({
       {entries.map((appointment) => {
         const plannedStart = minuteOfDay(appointment.plannedStart, timezone);
         const plannedEnd = minuteOfDay(appointment.plannedEnd, timezone);
-        const visibleStart = Math.max(plannedStart, timelineStart);
-        const visibleEnd = Math.min(plannedEnd, timelineEnd);
-        const top = ((visibleStart - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX + 3;
-        const height = Math.max(40, ((visibleEnd - visibleStart) / 60) * TIMELINE_HOUR_HEIGHT_PX - 6);
+        const drive = drives?.get(appointment.id);
+        let timelineStyle: CSSProperties, block: { before: DriveBand | null; after: DriveBand } | undefined;
+        if (drive === undefined) {
+          const visibleStart = Math.max(plannedStart, timelineStart);
+          const visibleEnd = Math.min(plannedEnd, timelineEnd);
+          timelineStyle = { top: px(visibleStart) + 3, height: Math.max(40, px(visibleEnd) - px(visibleStart) - 6) };
+        } else {
+          // The block runs from the drive in (first visit of a stretch) through the visit to the end of the drive after it.
+          const blockStart = Math.max(plannedStart - (drive.before?.minutes ?? 0), timelineStart);
+          const blockEnd = Math.min(plannedEnd + drive.after.minutes, timelineEnd);
+          const top = px(blockStart), bottom = Math.max(px(blockEnd), top);
+          timelineStyle = { top, height: bottom - top };
+          block = {
+            before: drive.before === null ? null : { px: Math.max(0, px(plannedStart) - top), minutes: drive.before.minutes,
+              label: driveLabel(drive.before.minutes, { from: drive.before.from }) },
+            after: { px: Math.max(0, bottom - px(plannedEnd)), minutes: drive.after.minutes, label: driveLabel(drive.after.minutes, { to: drive.after.to }) },
+          };
+        }
         return (
           <AppointmentCard
             key={appointment.id}
             appointment={appointment}
             timezone={timezone}
             onSelect={onSelect}
-            timelineStyle={{ top, height }}
+            timelineStyle={timelineStyle}
+            drive={block}
             drag={{ press: drag.press, clickSuppressed: drag.clickSuppressed,
               dragging: drag.draggingId === appointment.id || overlay?.movingId === appointment.id }}
           />
@@ -203,29 +240,52 @@ function TimelineCell({
         const top = Math.min(Math.max(((marker.minute - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX, 12), timelineHeight - 12);
         return (
           <button key={marker.key} type="button" data-gap-key={marker.key} data-gap-fits={marker.fits ? "true" : "false"}
-            className={`${styles.gapMarker} ${marker.fits ? "" : styles.gapMarkerMuted} ${marker.chosen ? styles.gapMarkerChosen : ""}`}
+            className={`${styles.gapMarker} ${marker.fits ? "" : styles.gapMarkerMuted} ${marker.best ? styles.gapMarkerBest : ""} ${marker.chosen ? styles.gapMarkerChosen : ""}`}
             style={{ top }} onClick={() => overlay.onChoose(marker.spot, marker.firstStart)}
-            aria-label={`${marker.label} at ${technician.name}'s ${marker.position}`}>
+            data-gap-best={marker.best ? "true" : undefined} aria-label={`${marker.label}, ${marker.added}, at ${technician.name}'s ${marker.position}`}>
             {marker.label}
           </button>
         );
       })}
-      {overlay?.ghost != null && (
-        <div className={`${styles.placementGhost} ${overlay.ghost.ok ? "" : styles.placementGhostProblem}`} data-placement-ghost={overlay.ghost.kind}
-          style={{ top: ((Math.max(overlay.ghost.startMinute, timelineStart) - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX + 3,
-            height: Math.max(40, (overlay.ghost.durationMinutes / 60) * TIMELINE_HOUR_HEIGHT_PX - 6) }}>
-          {overlay.ghost.label}
-        </div>
-      )}
+      {overlay?.ghost != null && (() => {
+        const ghost = overlay.ghost;
+        if (ghost.toJob === null || ghost.fromJob === null) return (
+          <div className={`${styles.placementGhost} ${ghost.ok ? "" : styles.placementGhostProblem}`} data-placement-ghost={ghost.kind}
+            style={{ top: px(Math.max(ghost.startMinute, timelineStart)) + 3, height: Math.max(40, (ghost.durationMinutes / 60) * TIMELINE_HOUR_HEIGHT_PX - 6) }}>
+            {ghost.label}
+          </div>
+        );
+        // With the gap's road legs, the preview is drawn like a booked visit: the drive in, the visit, the drive on.
+        const top = px(Math.max(ghost.startMinute - ghost.toJob, timelineStart));
+        const visitTop = px(ghost.startMinute), visitBottom = px(ghost.startMinute + ghost.durationMinutes);
+        const bottom = px(Math.min(ghost.startMinute + ghost.durationMinutes + ghost.fromJob, timelineEnd));
+        return (
+          <div className={`${styles.placementGhost} ${styles.ghostBlock} ${ghost.ok ? "" : styles.placementGhostProblem}`} data-placement-ghost={ghost.kind}
+            style={{ top, height: Math.max(bottom - top, 0) }}>
+            <span className={styles.ghostDrive} style={{ height: Math.max(0, visitTop - top) }}>
+              <span className={styles.driveLabel}>{ghost.toJob} min there</span>
+            </span>
+            <span className={styles.ghostBody}>{ghost.label}</span>
+            <span className={styles.ghostDrive} style={{ height: Math.max(0, bottom - visitBottom) }}>
+              <span className={styles.driveLabel}>{ghost.fromJob} min on</span>
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
 /** A gap of one technician-day shown on its timeline while something is being placed. */
-interface GapMarker { key: string; spot: Spot; minute: number; label: string; fits: boolean; chosen: boolean; firstStart: string | null; position: string }
+interface GapMarker {
+  key: string; spot: Spot; minute: number; label: string; fits: boolean; chosen: boolean; firstStart: string | null; position: string;
+  /** Whether this gap is the recommendation, and the drive it adds in plain minutes for screen readers. */
+  best: boolean; added: string;
+}
 interface CellOverlay {
   gaps: GapMarker[];
-  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean } | null;
+  /** The chosen start's preview; `toJob` and `fromJob` are the gap's buffered road legs, null when it has no road route. */
+  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean; toJob: number | null; fromJob: number | null } | null;
   /** The appointment being moved, drawn faded at the place it is leaving. */
   movingId: string | null;
   onChoose: (spot: Spot, plannedStart: string | null) => void;
@@ -260,6 +320,7 @@ function DayGrid({
   drag,
   dropState,
   overlay,
+  drive,
 }: {
   date: string;
   technicians: ScheduleTechnician[];
@@ -272,6 +333,7 @@ function DayGrid({
   drag: CardDrag;
   dropState: (technicianId: string, date: string) => "none" | "valid" | "over";
   overlay: (technicianId: string, date: string) => CellOverlay | undefined;
+  drive: DriveState;
 }) {
   const hours = Array.from({ length: Math.max(1, (timelineEnd - timelineStart) / 60) }, (_, index) => timelineStart + index * 60);
   const columns: CSSProperties = { gridTemplateColumns: `72px repeat(${Math.max(1, technicians.length)}, minmax(170px, 1fr))` };
@@ -285,6 +347,8 @@ function DayGrid({
             style={{ borderTopColor: technician.color }} key={`${technician.id}-header`} data-technician-column={technician.id}>
             <span className={styles.techName}>{technician.name}</span>
             <span className={styles.techShift}>{status.label}</span>
+            {drive.status === "ready" && drive.minutes.has(technician.id) &&
+              <span className={styles.techDrive} data-technician-drive={drive.minutes.get(technician.id)}>{drive.minutes.get(technician.id)} min driving</span>}
           </div>
         );
       })}
@@ -309,6 +373,7 @@ function DayGrid({
           drag={drag}
           dropState={dropState(technician.id, date)}
           overlay={overlay(technician.id, date)}
+          drives={drive.status === "ready" ? drive.visits : undefined}
         />
       ))}
     </div>
@@ -439,6 +504,7 @@ export default function ScheduleView({
   absences,
   jobs,
   services,
+  serviceLegend,
   placeJobId,
 }: {
   metroId: string;
@@ -454,6 +520,8 @@ export default function ScheduleView({
   /** Jobs waiting for the calendar, and the services a new job can be for. */
   jobs: ScheduleJob[];
   services: ScheduleService[];
+  /** The services on screen and their colors. */
+  serviceLegend: ScheduleServiceLegend[];
   /** A job to start placing when the page opens, from a "Place on calendar" link. */
   placeJobId: string | null;
 }) {
@@ -488,6 +556,11 @@ export default function ScheduleView({
     }
     return cells;
   }, [appointments]);
+
+  // The day view's drive times, asked again whenever the day's visits move.
+  const driveVersion = useMemo(() => appointments.filter(item => item.date === date)
+    .map(item => `${item.id}@${item.technicianId}@${item.plannedStart}@${item.plannedEnd}`).sort().join(","), [appointments, date]);
+  const drive = useScheduleDrive(metroId, date, view === "day", driveVersion);
 
   const [check, setCheck] = useState<MoveCheck | null>(null);
   const checkCount = useRef(0);
@@ -589,20 +662,27 @@ export default function ScheduleView({
     const shiftStart = technician?.days[date]?.shiftStartMin ?? timelineStart;
     const ends = new Map(appointments.map(item => [item.id, minuteOfDay(item.plannedEnd, timezone)]));
     const chosenKey = placement.chosen === null ? null : spotKey(placement.chosen.spot);
+    const best = recommendation(answer, placement.preview.original !== null);
     const gaps: GapMarker[] = (day?.gaps ?? []).map(gap => {
       const spot = gapSpot(day ?? { technicianId, serviceDate: date, holdsAsGiven: false, qualified: false, gaps: [] }, gap);
       const key = spotKey(spot);
       const after = gap.afterAppointmentId === undefined ? undefined : ends.get(gap.afterAppointmentId);
       const before = gap.beforeAppointmentId === undefined ? undefined : appointments.find(item => item.id === gap.beforeAppointmentId);
-      return { key, spot, minute: after ?? shiftStart, label: addedDriveText(gap), fits: gap.starts.length > 0, chosen: key === chosenKey,
+      const fits = gap.starts.length > 0, isBest = best !== null && best.key === key;
+      // Each gap is said against the recommendation; one with no road route or no start says so instead.
+      const label = gap.addedBufferedMinutes === undefined ? addedDriveText(gap) : !fits ? "No start fits"
+        : isBest ? `Best, ${addedDriveText(gap)}` : best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
+      return { key, spot, minute: after ?? shiftStart, label, fits, chosen: key === chosenKey, best: isBest, added: addedDriveText(gap),
         firstStart: gap.starts[0]?.plannedStart ?? null,
         position: before === undefined ? "end of the route" : `stop before ${before.customerName}` };
     });
     const chosen = placement.chosen;
     const here = chosen !== null && chosen.spot.technicianId === technicianId && chosen.spot.serviceDate === date;
+    const legs = here ? findGap(answer, chosen.spot)?.gap : undefined;
     const ghost = !here || chosen.plannedStart === null ? null : { startMinute: minuteOfDay(chosen.plannedStart, timezone),
       durationMinutes: job.durationMinutes, label: placement.subject.label, kind: chosenVerdict?.kind ?? "CANNOT_HOLD",
-      ok: chosenVerdict !== null && chosenVerdict.kind !== "CANNOT_HOLD" };
+      ok: chosenVerdict !== null && chosenVerdict.kind !== "CANNOT_HOLD",
+      toJob: legs?.toJob?.bufferedMinutes ?? null, fromJob: legs?.fromJob?.bufferedMinutes ?? null };
     return { gaps, ghost, movingId, onChoose: choose };
   };
 
@@ -707,17 +787,22 @@ export default function ScheduleView({
             <span>
               <i className={styles.openSwatch} />Unbooked shift time
             </span>
-            <span>
-              <i className={styles.scheduledSwatch} />Scheduled visit
-            </span>
+            {serviceLegend.length === 0
+              ? <span><i className={styles.scheduledSwatch} />Scheduled visit</span>
+              : serviceLegend.map(item => <span key={item.name}>
+                <i className={styles.serviceSwatch} style={{ background: item.color.tint, borderColor: item.color.border, borderLeftColor: item.color.color }} />
+                {item.name}
+              </span>)}
+            {view === "day" && <span><i className={styles.driveSwatch} />Drive, the lighter end of each visit</span>}
             <span>
               <i className={styles.closedSwatch} />Off shift or no service
             </span>
             <span><i className={styles.absenceSwatch} />Approved time off splits the working shift</span>
           </div>
+          {view === "day" && <DriveNotice drive={drive} technicians={technicians} />}
           {view === "day" ? (
             <DayGrid date={date} technicians={visibleTechnicians} byCell={byCell} absences={absences} timelineStart={timelineStart}
-              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} />
+              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} />
           ) : (
           <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
             <div className={styles.corner}>Technician</div>
@@ -848,6 +933,17 @@ export default function ScheduleView({
       )}
     </main>
   );
+}
+
+/** Says when the day's drive times are still loading, could not be loaded, or are missing for a technician. */
+function DriveNotice({ drive, technicians }: { drive: DriveState; technicians: ScheduleTechnician[] }) {
+  if (drive.status === "loading") return <p className={styles.driveNotice} role="status">Loading drive times...</p>;
+  if (drive.status === "error")
+    return <p className={styles.driveNotice} role="status" data-drive-unavailable="true">Drive times are unavailable: {drive.message} Visits are shown without them.</p>;
+  if (drive.status !== "ready" || drive.drive.skipped.length === 0) return null;
+  return <p className={styles.driveNotice} role="status">
+    {drive.drive.skipped.map(day => `Drive times for ${technicians.find(item => item.id === day.technicianId)?.name ?? day.technicianId} could not be worked out: ${day.message}`).join(" ")}
+  </p>;
 }
 
 type MoveCheck = { id: number; appointment: ScheduleAppointment; targetTechnicianId: string; targetName: string; started: number }

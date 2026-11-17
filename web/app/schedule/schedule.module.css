@@ -734,9 +734,10 @@
   font-weight: 500;
 }
 
+/* On the left edge, so a marker never covers the drive label at the right of the band it sits on. */
 .gapMarker {
   position: absolute;
-  right: 0.35rem;
+  left: 0.5rem;
   z-index: 4;
   padding: 0.05rem 0.4rem;
   border: 1px solid #16a34a;
@@ -781,6 +782,161 @@
   border-color: #b91c1c;
   background: rgba(254, 226, 226, 0.85);
   color: #7f1d1d;
+}
+
+.gapMarkerBest {
+  border-color: #15803d;
+  background: #16a34a;
+  color: #fff;
+}
+
+/*
+ * A visit and its driving as one block: the drive from the start point (first visit of a stretch only), the visit, and
+ * the drive after it, in the service's color made lighter. Waiting for a window is the empty space between blocks.
+ */
+.cardBody {
+  display: block;
+  min-width: 0;
+}
+
+.driveBlock {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: visible;
+}
+
+.driveBlock .cardBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.35rem 0.45rem;
+  overflow: hidden;
+}
+
+.driveBand {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.driveBand:first-child {
+  border-radius: 5px 5px 0 0;
+}
+
+.driveBand:last-child {
+  border-radius: 0 0 5px 5px;
+}
+
+/* Centred on its band and allowed past it, so a short drive is still labeled. */
+.driveLabel {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  z-index: 1;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.techDrive {
+  display: block;
+  color: #334155;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.legend i.serviceSwatch {
+  border-left-width: 3px;
+}
+
+.legend i.driveSwatch {
+  border-color: #bfdbfe;
+  border-left: 3px solid #2563eb;
+  background: linear-gradient(#eff6ff 0 55%, rgba(37, 99, 235, 0.3) 55%);
+}
+
+.driveNotice {
+  margin: 0 0 0.6rem;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.jobCard {
+  border-left-width: 3px;
+}
+
+.ghostBlock {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: visible;
+}
+
+.ghostBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.35rem 0.45rem;
+  overflow: hidden;
+}
+
+.ghostDrive {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.recommendation {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.recommendation p {
+  margin: 0.2rem 0 0;
+}
+
+.recommendation p.recommendationTitle {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.recommendationPlace {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.recommendationButton {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #16a34a;
+  border-radius: 6px;
+  background: #fff;
+  color: #14532d;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.versusBest {
+  color: #14532d;
+  font-weight: 600;
+}
+
+.versusBestWorse {
+  color: #9a3412;
 }
 
 @media (max-width: 1100px) {

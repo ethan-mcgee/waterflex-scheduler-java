@@ -69,6 +69,26 @@ export function rankedFits(answer: RouteInsertions): Fit[] {
 }
 
 /**
+ * The place to recommend: the best fit, starting at its first start. A move recommends only places that keep the
+ * customer's promised day and window, from the first start that keeps it, because a changed promise breaks the
+ * dealership's policy; with no such place it recommends nothing. Null when nothing fits.
+ */
+export function recommendation(answer: RouteInsertions, moving: boolean): Fit | null {
+  for (const fit of rankedFits(answer)) {
+    if (!moving) return fit;
+    const keeping = fit.gap.starts.find(start => start.keepsWindow === true);
+    if (keeping !== undefined) return { ...fit, firstStart: keeping };
+  }
+  return null;
+}
+
+/** How a gap's added drive compares with the recommendation's: "+4 min vs best", "3 min less than best" or "Same as best". */
+export function relativeToBest(addedBufferedMinutes: number, best: Fit): string {
+  const difference = addedBufferedMinutes - best.addedBufferedMinutes;
+  return difference === 0 ? "Same as best" : difference > 0 ? `+${difference} min vs best` : `${-difference} min less than best`;
+}
+
+/**
  * Why nothing can be placed at a spot, or null when it has starts. A drop is never refused: the reason is shown and
  * Save stays off. `gap` is absent when the drop was on a technician-day rather than a gap.
  */

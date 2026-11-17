@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { errorMessage } from "@/lib/contracts";
-import { findGap, rankedFits, verdict, type Spot, type Verdict } from "@/lib/placementRules";
+import { findGap, rankedFits, recommendation, relativeToBest, spotKey, verdict, type Fit, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
 import styles from "./schedule.module.css";
 import type { PlacementState, PlacementSubject } from "./usePlacement";
@@ -34,6 +34,35 @@ function legText(gap: InsertionGap): string | null {
   return `${gap.toJob.bufferedMinutes} min there and ${gap.fromJob.bufferedMinutes} min on${replaced} (${(gap.addedMeters / METERS_PER_MILE).toFixed(1)} miles added)`;
 }
 
+/** How the chosen gap's added drive compares with the recommendation's, as a sentence; null when it has no road route. */
+function versusBest(gap: InsertionGap, best: Fit): { text: string; kind: "SAME" | "WORSE" | "BETTER" } | null {
+  if (gap.addedBufferedMinutes === undefined) return null;
+  const difference = gap.addedBufferedMinutes - best.addedBufferedMinutes;
+  if (difference === 0) return { text: "The same added driving as the recommendation.", kind: "SAME" };
+  return difference > 0 ? { text: `${difference} min more driving than the recommendation.`, kind: "WORSE" }
+    : { text: `${-difference} min less driving than the recommendation.`, kind: "BETTER" };
+}
+
+/** The place the scheduler's answer recommends: the least added drive, and for a move only where the promise is kept. */
+function Recommendation({ best, moving, chosenIsBest, name, timezone, onChoose }: {
+  best: Fit; moving: boolean; chosenIsBest: boolean; name: (id: string) => string; timezone: string;
+  onChoose: (spot: Spot, plannedStart: string | null) => void;
+}) {
+  const legs = legText(best.gap);
+  return (
+    <div className={styles.recommendation} data-recommendation={best.key}>
+      <p className={styles.recommendationTitle}>Recommended</p>
+      <p className={styles.recommendationPlace}>
+        {name(best.spot.technicianId)}, {formatDate(best.spot.serviceDate)}, from {formatTime(best.firstStart.plannedStart, timezone)}
+      </p>
+      <p>Arrival window {windowText(best.firstStart.window, timezone)}{moving ? ", as promised" : ""}.</p>
+      <p>{addedDriveText(best.gap)}{legs === null ? "" : `: ${legs}`}.</p>
+      {!chosenIsBest && <button className={styles.recommendationButton} type="button"
+        onClick={() => onChoose(best.spot, best.firstStart.plannedStart)}>Use the recommendation</button>}
+    </div>
+  );
+}
+
 /** The jobs waiting for the calendar: each can be dragged onto a route or placed from the best fits. */
 function JobList({ jobs, active, onPlace, onPress, clickSuppressed }: {
   jobs: ScheduleJob[]; active: string | null; onPlace: (job: ScheduleJob) => void;
@@ -45,7 +74,7 @@ function JobList({ jobs, active, onPlace, onPress, clickSuppressed }: {
       {jobs.map(job => (
         <li key={job.id}>
           <button type="button" className={`${styles.jobCard} ${active === job.id ? styles.jobCardActive : ""}`} data-job-id={job.id}
-            disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
+            style={{ borderLeftColor: job.serviceColor.color }} disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
             onClick={() => { if (!clickSuppressed()) onPlace(job); }}>
             <span className={styles.cardCustomer}>{job.customerName}</span>
             <span className={styles.cardService}>{job.serviceName}, {job.durationMin} min</span>
@@ -167,12 +196,21 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
   const starts: InsertionStart[] = found?.gap.starts ?? [];
   const savable = decided !== null && decided.kind !== "CANNOT_HOLD" && !(decided.kind === "KEEPS_PROMISE" && decided.samePlace)
     && (decided.kind !== "CHANGES_PROMISE" || placement.acknowledged) && !placement.saving;
+  const moving = preview.original !== null;
+  const best = recommendation(preview.answer, moving);
+  const chosenIsBest = best !== null && chosen !== null && spotKey(chosen.spot) === best.key && chosen.plannedStart !== null
+    && Date.parse(chosen.plannedStart) === Date.parse(best.firstStart.plannedStart);
+  const versus = best === null || found === undefined || chosenIsBest ? null : versusBest(found.gap, best);
   return (
     <section className={styles.placementCard} data-placement-state={decided?.kind ?? "READY"} aria-live="polite">
       {header}
       {preview.original !== null && <p className={styles.subtle}>Promised {formatDate(preview.original.serviceDate)}, {windowText(preview.original.window, timezone)}.</p>}
-      {chosen === null ? <p role="status">Drag onto a route, or pick a best fit. Each gap shows the driving it adds.</p> : <>
-        <h3>{name(chosen.spot.technicianId)}, {formatDate(chosen.spot.serviceDate)}</h3>
+      {best !== null && <Recommendation best={best} moving={moving} chosenIsBest={chosenIsBest} name={name} timezone={timezone} onChoose={onChoose} />}
+      {best === null && moving && fits.length > 0 && <p className={styles.subtle}>No place this week keeps the promised day and arrival window.</p>}
+      {chosen === null ? <p role="status">Drag onto a route, or pick a best fit. Each gap shows its driving against the recommendation.</p> : <>
+        <h3>Your pick: {name(chosen.spot.technicianId)}, {formatDate(chosen.spot.serviceDate)}</h3>
+        {chosenIsBest && <p className={styles.versusBest} data-versus-best="BEST">This is the recommendation.</p>}
+        {versus !== null && <p className={`${styles.versusBest} ${versus.kind === "WORSE" ? styles.versusBestWorse : ""}`} data-versus-best={versus.kind}>{versus.text}</p>}
         {found !== undefined && <p>{addedDriveText(found.gap)}{legText(found.gap) === null ? "" : `: ${legText(found.gap)}`}</p>}
         {decided?.kind === "CANNOT_HOLD" && <p className={styles.placementProblem} role="alert">{decided.reason} It can be dropped here, but not saved.</p>}
         {starts.length > 0 && <fieldset className={styles.startChips}>
@@ -211,6 +249,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
             <li key={fit.key}>
               <button type="button" className={styles.fitButton} data-fit={fit.key} onClick={() => onChoose(fit.spot, fit.firstStart.plannedStart)}>
                 {formatDate(fit.spot.serviceDate)}, {name(fit.spot.technicianId)}, from {formatTime(fit.firstStart.plannedStart, timezone)}: {addedDriveText(fit.gap)}
+                {best === null ? "" : best.key === fit.key ? ", recommended" : `, ${relativeToBest(fit.addedBufferedMinutes, best)}`}
               </button>
             </li>
           ))}
