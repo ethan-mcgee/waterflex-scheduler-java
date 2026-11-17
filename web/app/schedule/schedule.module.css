@@ -611,15 +611,13 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
-.jobList,
-.bestFits {
+.jobList {
   margin: 0.5rem 0 0;
   padding: 0;
   list-style: none;
 }
 
-.jobCard,
-.fitButton {
+.jobCard {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -646,8 +644,7 @@
 }
 
 .jobCardActive,
-.jobCard:hover:not(:disabled),
-.fitButton:hover {
+.jobCard:hover:not(:disabled) {
   border-color: #2563eb;
 }
 
@@ -891,54 +888,6 @@
   background: rgba(37, 99, 235, 0.18);
 }
 
-.recommendation {
-  margin: 0.75rem 0;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #86efac;
-  border-radius: 6px;
-  background: #f0fdf4;
-  color: #14532d;
-}
-
-.recommendation p {
-  margin: 0.2rem 0 0;
-}
-
-.recommendation p.recommendationTitle {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.recommendationPlace {
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.recommendationButton {
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid #16a34a;
-  border-radius: 6px;
-  background: #fff;
-  color: #14532d;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.versusBest {
-  color: #14532d;
-  font-weight: 600;
-}
-
-.versusBestWorse {
-  color: #9a3412;
-}
-
 /* Where a drop under the pointer would land, drawn above the cards while dragging. */
 .hoverGhost {
   z-index: 5;
@@ -1171,4 +1120,163 @@
   border-color: #2563eb;
   background: #2563eb;
   color: #fff;
+}
+
+/* The place being chosen: a short header, the best options as one list, and the chosen one's details. */
+.placeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.placeTitle {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.placeTitle h2 {
+  overflow-wrap: anywhere;
+}
+.placeEyebrow {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.placeHeaderActions {
+  display: flex;
+  flex: none;
+  gap: 0.35rem;
+}
+.placeHeaderActions .button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
+.placePromise {
+  margin: 0.3rem 0 0;
+  color: #475569;
+  font-size: 0.8rem;
+}
+.placementPanel h3.optionsTitle {
+  margin: 0.8rem 0 0.4rem;
+  color: #334155;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.1rem 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.option:hover {
+  border-color: #93c5fd;
+}
+.optionOn,
+.optionOn:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+.optionMain {
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.optionDrive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.optionTag,
+.optionTagPick {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.optionTagPick {
+  background: #e2e8f0;
+  color: #334155;
+}
+.optionMeta {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.optionSkeleton {
+  height: 3rem;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .optionSkeleton {
+    animation: optionShimmer 1.2s linear infinite;
+  }
+}
+@keyframes optionShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+}
+.choice p {
+  margin: 0;
+}
+.compare summary {
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primaryButton {
+  padding: 0.5rem 1.2rem;
+  border: 0;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.primaryButton:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }

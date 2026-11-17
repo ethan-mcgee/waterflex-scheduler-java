@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { bestOptions, comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -141,4 +141,29 @@ test("a preview takes every later stop's times from the answer: the moved visit'
   assert.deepEqual([...previewTimes(timed, original, null, null).keys()], ["a1", "a2"], "With no place chosen, only the day it leaves is re-timed");
   assert.equal(previewTimes(timed, null, endOfB, at(18, 0)).size, 0, "A start the answer does not offer times nothing");
   assert.equal(previewTimes(answer, original, endOfB, at(15, 30)).size, 0, "An answer without timed stops leaves every stop as booked");
+});
+
+test("a new job is offered its best distinct arrival windows, the recommendation first", () => {
+  const busy: RouteInsertions = { ...answer, technicianDays: [
+    day("a", totals(80, 20000), [gap("a1", "a2", 9, [start(15, 0, totals(95, 21500)), start(15, 30, totals(96, 21700)), start(16, 0, totals(96, 21800))])]),
+    day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(17, 0, totals(66, 15900)), start(17, 30, totals(66, 16000))]), gap(undefined, "b1", 20, [start(13, 0, totals(80, 17000))])]),
+  ] };
+  const options = bestOptions(busy, null);
+  assert.equal(options.length, 4);
+  assert.equal(options[0]?.key, recommendation(busy, false)?.key);
+  assert.equal(options[0]?.start.plannedStart, recommendation(busy, false)?.firstStart.plannedStart);
+  assert.deepEqual(options.map(option => [option.spot.technicianId, option.start.plannedStart, option.addedBufferedMinutes]),
+    [["b", at(17), 5], ["a", at(15), 9], ["a", at(16), 9], ["b", at(13), 20]],
+    "17:30 shares b's 17:00 to 19:00 window and 15:30 shares a's 15:00 window, so each window is offered once");
+  assert.equal(bestOptions(busy, null, 2).length, 2);
+});
+
+test("a move is offered its best places that keep the promise, one start each, and says where it is now", () => {
+  const options = bestOptions(answer, original);
+  assert.deepEqual(options.map(option => [option.key, option.start.plannedStart, option.samePlace]), [
+    [spotKey(endOfB), at(15, 30), false],
+    [spotKey({ technicianId: "a", serviceDate: DATE, afterAppointmentId: "a1", beforeAppointmentId: "a2" }), at(15), true]]);
+  const nowhere: RouteInsertions = { ...answer, technicianDays: [day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])] };
+  assert.deepEqual(bestOptions(nowhere, original).map(option => option.start.keepsWindow), [false], "With no place that keeps it, window-changing places are offered");
+  assert.deepEqual(bestOptions({ ...answer, technicianDays: [] }, original), [], "Nothing fits, nothing is offered");
 });

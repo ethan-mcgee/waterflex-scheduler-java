@@ -473,7 +473,6 @@ function AppointmentPanel({
   onDeleted,
   moveTargets,
   onCheckMove,
-  onMove,
 }: {
   appointment: ScheduleAppointment;
   timezone: string;
@@ -482,8 +481,6 @@ function AppointmentPanel({
   /** Technicians working that day who could take the appointment: the keyboard path to the same check as a drag. */
   moveTargets: Array<{ id: string; name: string }>;
   onCheckMove: (targetTechnicianId: string) => void;
-  /** Starts moving the appointment on the calendar, with every place it could go. */
-  onMove: () => void;
 }) {
   const [moveTarget, setMoveTarget] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -565,7 +562,6 @@ function AppointmentPanel({
           </form>
         )}
         <div className={styles.panelActions}>
-          <button className={styles.button} type="button" onClick={onMove}>Move on the calendar</button>
           <Link className={styles.dispatchLink} href={`/dispatch?date=${appointment.date}`}>
             View dispatch day
           </Link>
@@ -891,6 +887,15 @@ export default function ScheduleView({
     return { gaps, ghost, movingId, onChoose: choose };
   };
 
+  /**
+   * A click on a visit starts moving it: one request for every place it could go this week, the same one a drag makes,
+   * so the best places are listed at once. Nothing moves until a place is picked; its details are a click away.
+   */
+  const openAppointment = (appointment: ScheduleAppointment) => {
+    setSaved(null);
+    startPlacement({ kind: "appointment", id: appointment.id, label: `${appointment.customerName}, ${appointment.serviceName}` });
+  };
+
   /** What the drag label says about the place under the pointer: the technician, the start and how it compares. */
   const hoverText = hover === null ? "" : ` to ${hover.who}, ${hover.detail}`;
 
@@ -1003,7 +1008,7 @@ export default function ScheduleView({
           {view === "day" && <DriveNotice drive={drive} technicians={technicians} />}
           {view === "day" ? (
             <DayGrid date={date} technicians={visibleTechnicians} byCell={shownByCell} absences={absences} timelineStart={timelineStart}
-              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} previewMinutes={previewMinutes} />
+              timelineEnd={timelineEnd} timezone={timezone} onSelect={openAppointment} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} previewMinutes={previewMinutes} />
           ) : (
           <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
             <div className={styles.corner}>Technician</div>
@@ -1049,7 +1054,7 @@ export default function ScheduleView({
                       timelineStart={timelineStart}
                       timelineEnd={timelineEnd}
                       timezone={timezone}
-                      onSelect={setSelected}
+                      onSelect={openAppointment}
                       drag={cardDrag}
                       dropState={dropState(technician.id, day)}
                       overlay={overlay(technician.id, day)}
@@ -1101,7 +1106,8 @@ export default function ScheduleView({
           // A fit on another day of the week opens that day in the day view.
           if (view === "day" && spot.serviceDate !== date) goToDay(spot.serviceDate);
         }}
-        onAcknowledge={acknowledge} onSave={save} onCancel={cancelPlacement} />
+        onAcknowledge={acknowledge} onSave={save} onCancel={cancelPlacement}
+        onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null} />
       </div>
       {selected && (
         <AppointmentPanel
@@ -1118,12 +1124,6 @@ export default function ScheduleView({
             const appointment = selected;
             setSelected(null);
             runCheck(appointment, targetTechnicianId, moveCheckStart());
-          }}
-          onMove={() => {
-            const appointment = selected;
-            setSelected(null);
-            setSaved(null);
-            startPlacement({ kind: "appointment", id: appointment.id, label: `${appointment.customerName}, ${appointment.serviceName}` });
           }}
         />
       )}

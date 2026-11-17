@@ -82,6 +82,49 @@ export function recommendation(answer: RouteInsertions, moving: boolean): Fit | 
   return null;
 }
 
+/** One option offered to the dispatcher: a place, a start in it, and what it promises and costs in driving. */
+export interface PlaceOption {
+  spot: Spot; key: string; start: InsertionStart; addedBufferedMinutes: number;
+  /** Whether a moved appointment would be back where it is booked now. */
+  samePlace: boolean;
+}
+
+/**
+ * The best `count` options to offer, least added drive first, and the first is always the recommendation. A new job
+ * gets distinct arrival windows, the choice a customer makes. A move gets distinct places that keep the promised window,
+ * since its window is fixed; only when no place keeps it are window-changing places offered. Ties go to the earlier
+ * date, then the earlier start, then the technician, so the order never depends on the answer's order.
+ */
+export function bestOptions(answer: RouteInsertions, original: Original | null, count = 4): PlaceOption[] {
+  const moving = original !== null;
+  const candidates: PlaceOption[] = [];
+  for (const day of answer.technicianDays) {
+    for (const gap of day.gaps) {
+      if (gap.addedBufferedMinutes === undefined) continue;
+      const spot = gapSpot(day, gap), key = spotKey(spot);
+      const samePlace = original !== null && original.technicianId === spot.technicianId && original.serviceDate === spot.serviceDate
+        && original.afterAppointmentId === spot.afterAppointmentId && original.beforeAppointmentId === spot.beforeAppointmentId;
+      for (const start of gap.starts) candidates.push({ spot, key, start, addedBufferedMinutes: gap.addedBufferedMinutes, samePlace });
+    }
+  }
+  const keeping = candidates.filter(option => option.start.keepsWindow === true);
+  const pool = moving && keeping.length > 0 ? keeping : candidates;
+  const best = recommendation(answer, moving);
+  const isBest = (option: PlaceOption) => best !== null && option.key === best.key && option.start.plannedStart === best.firstStart.plannedStart;
+  pool.sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || a.addedBufferedMinutes - b.addedBufferedMinutes
+    || a.spot.serviceDate.localeCompare(b.spot.serviceDate) || Date.parse(a.start.plannedStart) - Date.parse(b.start.plannedStart)
+    || a.spot.technicianId.localeCompare(b.spot.technicianId));
+  const seen = new Set<string>(), options: PlaceOption[] = [];
+  for (const option of pool) {
+    const distinct = moving ? option.key : `${option.spot.serviceDate}|${Date.parse(option.start.window.start)}|${Date.parse(option.start.window.end)}`;
+    if (seen.has(distinct)) continue;
+    seen.add(distinct);
+    options.push(option);
+    if (options.length === count) break;
+  }
+  return options;
+}
+
 /** A stop's planned visit, as an instant pair. */
 export interface PlannedTimes { plannedStart: string; plannedEnd: string }
 

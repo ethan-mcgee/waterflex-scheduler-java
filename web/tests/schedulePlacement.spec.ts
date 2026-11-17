@@ -152,40 +152,75 @@ test.describe("placing and moving on the schedule", () => {
     await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveCount(0);
     await expect(marker(page, fixture.second, undefined, undefined)).toHaveText("+24 min vs best");
     await expect(marker(page, fixture.first, fixture.south, undefined)).toHaveText("+6 min vs best");
-    const recommended = panel(page).locator("[data-recommendation]");
-    await expect(recommended).toContainText("Place First Tech, Mon, Oct 5, from 11:30 AM");
-    await expect(recommended).toContainText("Arrival window 11:00 AM to 1:00 PM.");
-    await expect(panel(page).getByRole("list", { name: "Best fits" }).getByRole("listitem").first()).toContainText("+6 min drive, recommended");
-    await expect(panel(page).getByRole("list", { name: "Best fits" }).getByRole("listitem").nth(1)).toContainText("+12 min drive, +6 min vs best");
+    // The four best arrival windows to offer, the recommendation first, each with its added driving.
+    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    await expect(options).toHaveCount(4);
+    await expect(options.nth(0)).toContainText("11:00 AM to 1:00 PM");
+    await expect(options.nth(0)).toContainText("Mon, Oct 5, Place First Tech, from 11:30 AM");
+    await expect(options.nth(0)).toHaveAttribute("data-option-best", "true");
+    await expect(options.nth(0)).toContainText("+6 min");
+    await expect(options.nth(1)).toContainText("12:00 PM to 2:00 PM");
+    await expect(options.nth(2)).toContainText("2:00 PM to 4:00 PM");
+    await expect(options.nth(2)).toContainText("+12 min");
+    await expect(options.nth(3)).toContainText("9:00 AM to 11:00 AM");
+    await expect(options.nth(3)).toContainText("Place Second Tech");
+    await expect(options.nth(3)).toContainText("+30 min");
     expect(sent.previews).toHaveLength(1);
     expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, jobId: fixture.job });
 
     // Hovering and choosing are worked out on the page: no further preview is asked for.
     // The selected job opens on the recommended place, ready to save.
+    await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
     await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
-    await marker(page, fixture.first, fixture.north, fixture.south).click();
     await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "NEW");
-    // The best gap opens at the recommended start; another start there is the same drive, and the recommendation can be taken back.
-    await expect(panel(page).locator("[data-versus-best]")).toHaveText("This is the recommendation.");
-    await expect(panel(page).getByRole("button", { name: "Use the recommendation" })).toHaveCount(0);
-    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
-    await expect(panel(page).locator("[data-versus-best]")).toHaveAttribute("data-versus-best", "SAME");
-    await panel(page).getByRole("button", { name: "Use the recommendation" }).click();
-    await expect(panel(page).locator("[data-versus-best]")).toHaveText("This is the recommendation.");
-    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
-    await expect(panel(page)).toContainText("Arrival window promised: 12:00 PM to 2:00 PM.");
+    // Another option, a start chip and a place on the calendar all choose the same way, and the list follows.
+    await options.nth(1).click();
+    await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("radio", { name: "12:00 PM" })).toBeChecked();
     await expect(grid(page).locator('[data-placement-ghost="NEW"]')).toBeVisible();
     await expect(grid(page).locator('[data-placement-ghost="NEW"]')).toContainText("6 min there");
     await marker(page, fixture.first, fixture.south, undefined).click();
-    await expect(panel(page).locator("[data-versus-best]")).toHaveText("6 min more driving than the recommendation.");
-    await marker(page, fixture.first, fixture.north, fixture.south).click();
+    await expect(options.nth(2)).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toHaveCount(0);
+    await options.nth(0).click();
     await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
+    await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
     expect(sent.previews).toHaveLength(1);
 
     await panel(page).getByRole("button", { name: "Save" }).click();
     await expect(page.locator("[data-placement-saved]")).toContainText("is on the calendar");
     expect(placementSaveRequest.parse(sent.saves[0])).toEqual({ metroId: fixture.metroId, jobId: fixture.job, acknowledged: false,
       spot: { technicianId: fixture.first, serviceDate: DATE, afterAppointmentId: fixture.north, beforeAppointmentId: fixture.south }, plannedStart: utc(17) });
+  });
+
+  test("clicking a visit asks once for every place it could go and lists the best ones, moving nothing until one is picked", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(panel(page)).toContainText("Promised Mon, Oct 5, 1:00 PM to 3:00 PM");
+    // Places that keep the promised window, one start each: the second route first, then where it is now.
+    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("Place Second Tech, 1:00 PM");
+    await expect(options.nth(0)).toContainText("+9 min");
+    await expect(options.nth(1)).toContainText("Place First Tech, 1:00 PM");
+    await expect(options.nth(1)).toContainText("where it is now");
+    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.south });
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+
+    await options.nth(0).click();
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    // A start that is not among the options is listed above them as the pick.
+    await options.nth(1).click();
+    await panel(page).getByRole("radio", { name: "1:30 PM" }).check();
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("Your pick");
+    await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+    // The visit's details are a click away.
+    await panel(page).getByRole("button", { name: "Details" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Appointment details");
+    expect(sent.previews).toHaveLength(1);
   });
 
   test("dragging a visit to another technician inside its window compares it with where it was, and saves without acknowledgement", async ({ page }) => {
@@ -359,7 +394,7 @@ test.describe("placing and moving on the schedule", () => {
       ["Street", "2 Elm St"], ["City", "Omaha"], ["State", "NE"], ["ZIP", "68102"]] as const) await form.getByLabel(label).fill(value);
     await form.getByLabel("Service").selectOption({ label: "Softener install" });
     await form.getByRole("button", { name: "Create and place" }).click();
-    await expect(panel(page)).toContainText("Placing Fresh Customer, Softener install");
+    await expect(panel(page).getByRole("heading", { name: "Fresh Customer, Softener install" })).toBeVisible();
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");
     expect(created).toHaveLength(1);
     expect(created[0]).toMatchObject({ firstName: "Fresh", serviceCode: "UI_PLACE_TEST", line1: "2 Elm St" });

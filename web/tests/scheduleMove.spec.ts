@@ -71,6 +71,7 @@ const cell = (page: Page, technicianId: string, date = DATE) => grid(page).locat
 async function checkFromDetails(page: Page, appointmentId: string, technicianName: string) {
   await card(page, appointmentId).focus();
   await page.keyboard.press("Enter");
+  await page.getByRole("complementary", { name: "Place a job" }).getByRole("button", { name: "Details" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Check a move to").selectOption({ label: technicianName });
   await dialog.getByRole("button", { name: "Check move" }).click();
@@ -133,6 +134,7 @@ test.describe("checking a move on the weekly schedule", () => {
     expect(sent).toHaveLength(0);
     expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north }]);
     await card(page, fixture.north).click();
+    await page.getByRole("complementary", { name: "Place a job" }).getByRole("button", { name: "Details" }).click();
     await expect(page.getByRole("dialog")).toContainText("Appointment details");
   });
 
@@ -140,6 +142,7 @@ test.describe("checking a move on the weekly schedule", () => {
     const sent = await mockMoveCheck(page, [{ status: 200, body: answer("FEASIBLE", "Every arrival window, shift and paid limit still holds.") }]);
     await card(page, fixture.south).focus();
     await page.keyboard.press("Enter");
+    await page.getByRole("complementary", { name: "Place a job" }).getByRole("button", { name: "Details" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Check a move to").selectOption({ label: "Move Second Tech" });
     await dialog.getByRole("button", { name: "Check move" }).click();
