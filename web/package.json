@@ -28,6 +28,7 @@
     "test:api-booking:integration": "tsx scripts/smoke-api-booking.ts",
     "test:api-dispatch:integration": "tsx scripts/smoke-api-dispatch.ts",
     "test:api-repair:integration": "tsx scripts/smoke-api-repair.ts",
+    "test:api-placement:integration": "tsx scripts/smoke-api-placement.ts",
     "test:shared-metro:integration": "tsx scripts/smoke-shared-metro.ts",
     "test:portal-overnight:integration": "tsx scripts/smoke-portal-overnight.ts",
     "test:api-master-data:integration": "tsx scripts/smoke-api-master-data.ts",

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { activeClient } from "@/lib/activeClient";
+import Link from "next/link";
 import FollowUpActions from "./FollowUpActions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,10 @@ export default async function FollowUpPage() {
         <td>{job.id}</td><td>{job.customer.firstName} {job.customer.lastName}</td>
         <td>{job.customer.phone}<br />{job.customer.email}</td><td>{job.service.name}</td>
         <td>{job.address.line1}, {job.address.city}, {job.address.state} {job.address.postalCode}</td>
-        <td>{job.manualFollowUpReason}</td><td>{job.manualFollowUpStatus}</td><td><FollowUpActions jobId={job.id} /></td>
+        <td>{job.manualFollowUpReason}</td><td>{job.manualFollowUpStatus}</td><td><FollowUpActions jobId={job.id} />
+          {/* A located job still waiting for the calendar can be placed on the schedule directly. */}
+          {job.status === "PENDING" && job.address.lat !== null && job.address.lng !== null
+            && <Link href={`/schedule?placeJob=${encodeURIComponent(job.id)}`}>Place on calendar</Link>}</td>
       </tr>)}</tbody>
     </table>}
   </main>;

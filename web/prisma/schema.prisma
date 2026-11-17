@@ -338,8 +338,28 @@ model Appointment {
   cancelledAt DateTime?
   cancellationReason String?
 
+  windowChanges AppointmentWindowChange[]
+
   @@index([technicianId, serviceDate])
   @@map("appointment")
+}
+
+// A move that changed the day or arrival window the customer was promised, saved only after the dispatcher
+// acknowledged the dealership's policy violation. Written in the same transaction as the move.
+model AppointmentWindowChange {
+  id              String      @id @default(cuid())
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fromServiceDate DateTime
+  fromWindowStart DateTime
+  fromWindowEnd   DateTime
+  toServiceDate   DateTime
+  toWindowStart   DateTime
+  toWindowEnd     DateTime
+  acknowledgedAt  DateTime    @default(now())
+
+  @@index([appointmentId], map: "appointment_window_change_appointment")
+  @@map("appointment_window_change")
 }
 
 // ---------------------------------------------------------------------------

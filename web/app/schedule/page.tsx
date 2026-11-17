@@ -4,7 +4,7 @@ import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import type { ScheduleViewMode } from "./types";
 import ScheduleView from "./ScheduleView";
-import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleTechnician } from "./types";
 import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
 import { weekDates } from "@/lib/date";
 import Link from "next/link";
@@ -18,7 +18,7 @@ function validDateKey(value: string | undefined): value is string {
 export default async function SchedulePage({
   searchParams: query,
 }: {
-  searchParams: Promise<{ week?: string; date?: string; view?: string; metroId?: string }>;
+  searchParams: Promise<{ week?: string; date?: string; view?: string; metroId?: string; placeJob?: string }>;
 }) {
   const searchParams = await query;
   const clientId = (await activeClient()).id;
@@ -81,6 +81,18 @@ export default async function SchedulePage({
     startMin: interval.startMin, endMin: interval.endMin,
   }));
 
+  // Jobs waiting to be placed, newest first, and the services a new job can be for.
+  const [pendingJobs, services] = await Promise.all([
+    prisma.job.findMany({ where: { status: "PENDING", appointment: null, customer: { clientId } }, orderBy: { createdAt: "desc" }, take: 50,
+      include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { name: true } },
+        address: { select: { line1: true, city: true, state: true, lat: true, lng: true } } } }),
+    prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { code: true, name: true } }),
+  ]);
+  const jobs: ScheduleJob[] = pendingJobs.map(job => ({ id: job.id, customerName: `${job.customer.firstName} ${job.customer.lastName}`,
+    serviceName: job.service.name, durationMin: job.durationMin, addressLine: `${job.address.line1}, ${job.address.city}, ${job.address.state}`,
+    located: job.address.lat !== null && job.address.lng !== null, followUp: job.manualFollowUpStatus }));
+  const scheduleServices: ScheduleService[] = services;
+
   const scheduleAppointments: ScheduleAppointment[] = appointments.filter(appointment =>
     metroTechnicians.find(tech => tech.id === appointment.technicianId)?.depotAssignments
       .filter(assignment => assignment.effectiveDate <= appointment.serviceDate).at(-1)?.depot.metroId === metro.id).map((appointment) => ({
@@ -130,6 +142,9 @@ export default async function SchedulePage({
       })}
       appointments={scheduleAppointments}
       absences={absences}
+      jobs={jobs}
+      services={scheduleServices}
+      placeJobId={searchParams.placeJob ?? null}
     />
   </>;
 }

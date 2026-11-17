@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { PublicSnapshot } from "./publicApi";
 import { TENANT_ID_PATTERN, TENANT_TOKEN_PATTERN } from "./tenantTokens";
+import { routeInsertions, type RouteInsertionRequest, type RouteInsertions } from "./insertionContract";
+
+export { routeInsertions, type RouteInsertions } from "./insertionContract";
 
 /**
  * The portal's client for the public scheduling API (/api/v1), acting as WaterFlex Software for one client at a time;
@@ -342,6 +345,15 @@ export function commitDailyProposal(clientId: string, proposalId: string, reques
 export function evaluateRoutes(clientId: string, request: { serviceDate: string; snapshot: PublicSnapshot }): Promise<RouteEvaluation> {
   // Routing only, inside the scheduler's 20-second deadline; the rest covers the upload and the network.
   return tenantCall(clientId, "/api/v1/routes/evaluate", request, routeEvaluation, 25000);
+}
+
+/**
+ * Every gap in every technician-day of the snapshot where the job could go, with its drive and the starts that hold.
+ * It runs outside the scheduler's search queue, so a daily solve does not hold it up; nothing is stored.
+ */
+export function insertIntoRoutes(clientId: string, request: RouteInsertionRequest): Promise<RouteInsertions> {
+  // The scheduler answers within its 5-second deadline; the rest covers the snapshot upload and the network.
+  return tenantCall(clientId, "/api/v1/routes/insertions", request, routeInsertions, 10000);
 }
 
 export function drawRoutes(clientId: string, request: { serviceDate: string; snapshot: PublicSnapshot }): Promise<RouteGeometry> {
