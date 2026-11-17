@@ -148,8 +148,8 @@ test.describe("placing and moving on the schedule", () => {
     // The cheapest gap is recommended; every other gap is said against it.
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveAttribute("data-gap-best", "true");
-    await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveAttribute("data-gap-fits", "false");
-    await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveText("No start fits");
+    // A place where no start fits is not marked at all; dropping there still says why.
+    await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveCount(0);
     await expect(marker(page, fixture.second, undefined, undefined)).toHaveText("+24 min vs best");
     await expect(marker(page, fixture.first, fixture.south, undefined)).toHaveText("+6 min vs best");
     const recommended = panel(page).locator("[data-recommendation]");
@@ -161,9 +161,8 @@ test.describe("placing and moving on the schedule", () => {
     expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, jobId: fixture.job });
 
     // Hovering and choosing are worked out on the page: no further preview is asked for.
-    await marker(page, fixture.first, undefined, fixture.north).click();
-    await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "CANNOT_HOLD");
-    await expect(panel(page).getByRole("button", { name: "Save" })).toBeDisabled();
+    // The selected job opens on the recommended place, ready to save.
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
     await marker(page, fixture.first, fixture.north, fixture.south).click();
     await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "NEW");
     // The best gap opens at the recommended start; another start there is the same drive, and the recommendation can be taken back.
@@ -251,7 +250,7 @@ test.describe("placing and moving on the schedule", () => {
         { technicianId: fixture.second, departure: "DEPOT", returnTo: "DEPOT", segments: [] }] }) }));
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const northAfter = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"] [data-drive="after"]`);
-    await expect(northAfter).toHaveText("12 min to next stop");
+    await expect(northAfter).toHaveAttribute("title", "12 min to next stop");
 
     // First move, to the second route's empty day: it drives from that route's depot and back to it.
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
@@ -260,15 +259,17 @@ test.describe("placing and moving on the schedule", () => {
     await expect(onSecond.locator('[data-drive="before"]')).toHaveText("9 min from depot");
     await expect(onSecond.locator('[data-drive="after"]')).toHaveText("8 min to depot");
     // South has left the first route: North now drives home, and South's old place is drawn without its legs.
-    await expect(northAfter).toHaveText("8 min to home");
+    await expect(northAfter).toHaveAttribute("title", "8 min to home");
     await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive]`)).toHaveCount(0);
+    // The first route's header says what the move does to its driving: 17 + 12 + 15 becomes 17 + 8.
+    await expect(grid(page).locator(`[data-technician-column="${fixture.first}"] [data-technician-drive-change]`)).toHaveText("-19 min with this place");
 
     // Second move: the preview itself is picked up and dropped back after North at 1:30 PM.
     await dragTo(page, onSecond, fixture.first, 13 * 60 + 30);
     const onFirst = cell(page, fixture.first).locator("[data-placement-ghost]");
     await expect(onFirst).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
     await expect(panel(page).getByRole("radio", { name: "1:30 PM" })).toBeChecked();
-    await expect(northAfter).toHaveText("14 min to next stop");
+    await expect(northAfter).toHaveAttribute("title", "14 min to next stop");
     await expect(onFirst.locator('[data-drive="before"]')).toHaveCount(0);
     await expect(onFirst.locator('[data-drive="after"]')).toHaveText("8 min to home");
     await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveCount(0);
@@ -282,8 +283,8 @@ test.describe("placing and moving on the schedule", () => {
     // Cancel puts every leg back as it is booked and saves nothing.
     await panel(page).getByRole("button", { name: "Cancel" }).click();
     await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
-    await expect(northAfter).toHaveText("12 min to next stop");
-    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive="after"]`)).toHaveText("15 min to home");
+    await expect(northAfter).toHaveAttribute("title", "12 min to next stop");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive="after"]`)).toHaveAttribute("title", "15 min to home");
     expect(sent.saves).toHaveLength(0);
   });
 
@@ -376,10 +377,10 @@ test.describe("placing and moving on the schedule", () => {
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const north = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"]`);
     const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
-    await expect(north.locator('[data-drive="before"]')).toHaveText("17 min from depot");
-    await expect(north.locator('[data-drive="after"]')).toHaveText("12 min to next stop");
+    await expect(north.locator('[data-drive="before"]')).toHaveAttribute("title", "17 min from depot");
+    await expect(north.locator('[data-drive="after"]')).toHaveAttribute("title", "12 min to next stop");
     await expect(south.locator('[data-drive="before"]')).toHaveCount(0);
-    await expect(south.locator('[data-drive="after"]')).toHaveText("15 min to home");
+    await expect(south.locator('[data-drive="after"]')).toHaveAttribute("title", "15 min to home");
     await expect(grid(page).locator(`[data-technician-drive="44"]`)).toHaveText("44 min driving");
     expect(new URL(asked[0] ?? "http://invalid").searchParams.get("date")).toBe(DATE);
 

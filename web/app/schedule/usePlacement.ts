@@ -74,10 +74,13 @@ export function usePlacement(metroId: string, monday: string, onSaved: (saved: P
       });
   }, [metroId]);
 
-  /** Starts placing a subject, unless it is the one already being placed for this week. */
-  const start = useCallback((subject: PlacementSubject) => {
+  /**
+   * Starts placing a subject, unless it is the one already being placed for this week. `then` picks a place from the
+   * answer as soon as it arrives, the way a drop made early does: a clicked job opens on its recommended place.
+   */
+  const start = useCallback((subject: PlacementSubject, then?: DropResolver) => {
     if (stored !== null && stored.subject.id === subject.id && stored.monday === monday && stored.status !== "error") return;
-    pendingDrop.current = null;
+    pendingDrop.current = then ?? null;
     setStored({ subject, monday, chosen: null, acknowledged: false, status: "loading" });
     request(subject, monday);
   }, [monday, request, stored]);

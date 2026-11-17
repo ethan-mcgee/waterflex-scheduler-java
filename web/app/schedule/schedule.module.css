@@ -984,3 +984,191 @@
   outline: 2px dashed #2563eb;
   outline-offset: -2px;
 }
+
+/* Day view face lift: one toolbar row, the legend behind Key, quieter visits, a summary in each column header. */
+.dateNav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+.navButton {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #334155;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.navButton:hover {
+  background: #f1f5f9;
+}
+.dateLabel {
+  padding: 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.key {
+  position: relative;
+  max-width: 1500px;
+  margin: 0 auto 0.5rem;
+  text-align: right;
+}
+.key summary {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.key summary::-webkit-details-marker {
+  display: none;
+}
+.key .legend {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  z-index: 20;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  text-align: left;
+}
+
+/* A visit with its drive: the visit is the solid part, the drive the same color, lighter, with a dotted edge. */
+.driveBlock {
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--svc) 9%, #fff);
+  overflow: hidden;
+}
+.driveBlock:hover {
+  z-index: 4;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--svc) 30%, transparent);
+}
+.driveBlock .cardBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  border-left: 3px solid var(--svc);
+  background: color-mix(in srgb, var(--svc) 22%, #fff);
+}
+.driveBlock .cardCustomer {
+  margin-top: 0;
+}
+.driveBlock .driveBand {
+  border-left: 3px dotted color-mix(in srgb, var(--svc) 55%, #fff);
+}
+.driveBlock .driveLabel {
+  right: 0.4rem;
+  padding: 0;
+  background: transparent;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cardWas {
+  display: block;
+  color: #2563eb;
+  font-size: 0.62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dayCorner {
+  background: #fff;
+}
+.dayColumnHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem 0.5rem;
+  border-top-width: 3px;
+  background: #fff;
+}
+.techWho {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.techWho .techName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.techAvatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.dayColumnHeader .techShift {
+  margin-top: 0;
+}
+.techDelta {
+  display: block;
+  color: #2563eb;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.loadBar {
+  display: flex;
+  height: 4px;
+  margin-top: 0.15rem;
+  border-radius: 2px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.loadBar i {
+  display: block;
+  height: 100%;
+}
+.loadVisits {
+  background: #2563eb;
+}
+.loadDrive {
+  background: #93c5fd;
+}
+
+/* Places that fit, shown only while something is being placed: the best one filled in. */
+.gapMarker {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+}
+.gapMarker:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.gapMarkerBest,
+.gapMarkerBest:hover {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}

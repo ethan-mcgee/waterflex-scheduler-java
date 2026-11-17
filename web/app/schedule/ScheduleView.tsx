@@ -9,7 +9,7 @@ import { addCalendarDays, todayInTz, weekDates } from "@/lib/date";
 import type { MoveCheckResult } from "@/lib/contracts";
 import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
-import { usePlacement, type PlacementSubject } from "./usePlacement";
+import { usePlacement, type DropResolver, type PlacementSubject } from "./usePlacement";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
 import { findGap, gapSpot, previewTimes, recommendation, relativeToBest, spotAt, spotKey, verdict, type Fit, type Spot } from "@/lib/placementRules";
 import type { InsertionGap } from "@/lib/insertionContract";
@@ -90,6 +90,7 @@ function AppointmentCard({
   drag,
   drive,
   retimed,
+  was,
 }: {
   appointment: ScheduleAppointment;
   timezone: string;
@@ -101,17 +102,24 @@ function AppointmentCard({
   drive?: { before: DriveBand | null; after: DriveBand };
   /** Drawn at the time the placement preview would move it to, not its booked time. */
   retimed?: boolean;
+  /** The booked start of a visit the preview has moved, as the card says it. */
+  was?: string;
 }) {
   const colors = appointment.serviceColor;
+  // The band shows the minutes; where the drive goes is in its title, so the day stays quiet until it is pointed at.
   const band = (part: DriveBand, edge: "before" | "after") => (
-    <span className={styles.driveBand} style={{ height: part.px, background: colors.drive }} data-drive={edge} data-drive-minutes={part.minutes}>
-      <span className={styles.driveLabel} style={{ color: colors.text }}>{part.label}</span>
+    <span className={styles.driveBand} style={{ height: part.px }} data-drive={edge} data-drive-minutes={part.minutes} title={part.label}>
+      <span className={styles.driveLabel} style={{ color: colors.text }}>{part.minutes} min</span>
     </span>
   );
+  // With its drive, the block is drawn from the service color: the visit solid, the drive the same color, lighter.
+  const blockStyle: CSSProperties & Record<"--svc", string> = { "--svc": colors.color, color: colors.text, ...timelineStyle };
+  const cardStyle: CSSProperties = { borderColor: colors.border, borderLeftColor: colors.color, background: colors.tint, color: colors.text, ...timelineStyle };
   return (
     <button
       className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""} ${drive ? styles.driveBlock : ""} ${drag?.dragging ? styles.draggingCard : ""} ${retimed ? styles.retimedCard : ""}`}
-      style={{ borderColor: colors.border, borderLeftColor: colors.color, background: colors.tint, color: colors.text, ...timelineStyle }}
+      style={drive ? blockStyle : cardStyle}
+      title={`${appointment.customerName}, ${appointment.serviceName}`}
       type="button"
       data-appointment-id={appointment.id}
       data-retimed={retimed ? "true" : undefined}
@@ -125,7 +133,8 @@ function AppointmentCard({
           {timelineStyle && ` - ${formatTime(appointment.plannedEnd, timezone)}`}
         </span>
         <span className={styles.cardCustomer}>{appointment.customerName}</span>
-        <span className={styles.cardService}>{appointment.serviceName}</span>
+        {!drive && <span className={styles.cardService}>{appointment.serviceName}</span>}
+        {was !== undefined && <span className={styles.cardWas}>was {was}</span>}
       </span>
       {drive && band(drive.after, "after")}
     </button>
@@ -162,8 +171,8 @@ function TimelineCell({
   overlay?: CellOverlay;
   /** The drive around each visit, on the day view once it is in; a visit without one is drawn on its own. */
   drives?: Map<string, VisitDrive>;
-  /** Visits drawn at the time the placement preview would move them to. */
-  retimed?: ReadonlySet<string>;
+  /** Visits drawn at the time the placement preview would move them to, each with its booked start. */
+  retimed?: ReadonlyMap<string, string>;
 }) {
   const daily = scheduleDay(technician, day);
   const px = (minute: number) => ((minute - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
@@ -239,12 +248,14 @@ function TimelineCell({
             timelineStyle={timelineStyle}
             drive={block}
             retimed={retimed?.has(appointment.id) ?? false}
+            {...(retimed?.has(appointment.id) ? { was: formatTime(retimed.get(appointment.id) ?? appointment.plannedStart, timezone) } : {})}
             drag={{ press: drag.press, clickSuppressed: drag.clickSuppressed,
               dragging: drag.draggingId === appointment.id || overlay?.movingId === appointment.id }}
           />
         );
       })}
-      {overlay?.gaps.map(marker => {
+      {overlay?.gaps.filter(marker => marker.fits).map(marker => {
+        // Only places that fit are marked; a drop anywhere else still says why it cannot go there.
         // Kept inside the cell, which clips its overflow, so a gap at the shift's start or end stays whole.
         const top = Math.min(Math.max(((marker.minute - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX, 12), timelineHeight - 12);
         return (
@@ -322,6 +333,12 @@ function gapLabel(gap: InsertionGap, key: string, best: Fit | null): string {
   return best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
 }
 
+/** A selected job opens on the recommended place, so the common case is select, then Save. */
+const recommendedPlace: DropResolver = preview => {
+  const fit = recommendation(preview.answer, preview.original !== null);
+  return fit === null ? null : { spot: fit.spot, plannedStart: fit.firstStart.plannedStart };
+};
+
 /** The drive drawn on a preview: in (only when it is first of its stretch) and on, each with its label. */
 interface GhostBands { before: { minutes: number; label: string } | null; after: { minutes: number; label: string } }
 
@@ -336,6 +353,11 @@ interface Hover {
 
 /** What a drag carries: an appointment to move, or a job waiting for the calendar. */
 type DragItem = { kind: "appointment"; appointment: ScheduleAppointment } | { kind: "job"; job: ScheduleJob };
+
+/** A technician's initials for the column header. */
+function initials(name: string): string {
+  return name.split(/\s+/).filter(part => part.length > 0).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join("");
+}
 
 /** What a technician's column header says about the day: the shift, or why there is none. */
 function columnStatus(technician: ScheduleTechnician, date: string): { label: string; working: boolean } {
@@ -364,6 +386,7 @@ function DayGrid({
   drive,
   visitDrives,
   retimed,
+  previewMinutes,
 }: {
   date: string;
   technicians: ScheduleTechnician[];
@@ -379,7 +402,9 @@ function DayGrid({
   drive: DriveState;
   /** The drive around each visit as drawn, with any placement preview applied. */
   visitDrives: Map<string, VisitDrive> | undefined;
-  retimed: ReadonlySet<string>;
+  retimed: ReadonlyMap<string, string>;
+  /** Each technician's driving with the previewed place, when every leg of it is known. */
+  previewMinutes: ReadonlyMap<string, number> | null;
 }) {
   const hours = Array.from({ length: Math.max(1, (timelineEnd - timelineStart) / 60) }, (_, index) => timelineStart + index * 60);
   const columns: CSSProperties = { gridTemplateColumns: `72px repeat(${Math.max(1, technicians.length)}, minmax(170px, 1fr))` };
@@ -388,13 +413,27 @@ function DayGrid({
       <div className={styles.dayCorner}>Time</div>
       {technicians.map((technician) => {
         const status = columnStatus(technician, date);
+        const entries = byCell.get(`${technician.id}:${date}`) ?? [];
+        const minutes = drive.status === "ready" ? drive.minutes.get(technician.id) : undefined;
+        const previewed = previewMinutes?.get(technician.id);
+        const change = minutes === undefined || previewed === undefined ? 0 : previewed - minutes;
+        const daily = scheduleDay(technician, date);
+        const shift = status.working && daily.shiftStartMin != null && daily.shiftEndMin != null ? daily.shiftEndMin - daily.shiftStartMin : 0;
+        const visitMinutes = entries.reduce((total, item) => total + (Date.parse(item.plannedEnd) - Date.parse(item.plannedStart)) / 60000, 0);
         return (
           <div className={`${styles.dayColumnHeader} ${status.working ? "" : styles.closedDayHeader}`}
             style={{ borderTopColor: technician.color }} key={`${technician.id}-header`} data-technician-column={technician.id}>
-            <span className={styles.techName}>{technician.name}</span>
-            <span className={styles.techShift}>{status.label}</span>
-            {drive.status === "ready" && drive.minutes.has(technician.id) &&
-              <span className={styles.techDrive} data-technician-drive={drive.minutes.get(technician.id)}>{drive.minutes.get(technician.id)} min driving</span>}
+            <span className={styles.techWho}>
+              <span className={styles.techAvatar} aria-hidden="true">{initials(technician.name)}</span>
+              <span className={styles.techName}>{technician.name}</span>
+            </span>
+            <span className={styles.techShift}>{status.label}{status.working ? `, ${entries.length} ${entries.length === 1 ? "visit" : "visits"}` : ""}</span>
+            {minutes !== undefined && <span className={styles.techDrive} data-technician-drive={minutes}>{minutes} min driving</span>}
+            {change !== 0 && <span className={styles.techDelta} data-technician-drive-change={change}>{change > 0 ? "+" : ""}{change} min with this place</span>}
+            {shift > 0 && <span className={styles.loadBar} title="Share of the shift on visits and on driving">
+              <i className={styles.loadVisits} style={{ width: `${Math.min(100, (visitMinutes / shift) * 100)}%` }} />
+              {minutes !== undefined && <i className={styles.loadDrive} style={{ width: `${Math.min(100, (minutes / shift) * 100)}%` }} />}
+            </span>}
           </div>
         );
       })}
@@ -634,7 +673,7 @@ export default function ScheduleView({
     if (opened.current || placeJobId === null) return;
     opened.current = true;
     const job = jobs.find(item => item.id === placeJobId);
-    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` });
+    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace);
   }, [jobs, placeJobId, startPlacement]);
 
   const subjectOf = useCallback((item: DragItem): PlacementSubject => item.kind === "job"
@@ -753,14 +792,38 @@ export default function ScheduleView({
     : placement.chosen?.plannedStart ?? null;
   const times = placement === null || placement.status !== "ready" ? null
     : previewTimes(placement.preview.answer, placement.preview.original, previewSpot, previewStart);
-  const retimed = new Set<string>();
+  const retimed = new Map<string, string>();
   const shownByCell = times === null || times.size === 0 || placement === null ? byCell : new Map([...byCell].map(([key, entries]) => [key,
     entries.map(item => {
       const moved = item.id === placement.subject.id ? undefined : times.get(item.id);
       if (moved === undefined || (Date.parse(moved.plannedStart) === Date.parse(item.plannedStart) && Date.parse(moved.plannedEnd) === Date.parse(item.plannedEnd))) return item;
-      retimed.add(item.id);
+      retimed.set(item.id, item.plannedStart);
       return { ...item, plannedStart: moved.plannedStart, plannedEnd: moved.plannedEnd };
     })]));
+
+  /**
+   * Each technician's driving for the day with the previewed place, for the change shown in the column header. A
+   * technician with a leg the preview cannot give has no total, so no change is shown rather than a partial one.
+   */
+  const previewMinutes = drivePreview === null || previewSpot === null || placement === null ? null : (() => {
+    const totals = new Map<string, number>();
+    for (const technician of technicians) {
+      let total = 0, whole = true;
+      for (const item of byCell.get(`${technician.id}:${date}`) ?? []) {
+        if (item.id === placement.subject.id) continue;
+        const legs = drivePreview.visits.get(item.id);
+        if (legs === undefined) whole = false;
+        else total += (legs.before?.minutes ?? 0) + legs.after.minutes;
+      }
+      if (previewSpot.technicianId === technician.id && previewSpot.serviceDate === date) {
+        const placed = drivePreview.placed;
+        if (placed === null) whole = false;
+        else total += (placed.before?.minutes ?? 0) + placed.after.minutes;
+      }
+      if (whole) totals.set(technician.id, total);
+    }
+    return totals;
+  })();
 
   /**
    * The preview's own drive: in the day view, as the drive preview has it; otherwise straight from the gap's legs.
@@ -858,15 +921,15 @@ export default function ScheduleView({
       <div className={styles.toolbar}>
         {view === "day" ? <>
           <h1 className={styles.title}>Daily schedule</h1>
-          <span className={styles.subtle} data-schedule-date={date}>
-            {localDate(date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          </span>
-          <button className={styles.button} type="button" onClick={() => goToDay(addCalendarDays(targetDate.current, -1))}>
-            Previous day
-          </button>
-          <button className={styles.button} type="button" onClick={() => goToDay(addCalendarDays(targetDate.current, 1))}>
-            Next day
-          </button>
+          <div className={styles.dateNav}>
+            <button className={styles.navButton} type="button" aria-label="Previous day" title="Previous day"
+              onClick={() => goToDay(addCalendarDays(targetDate.current, -1))}>&lsaquo;</button>
+            <span className={styles.dateLabel} data-schedule-date={date}>
+              {localDate(date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+            </span>
+            <button className={styles.navButton} type="button" aria-label="Next day" title="Next day"
+              onClick={() => goToDay(addCalendarDays(targetDate.current, 1))}>&rsaquo;</button>
+          </div>
           <button className={styles.button} type="button" onClick={() => goToDay(todayInTz(timezone))}>
             Today
           </button>
@@ -889,7 +952,7 @@ export default function ScheduleView({
           </button>
         </>}
         {viewSwitch}
-        <label>
+        {view === "week" && <label>
           <span className={styles.srOnly}>Filter technician</span>
           <select
             className={styles.select}
@@ -903,7 +966,7 @@ export default function ScheduleView({
               </option>
             ))}
           </select>
-        </label>
+        </label>}
       </div>
 
       {check !== null && <MoveCheckBanner check={check} onDismiss={() => { inFlight.current?.abort(); setCheck(null); }} />}
@@ -918,6 +981,8 @@ export default function ScheduleView({
         <div className={styles.empty}>No active technicians are configured.</div>
       ) : (
         <>
+          <details className={styles.key}>
+          <summary>Key</summary>
           <div className={styles.legend} aria-label="Schedule legend">
             <span>
               <i className={styles.openSwatch} />Unbooked shift time
@@ -934,10 +999,11 @@ export default function ScheduleView({
             </span>
             <span><i className={styles.absenceSwatch} />Approved time off splits the working shift</span>
           </div>
+          </details>
           {view === "day" && <DriveNotice drive={drive} technicians={technicians} />}
           {view === "day" ? (
             <DayGrid date={date} technicians={visibleTechnicians} byCell={shownByCell} absences={absences} timelineStart={timelineStart}
-              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} />
+              timelineEnd={timelineEnd} timezone={timezone} onSelect={setSelected} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} previewMinutes={previewMinutes} />
           ) : (
           <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
             <div className={styles.corner}>Technician</div>
@@ -1027,9 +1093,9 @@ export default function ScheduleView({
       )}
       </div>
       <PlacementPanel jobs={jobs} services={services} placement={placement} technicians={technicians} timezone={timezone}
-        onPlaceJob={subject => { setSaved(null); startPlacement(subject); }}
+        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace); }}
         onPressJob={(job, event) => press({ kind: "job", job }, event)} clickSuppressed={clickSuppressed}
-        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }); router.refresh(); }}
+        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace); router.refresh(); }}
         onChoose={(spot, plannedStart) => {
           choose(spot, plannedStart);
           // A fit on another day of the week opens that day in the day view.
