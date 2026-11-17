@@ -295,6 +295,67 @@ export const CASES: readonly Case[] = [
     },
   },
   {
+    group: "Routes", name: "insertions", proves:
+      "Every gap of a day reports the job's legs, the leg it breaks and the drive it adds; its starts hold the day; a moved appointment's own gap keeps its window; nothing is stored (spec 1.12.0).",
+    run: async context => {
+      const date = addDays(context.today, 2);
+      const id = ids(context, "insertions");
+      const day = builder(context).day(id("tech"), date, home(context))
+        .visit(id("first"), id("tech"), date, visitPoint(context), 0, 540).visit(id("second"), id("tech"), date, jobPoint(context, 1), 1, 660);
+      const snapshot = day.build();
+      const job = { id: id("job"), serviceId: `${context.run}-service`, durationMinutes: 60, location: jobPoint(context, 0) };
+      const body = { snapshot, job, windowMinutes: 120, startStepMinutes: 30, routes: true };
+      const result = expectBody(await context.api.call("POST", "/api/v1/routes/insertions", body, { timeoutMs: 30_000 }), 200, Api.RouteInsertionResult, "Route insertions");
+      check(result.skippedTechnicianDays.length === 0 && result.technicianDays.length === 1, "Route insertions: one located technician-day was sent");
+      const answered = result.technicianDays[0] ?? fail("Route insertions: no technician-day");
+      check(answered.holdsAsGiven && answered.qualified && answered.asGiven !== undefined, "Route insertions: a short day with a qualified technician does not hold as given");
+      check(isDeepStrictEqual(answered.stops?.map(stop => stop.appointmentId), [id("first"), id("second")]), "Route insertions: the day's own stops are not in the host's order");
+      const ends = answered.gaps.map(gap => [gap.afterAppointmentId, gap.beforeAppointmentId]);
+      check(isDeepStrictEqual(ends, [[undefined, id("first")], [id("first"), id("second")], [id("second"), undefined]]),
+        `Route insertions: gaps ${JSON.stringify(ends)} are not the day's three gaps in order`);
+      for (const gap of answered.gaps) {
+        const what = `Route insertions: gap after ${gap.afterAppointmentId ?? "the start"}`;
+        if (!gap.routable) {
+          check(gap.toJob === undefined && gap.fromJob === undefined && gap.replaced === undefined && gap.addedSeconds === undefined && gap.starts.length === 0,
+            `${what} is not routable but carries numbers or starts`);
+          continue;
+        }
+        const to = gap.toJob ?? fail(`${what} has no toJob`), from = gap.fromJob ?? fail(`${what} has no fromJob`), replaced = gap.replaced ?? fail(`${what} has no replaced leg`);
+        check(gap.addedSeconds === to.seconds + from.seconds - replaced.seconds, `${what} adds ${String(gap.addedSeconds)} seconds, not its two legs less the replaced one`);
+        check(gap.addedMeters === to.meters + from.meters - replaced.meters, `${what} adds ${String(gap.addedMeters)} meters, not its two legs less the replaced one`);
+        check(gap.addedBufferedMinutes === to.bufferedMinutes + from.bufferedMinutes - replaced.bufferedMinutes, `${what}: buffered minutes do not add up`);
+        let previous = 0;
+        for (const start of gap.starts) {
+          const at = Date.parse(start.plannedStart);
+          check(at > previous && at % (30 * 60_000) === 0, `${what}: start ${start.plannedStart} is not an ascending half hour`);
+          previous = at;
+          check(at >= Date.parse(start.window.start) && at < Date.parse(start.window.end), `${what}: start ${start.plannedStart} is outside its window`);
+          check(minutes(start.window.start, start.window.end) === 120, `${what}: the promised window is not the client's 120 minutes`);
+          check(start.keepsWindow === undefined, `${what}: keepsWindow without a promised window`);
+          const placed = start.stops?.find(stop => stop.appointmentId === job.id) ?? fail(`${what}: the timed stops leave out the job`);
+          check(placed.plannedStart === start.plannedStart && start.stops?.length === 3, `${what}: the job is not timed at its start among the day's stops`);
+        }
+      }
+      check(answered.gaps.some(gap => gap.starts.length > 0), "Route insertions: no gap of a short day can take a 60-minute job");
+
+      // A move: the second visit is sent as the job with its window, and the snapshot without it.
+      const moving = snapshot.appointments.find(appointment => appointment.id === id("second")) ?? fail("No second visit");
+      const without = { ...snapshot, appointments: snapshot.appointments.filter(appointment => appointment.id !== moving.id) };
+      const moved = expectBody(await context.api.call("POST", "/api/v1/routes/insertions", { snapshot: without, windowMinutes: 120, startStepMinutes: 30, routes: false,
+        job: { id: moving.id, serviceId: moving.serviceId, durationMinutes: moving.durationMinutes, location: moving.location, window: moving.window } }, { timeoutMs: 30_000 }),
+        200, Api.RouteInsertionResult, "Route insertions for a move");
+      const old = moved.technicianDays[0]?.gaps.find(gap => gap.afterAppointmentId === id("first")) ?? fail("Route insertions for a move: no gap at the old position");
+      check(old.starts.length > 0 && old.starts.every(start => start.keepsWindow === true && isDeepStrictEqual(Date.parse(start.window.end), Date.parse(moving.window.end))),
+        "Route insertions for a move: starts at the old position inside the promised window do not keep it");
+      check(old.starts.every(start => start.stops === undefined), "Route insertions for a move: stops sent although routes was false");
+
+      expectProblem(await context.api.call("POST", "/api/v1/routes/insertions", { ...body, job: { ...job, id: id("first") } }, { timeoutMs: 30_000 }),
+        400, "INVALID_REQUEST", "A job that is already an appointment of the snapshot");
+      expectProblem(await context.api.call("POST", "/api/v1/routes/insertions", { ...body, startStepMinutes: 20 }, { timeoutMs: 30_000 }),
+        400, "INVALID_REQUEST", "A start step that is not 15, 30 or 60");
+    },
+  },
+  {
     group: "Routes", name: "late-arrival buffer", proves:
       "With Rates.arrivalBuffer each timed stop names where its buffer starts (its window end less the buffer) and the day counts the stops inside it (spec 1.9.0).",
     run: async context => {
