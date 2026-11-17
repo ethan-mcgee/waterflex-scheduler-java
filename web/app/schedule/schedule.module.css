@@ -939,6 +939,25 @@
   color: #9a3412;
 }
 
+/* Where a drop under the pointer would land, drawn above the cards while dragging. */
+.hoverGhost {
+  z-index: 5;
+  background: rgba(219, 234, 254, 0.72);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.ghostDetail {
+  display: block;
+  margin-bottom: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.gapMarkerHover {
+  outline: 2px dashed #2563eb;
+  outline-offset: 1px;
+}
+
 @media (max-width: 1100px) {
   .scheduleBody {
     flex-direction: column;

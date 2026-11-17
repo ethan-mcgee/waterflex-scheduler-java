@@ -11,7 +11,8 @@ import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveChe
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
 import { usePlacement, type PlacementSubject } from "./usePlacement";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
-import { findGap, gapSpot, recommendation, relativeToBest, spotAt, spotKey, type Spot } from "@/lib/placementRules";
+import { findGap, gapSpot, recommendation, relativeToBest, spotAt, spotKey, verdict, type Fit, type Spot } from "@/lib/placementRules";
+import type { InsertionGap } from "@/lib/insertionContract";
 import { driveLabel, type VisitDrive } from "@/lib/scheduleDrive";
 import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
 import type { PlacementPreview, PlacementSaved } from "@/lib/contracts";
@@ -240,7 +241,7 @@ function TimelineCell({
         const top = Math.min(Math.max(((marker.minute - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX, 12), timelineHeight - 12);
         return (
           <button key={marker.key} type="button" data-gap-key={marker.key} data-gap-fits={marker.fits ? "true" : "false"}
-            className={`${styles.gapMarker} ${marker.fits ? "" : styles.gapMarkerMuted} ${marker.best ? styles.gapMarkerBest : ""} ${marker.chosen ? styles.gapMarkerChosen : ""}`}
+            className={`${styles.gapMarker} ${marker.fits ? "" : styles.gapMarkerMuted} ${marker.best ? styles.gapMarkerBest : ""} ${marker.chosen ? styles.gapMarkerChosen : ""} ${marker.hovered ? styles.gapMarkerHover : ""}`}
             style={{ top }} onClick={() => overlay.onChoose(marker.spot, marker.firstStart)}
             data-gap-best={marker.best ? "true" : undefined} aria-label={`${marker.label}, ${marker.added}, at ${technician.name}'s ${marker.position}`}>
             {marker.label}
@@ -249,10 +250,13 @@ function TimelineCell({
       })}
       {overlay?.ghost != null && (() => {
         const ghost = overlay.ghost;
+        const kinds = ghost.hover ? { "data-hover-ghost": ghost.kind } : { "data-placement-ghost": ghost.kind };
+        const classes = `${styles.placementGhost} ${ghost.hover ? styles.hoverGhost : ""} ${ghost.ok ? "" : styles.placementGhostProblem}`;
+        const detail = ghost.detail === null ? null : <span className={styles.ghostDetail}>{ghost.detail}</span>;
         if (ghost.toJob === null || ghost.fromJob === null) return (
-          <div className={`${styles.placementGhost} ${ghost.ok ? "" : styles.placementGhostProblem}`} data-placement-ghost={ghost.kind}
+          <div className={classes} {...kinds}
             style={{ top: px(Math.max(ghost.startMinute, timelineStart)) + 3, height: Math.max(40, (ghost.durationMinutes / 60) * TIMELINE_HOUR_HEIGHT_PX - 6) }}>
-            {ghost.label}
+            {detail}{ghost.label}
           </div>
         );
         // With the gap's road legs, the preview is drawn like a booked visit: the drive in, the visit, the drive on.
@@ -260,12 +264,11 @@ function TimelineCell({
         const visitTop = px(ghost.startMinute), visitBottom = px(ghost.startMinute + ghost.durationMinutes);
         const bottom = px(Math.min(ghost.startMinute + ghost.durationMinutes + ghost.fromJob, timelineEnd));
         return (
-          <div className={`${styles.placementGhost} ${styles.ghostBlock} ${ghost.ok ? "" : styles.placementGhostProblem}`} data-placement-ghost={ghost.kind}
-            style={{ top, height: Math.max(bottom - top, 0) }}>
+          <div className={`${classes} ${styles.ghostBlock}`} {...kinds} style={{ top, height: Math.max(bottom - top, 0) }}>
             <span className={styles.ghostDrive} style={{ height: Math.max(0, visitTop - top) }}>
               <span className={styles.driveLabel}>{ghost.toJob} min there</span>
             </span>
-            <span className={styles.ghostBody}>{ghost.label}</span>
+            <span className={styles.ghostBody}>{detail}{ghost.label}</span>
             <span className={styles.ghostDrive} style={{ height: Math.max(0, bottom - visitBottom) }}>
               <span className={styles.driveLabel}>{ghost.fromJob} min on</span>
             </span>
@@ -281,17 +284,37 @@ interface GapMarker {
   key: string; spot: Spot; minute: number; label: string; fits: boolean; chosen: boolean; firstStart: string | null; position: string;
   /** Whether this gap is the recommendation, and the drive it adds in plain minutes for screen readers. */
   best: boolean; added: string;
+  /** Whether a drop under the pointer would land in this gap. */
+  hovered: boolean;
 }
 interface CellOverlay {
   gaps: GapMarker[];
-  /** The chosen start's preview; `toJob` and `fromJob` are the gap's buffered road legs, null when it has no road route. */
-  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean; toJob: number | null; fromJob: number | null } | null;
+  /**
+   * The chosen start's preview, or while dragging, where a drop under the pointer would land (`hover`, with `detail`
+   * saying the start and the drive). `toJob` and `fromJob` are the gap's buffered road legs, null with no road route.
+   */
+  ghost: { startMinute: number; durationMinutes: number; label: string; kind: string; ok: boolean; toJob: number | null; fromJob: number | null;
+    hover: boolean; detail: string | null } | null;
   /** The appointment being moved, drawn faded at the place it is leaving. */
   movingId: string | null;
   onChoose: (spot: Spot, plannedStart: string | null) => void;
 }
 
 type CardDrag = { press: (appointment: ScheduleAppointment, event: ReactPointerEvent) => void; clickSuppressed: () => boolean; draggingId: string | null };
+
+/** What a gap says against the recommendation; a gap with no road route or no start says so instead. */
+function gapLabel(gap: InsertionGap, key: string, best: Fit | null): string {
+  if (gap.addedBufferedMinutes === undefined) return addedDriveText(gap);
+  if (gap.starts.length === 0) return "No start fits";
+  if (best !== null && best.key === key) return `Best, ${addedDriveText(gap)}`;
+  return best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
+}
+
+/** Where a drop under the pointer would land, for the preview drawn while dragging. */
+interface Hover {
+  technicianId: string; date: string; who: string; gapKey: string | null; startMinute: number | null; durationMinutes: number;
+  kind: string; ok: boolean; detail: string; toJob: number | null; fromJob: number | null;
+}
 
 /** What a drag carries: an appointment to move, or a job waiting for the calendar. */
 type DragItem = { kind: "appointment"; appointment: ScheduleAppointment } | { kind: "job"; job: ScheduleJob };
@@ -651,11 +674,48 @@ export default function ScheduleView({
   };
 
   const chosenVerdict = currentVerdict(placement);
+
+  /**
+   * Where a drop under the pointer would land: the gap and its nearest start, the drive there and on, and how it compares
+   * with the recommendation, all from the answer already on the page, so moving the pointer asks for nothing. Before the
+   * answer arrives the preview sits at the half hour under the pointer.
+   */
+  const hover: Hover | null = (() => {
+    if (drag === null || drag.over === null || placement === null) return null;
+    const over = drag.over;
+    const who = technicians.find(item => item.id === over.technicianId)?.name ?? over.technicianId;
+    const pointer = over.minute === null ? null : Math.round(over.minute / 30) * 30;
+    const base = { technicianId: over.technicianId, date: over.date, who };
+    if (placement.status !== "ready") {
+      const item = drag.item;
+      const durationMinutes = item.kind === "job" ? item.job.durationMin
+        : minuteOfDay(item.appointment.plannedEnd, timezone) - minuteOfDay(item.appointment.plannedStart, timezone);
+      return { ...base, gapKey: null, startMinute: pointer, durationMinutes, kind: "LOADING", ok: true,
+        detail: placement.status === "error" ? "Places could not be found" : "Finding places...", toJob: null, fromJob: null };
+    }
+    const { answer, original, job } = placement.preview;
+    const landed = landing(answer, over);
+    const found = findGap(answer, landed.spot);
+    const key = spotKey(landed.spot);
+    const label = found === undefined ? "Cannot be placed here" : gapLabel(found.gap, key, recommendation(answer, original !== null));
+    const decided = landed.plannedStart === null ? null : verdict(answer, original, landed.spot, landed.plannedStart);
+    const note = decided?.kind === "CHANGES_PROMISE" ? ", changes the promised window"
+      : decided?.kind === "KEEPS_PROMISE" && decided.samePlace ? ", where it is now" : "";
+    return { ...base, gapKey: found === undefined ? null : key, durationMinutes: job.durationMinutes,
+      startMinute: landed.plannedStart === null ? pointer : minuteOfDay(landed.plannedStart, timezone),
+      kind: decided?.kind ?? "CANNOT_HOLD", ok: decided !== null && decided.kind !== "CANNOT_HOLD",
+      detail: landed.plannedStart === null ? `${label} here` : `${formatTime(landed.plannedStart, timezone)}: ${label}${note}`,
+      toJob: found?.gap.toJob?.bufferedMinutes ?? null, fromJob: found?.gap.fromJob?.bufferedMinutes ?? null };
+  })();
   /** The gaps and the chosen start's preview for one technician-day, while something is being placed. */
   const overlay = (technicianId: string, date: string): CellOverlay | undefined => {
     if (placement === null) return undefined;
     const movingId = placement.subject.kind === "appointment" ? placement.subject.id : null;
-    if (placement.status !== "ready") return { gaps: [], ghost: null, movingId, onChoose: choose };
+    // While dragging, the only preview is where a drop under the pointer would land.
+    const hoverGhost = hover === null || hover.technicianId !== technicianId || hover.date !== date || hover.startMinute === null ? null
+      : { startMinute: hover.startMinute, durationMinutes: hover.durationMinutes, label: placement.subject.label, kind: hover.kind, ok: hover.ok,
+        toJob: hover.toJob, fromJob: hover.fromJob, hover: true, detail: hover.detail };
+    if (placement.status !== "ready") return { gaps: [], ghost: hoverGhost, movingId, onChoose: choose };
     const { answer, job } = placement.preview;
     const day = answer.technicianDays.find(item => item.technicianId === technicianId && item.serviceDate === date);
     const technician = technicians.find(item => item.id === technicianId);
@@ -669,32 +729,23 @@ export default function ScheduleView({
       const after = gap.afterAppointmentId === undefined ? undefined : ends.get(gap.afterAppointmentId);
       const before = gap.beforeAppointmentId === undefined ? undefined : appointments.find(item => item.id === gap.beforeAppointmentId);
       const fits = gap.starts.length > 0, isBest = best !== null && best.key === key;
-      // Each gap is said against the recommendation; one with no road route or no start says so instead.
-      const label = gap.addedBufferedMinutes === undefined ? addedDriveText(gap) : !fits ? "No start fits"
-        : isBest ? `Best, ${addedDriveText(gap)}` : best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
-      return { key, spot, minute: after ?? shiftStart, label, fits, chosen: key === chosenKey, best: isBest, added: addedDriveText(gap),
+      return { key, spot, minute: after ?? shiftStart, label: gapLabel(gap, key, best), fits, chosen: key === chosenKey, best: isBest,
+        added: addedDriveText(gap), hovered: hover !== null && hover.gapKey === key,
         firstStart: gap.starts[0]?.plannedStart ?? null,
         position: before === undefined ? "end of the route" : `stop before ${before.customerName}` };
     });
     const chosen = placement.chosen;
     const here = chosen !== null && chosen.spot.technicianId === technicianId && chosen.spot.serviceDate === date;
     const legs = here ? findGap(answer, chosen.spot)?.gap : undefined;
-    const ghost = !here || chosen.plannedStart === null ? null : { startMinute: minuteOfDay(chosen.plannedStart, timezone),
+    const ghost = drag !== null ? hoverGhost : !here || chosen.plannedStart === null ? null : { startMinute: minuteOfDay(chosen.plannedStart, timezone),
       durationMinutes: job.durationMinutes, label: placement.subject.label, kind: chosenVerdict?.kind ?? "CANNOT_HOLD",
       ok: chosenVerdict !== null && chosenVerdict.kind !== "CANNOT_HOLD",
-      toJob: legs?.toJob?.bufferedMinutes ?? null, fromJob: legs?.fromJob?.bufferedMinutes ?? null };
+      toJob: legs?.toJob?.bufferedMinutes ?? null, fromJob: legs?.fromJob?.bufferedMinutes ?? null, hover: false, detail: null };
     return { gaps, ghost, movingId, onChoose: choose };
   };
 
-  /** What the drag label says about the place under the pointer: the driving it adds, or that nothing fits. */
-  const hoverText = (() => {
-    if (drag?.over == null || placement === null || placement.status !== "ready") return "";
-    const landed = landing(placement.preview.answer, drag.over);
-    const found = findGap(placement.preview.answer, landed.spot);
-    const who = technicians.find(item => item.id === drag.over?.technicianId)?.name ?? "";
-    if (found === undefined) return ` to ${who}: cannot be placed here`;
-    return ` to ${who}: ${addedDriveText(found.gap)}${found.gap.starts.length === 0 ? ", does not fit" : ""}`;
-  })();
+  /** What the drag label says about the place under the pointer: the technician, the start and how it compares. */
+  const hoverText = hover === null ? "" : ` to ${hover.who}, ${hover.detail}`;
 
   function goToWeek(nextMonday: string) {
     router.push(`/schedule?metroId=${encodeURIComponent(metroId)}&week=${nextMonday}`);

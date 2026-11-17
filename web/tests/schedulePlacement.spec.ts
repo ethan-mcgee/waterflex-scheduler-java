@@ -203,6 +203,45 @@ test.describe("placing and moving on the schedule", () => {
     expect(placementSaveRequest.parse(sent.saves[0])).toMatchObject({ appointmentId: fixture.south, acknowledged: false, plannedStart: utc(18) });
   });
 
+  test("while dragging, the place a drop would land is drawn under the pointer, worked out without asking again", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const pointAt = async (technicianId: string, localMinute: number) => {
+      const target = await cell(page, technicianId).boundingBox();
+      if (target === null) throw new Error("The timeline is not on screen");
+      await page.mouse.move(target.x + target.width / 2, target.y + ((localMinute - LOCAL_START_MINUTE) / 60) * HOUR_PX, { steps: 6 });
+    };
+    const source = await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).boundingBox();
+    if (source === null) throw new Error("The card is not on screen");
+    await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+    await page.mouse.down();
+
+    // Inside the promised window on the second route: the nearest start, and the drive against the recommendation.
+    await pointAt(fixture.second, 13 * 60 + 5);
+    const hover = cell(page, fixture.second).locator("[data-hover-ghost]");
+    await expect(hover).toHaveAttribute("data-hover-ghost", "KEEPS_PROMISE");
+    await expect(hover).toContainText("1:00 PM: Best, +9 min drive");
+    // Later the same route only offers a start outside the window, which is said on the preview.
+    await pointAt(fixture.second, 15 * 60 + 30);
+    await expect(hover).toHaveAttribute("data-hover-ghost", "CHANGES_PROMISE");
+    await expect(hover).toContainText("3:30 PM: Best, +9 min drive, changes the promised window");
+    // Before North on the first route nothing fits: the preview turns into the problem it would be.
+    await pointAt(fixture.first, 9 * 60);
+    await expect(cell(page, fixture.first).locator("[data-hover-ghost]")).toHaveAttribute("data-hover-ghost", "CANNOT_HOLD");
+    await expect(cell(page, fixture.first).locator("[data-hover-ghost]")).toContainText("No start fits here");
+    await expect(hover).toHaveCount(0);
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+    expect(sent.previews).toHaveLength(1);
+
+    // Dropping where the preview was keeps it as the chosen place.
+    await pointAt(fixture.second, 13 * 60 + 5);
+    await page.mouse.up();
+    await expect(grid(page).locator("[data-hover-ghost]")).toHaveCount(0);
+    await expect(cell(page, fixture.second).locator('[data-placement-ghost="KEEPS_PROMISE"]')).toBeVisible();
+    await expect(panel(page).getByRole("radio", { name: "1:00 PM" })).toBeChecked();
+    expect(sent.previews).toHaveLength(1);
+  });
+
   test("a move to another arrival window is a policy violation that saves only once acknowledged", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
