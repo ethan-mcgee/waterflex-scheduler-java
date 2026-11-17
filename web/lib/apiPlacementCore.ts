@@ -71,9 +71,13 @@ export function placementPlan(facts: SnapshotFacts, subject: Subject): Placement
 
 /** The dates to send per call so that no call has more technician-days than the scheduler accepts. */
 export function dateBatches(facts: SnapshotFacts, workingDays: (date: string) => number, limit: number): string[][] {
+  return batchDates(facts.dates, workingDays, limit);
+}
+
+function batchDates(dates: readonly string[], workingDays: (date: string) => number, limit: number): string[][] {
   const batches: string[][] = [];
   let current: string[] = [], count = 0;
-  for (const date of [...new Set(facts.dates)].sort()) {
+  for (const date of [...new Set(dates)].sort()) {
     const days = workingDays(date);
     if (days > limit) throw new PlacementRefused(413, `${date} has ${days} technician-days, more than the ${limit} one call can place`);
     if (count + days > limit && current.length > 0) { batches.push(current); current = []; count = 0; }
@@ -81,6 +85,21 @@ export function dateBatches(facts: SnapshotFacts, workingDays: (date: string) =>
   }
   if (current.length > 0) batches.push(current);
   return batches;
+}
+
+/** One route insertion call: the dates it sends, and whether it asks for timed stops. */
+export interface InsertionCall { dates: string[]; routes: boolean }
+
+/**
+ * The calls a preview makes for the `sent` dates. The timed dates (the days on screen) ask for timed stops and the
+ * others are asked without them, since the page re-times only what it shows. Each group is split by date under the
+ * technician-day limit, as `dateBatches` splits a week.
+ */
+export function insertionCalls(sent: readonly string[], timedDates: readonly string[], workingDays: (date: string) => number,
+  limit: number): InsertionCall[] {
+  const timed = new Set(timedDates);
+  const group = (dates: string[], routes: boolean) => batchDates(dates, workingDays, limit).map(batch => ({ dates: batch, routes }));
+  return [...group(sent.filter(day => timed.has(day)), true), ...group(sent.filter(day => !timed.has(day)), false)];
 }
 
 /** Answers for date batches joined into one; every batch must come from the same road graph. */

@@ -661,7 +661,8 @@ export default function ScheduleView({
       ? `Saved: ${subject.label} moved, and the changed promise was recorded. Let the customer know.` : `Saved: ${subject.label} moved.`);
     router.refresh();
   };
-  const { placement, start: startPlacement, choose, drop, acknowledge, cancel: cancelPlacement, save } = usePlacement(metroId, monday, onSaved);
+  const { placement, start: startPlacement, prefetch, settle, choose, drop, acknowledge, cancel: cancelPlacement, save } =
+    usePlacement(metroId, monday, shown, onSaved);
   const opened = useRef(false);
 
   // A "Place on calendar" link opens the page with that job being placed.
@@ -707,6 +708,9 @@ export default function ScheduleView({
   const { drag, press, clickSuppressed } = useAppointmentDrag<DragItem>({
     canDrop,
     onStart: item => { setSaved(null); startPlacement(subjectOf(item)); },
+    // The preview is asked as the card is pressed; the click or drag the press becomes takes it over.
+    onPress: item => prefetch(subjectOf(item)),
+    onSettle: settle,
     // A drop before the answer arrives lands as soon as it does.
     onDrop: (_item, cell) => drop(preview => landing(preview.answer, cell)),
   });

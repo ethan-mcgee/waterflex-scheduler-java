@@ -306,3 +306,18 @@ export function spotAt(answer: RouteInsertions, technicianId: string, serviceDat
     .sort((a, b) => Math.abs(startMinute(a) - minute) - Math.abs(startMinute(b) - minute) || startMinute(a) - startMinute(b))[0];
   return { spot: gapSpot(day, chosen), plannedStart: nearest?.plannedStart ?? null };
 }
+
+/**
+ * A week's answer with the given dates' technician-days (and skipped technician-days) taken from `extra`, an answer
+ * asked for those dates alone with timed stops when the page pages to a day the first answer did not time. The
+ * other dates are kept as they were. Null when `extra` comes from another road map, so the two cannot be mixed.
+ */
+export function withTimedDays(answer: RouteInsertions, extra: RouteInsertions, dates: readonly string[]): RouteInsertions | null {
+  if (extra.routingIdentity !== answer.routingIdentity) return null;
+  const replaced = new Set(dates);
+  const keep = <T extends { serviceDate: string }>(items: readonly T[]) => items.filter(item => !replaced.has(item.serviceDate));
+  const take = <T extends { serviceDate: string }>(items: readonly T[]) => items.filter(item => replaced.has(item.serviceDate));
+  return { routingIdentity: answer.routingIdentity,
+    technicianDays: [...keep(answer.technicianDays), ...take(extra.technicianDays)],
+    skippedTechnicianDays: [...keep(answer.skippedTechnicianDays), ...take(extra.skippedTechnicianDays)] };
+}

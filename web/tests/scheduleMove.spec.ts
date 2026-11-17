@@ -132,7 +132,9 @@ test.describe("checking a move on the weekly schedule", () => {
     await dragTo(page, fixture.north, fixture.second.id);
     await expect(page.getByRole("complementary", { name: "Place a job" })).toContainText("Scheduling is not connected for this client.");
     expect(sent).toHaveLength(0);
-    expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north }]);
+    // The weekly grid shows every day, so every day's stops come timed, in the one request the press already sent.
+    const week = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"];
+    expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north, timedDates: week, withRestOfWeek: true }]);
     await card(page, fixture.north).click();
     await page.getByRole("complementary", { name: "Place a job" }).getByRole("button", { name: "Details" }).click();
     await expect(page.getByRole("dialog")).toContainText("Appointment details");

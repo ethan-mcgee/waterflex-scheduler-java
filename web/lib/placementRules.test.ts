@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { bestOptions, comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { bestOptions, comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, withTimedDays, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -166,4 +166,20 @@ test("a move is offered its best places that keep the promise, one start each, a
   const nowhere: RouteInsertions = { ...answer, technicianDays: [day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])] };
   assert.deepEqual(bestOptions(nowhere, original).map(option => option.start.keepsWindow), [false], "With no place that keeps it, window-changing places are offered");
   assert.deepEqual(bestOptions({ ...answer, technicianDays: [] }, original), [], "Nothing fits, nothing is offered");
+});
+
+test("a day paged to is joined into the week's answer with its timed stops, and only from the same road map", () => {
+  const NEXT = "2026-11-19";
+  const untimedNext = day("a", totals(70, 18000), [gap(undefined, undefined, 12, [])], { serviceDate: NEXT });
+  const week: RouteInsertions = { ...answer, technicianDays: [...answer.technicianDays, untimedNext],
+    skippedTechnicianDays: [...answer.skippedTechnicianDays, { technicianId: "c", serviceDate: NEXT, reason: "LOCATION_UNRESOLVED", message: "Stop c2 has no location." }] };
+  const timedNext = { ...untimedNext, stops: [{ appointmentId: "n1", sequence: 0, plannedStart: at(9), plannedEnd: at(10) }] };
+  const extra: RouteInsertions = { routingIdentity: answer.routingIdentity, technicianDays: [timedNext], skippedTechnicianDays: [] };
+  const joined = withTimedDays(week, extra, [NEXT]);
+  assert.ok(joined !== null);
+  // The paged-to day is replaced, its skipped day with it; the other days are kept as they were.
+  assert.deepEqual(joined.technicianDays.filter(item => item.serviceDate === NEXT), [timedNext]);
+  assert.deepEqual(joined.technicianDays.filter(item => item.serviceDate === DATE), answer.technicianDays);
+  assert.deepEqual(joined.skippedTechnicianDays, answer.skippedTechnicianDays);
+  assert.equal(withTimedDays(week, { ...extra, routingIdentity: "omaha-2026-11" }, [NEXT]), null);
 });

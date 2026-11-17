@@ -7,7 +7,7 @@ import { insertIntoRoutes } from "./schedulerApi";
 import type { RouteInsertions } from "./insertionContract";
 import type { PlacementPreview, PlacementSaved } from "./contracts";
 import type { Spot } from "./placementRules";
-import { dateBatches, joined, placementPlan, placementWrite, PlacementRefused, type PlacementPlan, type Subject } from "./apiPlacementCore";
+import { insertionCalls, joined, placementPlan, placementWrite, PlacementRefused, type PlacementPlan, type Subject } from "./apiPlacementCore";
 
 /**
  * Placing a job or moving an appointment on the schedule: one preview call for the week, answered by the scheduler's
@@ -38,32 +38,46 @@ async function subjectFor(clientId: string, input: SubjectInput): Promise<{ subj
 }
 
 /**
- * The scheduler's answer for a plan: one call when the dates fit under the technician-day limit, otherwise one per date
- * batch, joined. Each batch is assembled from the same loaded facts, so they describe one moment.
+ * The scheduler's answer for a plan on the `sent` dates: the timed ones asked with timed stops, the others without.
+ * The two groups run side by side, each split by date under the technician-day limit and sent in turn, and the
+ * answers are joined. Every call is assembled from the same loaded facts, so they describe one moment; `joined`
+ * refuses answers from two road maps.
  */
-async function insertions(clientId: string, plan: PlacementPlan, routes: boolean): Promise<RouteInsertions> {
+async function insertions(clientId: string, plan: PlacementPlan, sent: readonly string[], timedDates: readonly string[]): Promise<RouteInsertions> {
   const whole = assembleSnapshot(plan.facts);
   const perDate = new Map<string, number>();
   for (const day of whole.technicianDays) perDate.set(day.serviceDate, (perDate.get(day.serviceDate) ?? 0) + 1);
-  const batches = dateBatches(plan.facts, date => perDate.get(date) ?? 0, MAX_TECHNICIAN_DAYS);
+  const calls = insertionCalls(sent, timedDates, date => perDate.get(date) ?? 0, MAX_TECHNICIAN_DAYS);
+  if (calls.length === 0) throw new PlacementRefused(400, "None of the dates asked for are in the week shown");
   const windowMinutes = plan.facts.settings.windowHours * 60;
-  const answers: RouteInsertions[] = [];
-  for (const dates of batches) {
-    const snapshot = batches.length === 1 ? whole : assembleSnapshot({ ...plan.facts, dates });
-    answers.push(await insertIntoRoutes(clientId, { snapshot, job: plan.job, windowMinutes, startStepMinutes: START_STEP_MINUTES, routes }));
-  }
-  return joined(answers);
+  const send = async (routes: boolean) => {
+    const answers: RouteInsertions[] = [];
+    for (const call of calls.filter(item => item.routes === routes)) {
+      const snapshot = call.dates.length === plan.facts.dates.length ? whole : assembleSnapshot({ ...plan.facts, dates: call.dates });
+      answers.push(await insertIntoRoutes(clientId, { snapshot, job: plan.job, windowMinutes, startStepMinutes: START_STEP_MINUTES, routes }));
+    }
+    return answers;
+  };
+  const [timed, untimed] = await Promise.all([send(true), send(false)]);
+  return joined([...timed, ...untimed]);
 }
 
 /**
- * Every place on the week's routes where the job or appointment could go. Nothing is saved. The answer carries timed
- * stops, so the page can show every later visit moving as the subject is placed and moved, without asking again.
+ * Every place on the week's routes where the job or appointment could go. Nothing is saved. The days on screen
+ * (`timedDates`) carry timed stops, so the page can show every later visit moving as the subject is placed and moved
+ * without asking again; the rest of the week, sent with `withRest`, carries the places and their drive but not the
+ * stops, which keeps the answer small. A day paged to later is asked for alone, without the rest.
  */
-export async function previewPlacement(clientId: string, metroId: string, input: SubjectInput, dates: readonly string[], phases: Phases): Promise<PlacementPreview> {
-  const { subject } = await timed(phases, "subject", () => subjectFor(clientId, input));
-  const facts = await timed(phases, "facts", () => loadSnapshotFacts(clientId, metroId, dates));
+export async function previewPlacement(clientId: string, metroId: string, input: SubjectInput, week: readonly string[],
+  timedDates: readonly string[], withRest: boolean, phases: Phases): Promise<PlacementPreview> {
+  const { subject, serviceDate } = await timed(phases, "subject", () => subjectFor(clientId, input));
+  const sent = withRest ? week : week.filter(day => timedDates.includes(day));
+  // A moved appointment's day in this week is loaded even when it is not sent, because the plan takes the appointment
+  // out of that day. One booked in another week is refused, as before.
+  const own = serviceDate !== null && week.includes(serviceDate) ? [serviceDate] : [];
+  const facts = await timed(phases, "facts", () => loadSnapshotFacts(clientId, metroId, [...new Set([...sent, ...own])]));
   const plan = placementPlan(facts, subject);
-  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, true));
+  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, sent, timedDates));
   return { answer, original: plan.original, job: { id: plan.job.id, durationMinutes: plan.job.durationMinutes } };
 }
 
@@ -81,7 +95,7 @@ export async function savePlacement(clientId: string, metroId: string, input: Su
   const full = placementPlan(facts, subject);
   const technicians = [spot.technicianId, ...(full.original === null ? [] : [full.original.technicianId])];
   const plan = { ...full, facts: onlyTechnicians(full.facts, technicians) };
-  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, true));
+  const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, plan.facts.dates, plan.facts.dates));
   const write = placementWrite(plan, answer, spot, plannedStart, acknowledged);
   const change = write.promiseChange;
   await timed(phases, "write", () => writeReceipt(clientId, {

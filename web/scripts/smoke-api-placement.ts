@@ -109,7 +109,7 @@ const refusedWith = (status: number, message: RegExp) => (error: unknown) =>
 
 /** A start of the spot's gap in a fresh preview, picked by `pick`. */
 async function startAt(input: { jobId?: string; appointmentId?: string }, technician: string, pick: (start: InsertionStart) => boolean) {
-  const preview = await previewPlacement(clientId, METRO, input, [DATE], []);
+  const preview = await previewPlacement(clientId, METRO, input, [DATE], [DATE], true, []);
   const day = preview.answer.technicianDays.find(item => item.technicianId === id(technician) && item.serviceDate === DATE);
   assert.ok(day !== undefined, `Technician ${technician} is in the answer`);
   for (const gap of day.gaps) {
@@ -126,7 +126,7 @@ async function main() {
     const job = await waitingJob("j");
 
     // One preview covers every gap of both routes: a has a stop, so two gaps; b is empty, so one.
-    const preview = await previewPlacement(clientId, METRO, { jobId: job }, [DATE], []);
+    const preview = await previewPlacement(clientId, METRO, { jobId: job }, [DATE], [DATE], true, []);
     const days = new Map(preview.answer.technicianDays.map(day => [day.technicianId, day]));
     assert.equal(days.get(id("a"))?.gaps.length, 2);
     assert.equal(days.get(id("b"))?.gaps.length, 1);
@@ -178,7 +178,7 @@ async function main() {
     const odd = localMinute(DATE, 487, false, ZONE).toISOString();
     await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, nowhere, odd, true, []), refusedWith(409, /no longer fits/));
     assert.equal(findGap(preview.answer, nowhere), undefined);
-    await assert.rejects(previewPlacement(otherClientId, METRO, { appointmentId: x }, [DATE], []), refusedWith(404, /Appointment not found/));
+    await assert.rejects(previewPlacement(otherClientId, METRO, { appointmentId: x }, [DATE], [DATE], true, []), refusedWith(404, /Appointment not found/));
     console.log("Placement smoke passed: preview, save, kept and changed promises, refusals");
   } finally {
     await removeMetro();

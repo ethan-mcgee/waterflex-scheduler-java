@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { Prisma } from "@prisma/client";
 import type { AppointmentFacts, SnapshotFacts, TechnicianFacts } from "./clientSnapshot";
 import type { InsertionStart, RouteInsertions } from "./insertionContract";
-import { dateBatches, joined, placementPlan, placementWrite, PlacementRefused, type JobRow, type PlacementPlan } from "./apiPlacementCore";
+import { dateBatches, insertionCalls, joined, placementPlan, placementWrite, PlacementRefused, type JobRow, type PlacementPlan } from "./apiPlacementCore";
+import { placementPreviewRequest } from "./contracts";
 
 const DATE = "2026-11-18";
 const NEXT = "2026-11-19";
@@ -77,6 +78,36 @@ test("a week too big for one call is split by date, and the answers join only fr
   const one = answer("job-9", []);
   assert.equal(joined([one, { ...one, technicianDays: [] }]).technicianDays.length, 2);
   refused(() => joined([one, { ...one, routingIdentity: "other" }]), 503, /road map changed/);
+});
+
+test("only the days on screen are asked with timed stops; the rest of the week is asked without, and each group is split by date", () => {
+  const week = ["2026-11-16", "2026-11-17", DATE, NEXT, "2026-11-20"];
+  // The day view: its one day timed, the other four in one untimed call.
+  assert.deepEqual(insertionCalls(week, [DATE], () => 40, 200),
+    [{ dates: [DATE], routes: true }, { dates: ["2026-11-16", "2026-11-17", NEXT, "2026-11-20"], routes: false }]);
+  // A day paged to while placing is asked alone.
+  assert.deepEqual(insertionCalls([NEXT], [NEXT], () => 40, 200), [{ dates: [NEXT], routes: true }]);
+  // The week view times every day, in one call.
+  assert.deepEqual(insertionCalls(week, week, () => 40, 200), [{ dates: week, routes: true }]);
+  // Each group stays under the technician-day limit on its own.
+  assert.deepEqual(insertionCalls(week, ["2026-11-16", "2026-11-17"], () => 90, 200), [
+    { dates: ["2026-11-16", "2026-11-17"], routes: true },
+    { dates: [DATE, NEXT], routes: false }, { dates: ["2026-11-20"], routes: false }]);
+  refused(() => insertionCalls([DATE], [DATE], () => 201, 200), 413, /more than the 200/);
+});
+
+test("a preview request names the days on screen, inside the week shown, and whether the rest of the week comes too", () => {
+  const body = { metroId: "metro", monday: "2026-11-16", jobId: "job-9", timedDates: [DATE], withRestOfWeek: true };
+  assert.equal(placementPreviewRequest.safeParse(body).success, true);
+  // Sunday is the last day of the week of Monday the 16th; the next Monday is not.
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-22"] }).success, true);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-23"] }).success, false);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-15"] }).success, false);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: [] }).success, false);
+  const { timedDates: _timed, ...untimed } = body;
+  assert.equal(placementPreviewRequest.safeParse(untimed).success, false);
+  const { withRestOfWeek: _rest, ...noRest } = body;
+  assert.equal(placementPreviewRequest.safeParse(noRest).success, false);
 });
 
 test("saving a new job creates its appointment with the promised window and writes only the day it joins", () => {
