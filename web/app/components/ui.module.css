@@ -1,39 +1,56 @@
+/* Shared page pieces, drawn in the WaterFlex developers' look: white 12px panels, pill buttons and chips. */
+
 .card {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--panel-shadow);
 }
 
 .button {
-  border: 1px solid var(--line-strong);
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--brand-soft);
   background: var(--surface);
-  color: var(--ink-soft);
+  color: var(--brand);
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
-  padding: 8px 14px;
-  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: 999px;
   cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--brand-highlight);
 }
 
 .button:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-.buttonBrand {
+.buttonBrand,
+.buttonBrand:hover:not(:disabled) {
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+  box-shadow: var(--raised);
+}
+
+.buttonBrand:hover:not(:disabled) {
+  background: var(--brand-dark);
 }
 
 .iconButton {
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 6px;
-  width: 26px;
-  height: 26px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   color: var(--muted);
@@ -41,18 +58,16 @@
 }
 
 .sectionLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
   margin: 0 0 10px;
 }
 
 .chip {
-  font-size: 12px;
-  font-weight: 650;
-  padding: 7px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 13px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
   color: var(--muted);
@@ -64,14 +79,14 @@
 }
 
 .chipOn {
-  background: var(--success-wash);
-  border-color: #a9d7c1;
-  color: var(--success);
+  background: var(--brand-highlight);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .pill {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
   display: inline-block;

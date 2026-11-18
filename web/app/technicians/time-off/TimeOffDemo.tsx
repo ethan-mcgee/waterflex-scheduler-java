@@ -5,9 +5,10 @@ import { reportMatches as apiReportMatches, type ApiTimeOffReport } from "@/lib/
 import { repairOvertimeMinutes, type ParsedTimeOffReport, type TimeOffIntervalView, type TimeOffReportSummary } from "@/lib/timeOffView";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
-import Avatar from "../components/Avatar";
-import StatusPill from "../components/StatusPill";
-import ui from "../components/ui.module.css";
+import Avatar from "@/app/components/Avatar";
+import StatusPill from "@/app/components/StatusPill";
+import ui from "@/app/components/ui.module.css";
+import { PageHeader } from "@/app/portal/ui";
 import styles from "./time-off.module.css";
 
 type Request = {
@@ -132,8 +133,8 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
     } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
   }
 
-  return <div className={styles.main}><div className={styles.top}><p className={styles.eyebrow}>Dispatch</p><h1 className={styles.title}>Time off</h1><p className={styles.subtitle}>Requests, conflict analysis, and approvals in one queue.</p></div>
-    <div className={styles.toolbar}><div className={styles.seg}>{FILTERS.map(filter => <button key={filter.key} type="button" aria-pressed={selectedFilter === filter.key} className={selectedFilter === filter.key ? styles.segActive : ""} onClick={() => router.push(filter.key === "all" ? "/time-off" : `/time-off?status=${filter.key}`)}>{filter.label}</button>)}</div>
+  return <div className={styles.main}><PageHeader crumbs={["Technicians", "Time off"]} title="Time off" description="Requests, conflict analysis, and approvals in one queue." />
+    <div className={styles.toolbar}><div className={styles.seg}>{FILTERS.map(filter => <button key={filter.key} type="button" aria-pressed={selectedFilter === filter.key} className={selectedFilter === filter.key ? styles.segActive : ""} onClick={() => router.push(filter.key === "all" ? "/technicians/time-off" : `/technicians/time-off?status=${filter.key}`)}>{filter.label}</button>)}</div>
       <button ref={opener} className={`${ui.button} ${ui.buttonBrand}`} type="button" onClick={() => { setFormError(""); setShowForm(true); }}>+ New request</button></div>
     {message && <p role="status" className={styles.message}>{message}</p>}
     {truncated && <p role="note" className={styles.limitNotice}>Showing the first 100 matching requests.</p>}

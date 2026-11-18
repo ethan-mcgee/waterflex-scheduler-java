@@ -18,9 +18,14 @@
   --surface-soft: #f9f9f9;
   --line: #dadada;
   --line-strong: #c7c7c7;
+  --line-soft: #ededed;
   --brand: #0c59b3;
   --brand-dark: #094891;
   --brand-wash: #e3ecf7;
+  --brand-soft: #6193cd;
+  --brand-highlight: #ddedfd;
+  --raised: 0 2px 6px rgba(12, 89, 179, 0.18);
+  --panel-shadow: 0 1px 3px rgba(24, 25, 25, 0.06);
   --nav: #063771;
   --success: #2d7c31;
   --success-wash: #eef4ee;

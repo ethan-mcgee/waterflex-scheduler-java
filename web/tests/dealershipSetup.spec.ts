@@ -10,7 +10,7 @@ test("dealership creation selects the new owner for depot setup", async ({ page 
   const name = `New browser dealership ${Date.now()}`;
   let createdId: string | null = null;
   try {
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await page.getByPlaceholder("Foothills Nissan").fill(name);
     await page.getByRole("button", { name: "Create dealership" }).click();
     await expect(page.getByRole("status").last()).toContainText("Dealership created");
@@ -38,7 +38,7 @@ test("address changes discard stale geocodes and unavailable tiles retain a conf
     });
     await page.route("http://localhost:8083/omaha.json", route => route.fulfill({ status: 503 }));
     await page.route("**/api/depots", route => route.fulfill({ status: 422, json: { error: "Pin must be within 250 meters" } }));
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await page.getByLabel("Depot name").fill("Test depot");
     await page.getByLabel("Street address").fill("1 Old Street");
     await page.getByLabel("City").fill("Omaha");
@@ -79,7 +79,7 @@ test("depot counts and policy history stay visible under the dealership", async 
       return saveAttempts === 1 ? route.fulfill({ status: 409, json: { error: "Active hold on a booked day" } }) :
         route.fulfill({ json: { success: true, effectiveDate: next.toISOString().slice(0, 10) } });
     });
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await expect(page.getByText("1 active technicians today")).toHaveCount(0);
     await expect(page.getByText("1 active", { exact: true })).toBeVisible();
     const dealerPosition = await page.getByText("Policy browser dealer", { exact: true }).last().boundingBox();

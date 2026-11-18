@@ -10,6 +10,8 @@ import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fak
 import type { OptimizationRun } from "@/lib/savedEngineRun";
 import ApiProposalReview, { type ApiProposal } from "@/app/dispatch/ApiProposalReview";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
+import Link from "next/link";
+import { PageHeader } from "@/app/portal/ui";
 import styles from "./testing.module.css";
 
 const DispatchMap = dynamic(() => import("@/app/dispatch/DispatchMap"), { ssr: false, loading: () => <p>Loading road routes...</p> });
@@ -105,8 +107,9 @@ export default function TestingPage() {
   const completed = [...booked, ...noOffer];
   const routeDates = [...new Set(booked.flatMap(request => request.serviceDate ? [request.serviceDate] : []))].sort();
   const daysUntil = booked.flatMap(request => request.serviceDate && request.startedAt ? [(Date.parse(request.serviceDate) - Date.parse(calendarDateInTz(new Date(request.startedAt), OMAHA_TIMEZONE))) / 86400000] : []);
-  return <main className={styles.page}><nav><a href="/dispatch">Dispatch</a><a href="/schedule">Schedule</a></nav>
-    <h1>Sequential booking test</h1><p>Book distinct real OSM house addresses across the configured Omaha service area with the current booking search, then review the road routes those bookings produce. Runs never optimize.</p>
+  return <div className={styles.page}>
+    <PageHeader crumbs={["Booking test", "Sequential booking test"]} title="Sequential booking test"
+      description="Book distinct real OSM house addresses across the configured Omaha service area with the current booking search, then review the road routes those bookings produce. Runs never optimize." />
     <p><strong>Booking horizon:</strong> {(run?.currentHorizon ?? horizon).join(", ")} (America/Chicago, next ten weekdays).</p>
     <section className={styles.panel}><h2>New run</h2><fieldset disabled={busy || driving} className={styles.controls}>
       <label>Requests<input type="number" min="1" max="100" value={config.count} onChange={event => setConfig({ ...config, count: Number(event.target.value) })} /></label>
@@ -148,7 +151,7 @@ export default function TestingPage() {
         {!routeDates.length && <p>Routes appear after requests are booked.</p>}
         {routeDates.map(date => <article key={date} className={styles.preview} aria-label={`Routes for ${date}`}><h3>{date}</h3>
           <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha" date={date} /></div>
-          <a href={`/schedule?week=${date}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${date}`}>Open the day in Dispatch</a>
+          <Link href={`/schedule?week=${date}`}>View schedule</Link>{" | "}<Link href={`/dispatch?date=${date}`}>Open the day in Dispatch</Link>
         </article>)}
         {run.previews.length > 0 && <><h2>Saved proposals</h2><p>This run predates booking-only tests and saved a daily optimization proposal per day.</p>
           {run.previews.map(preview => {
@@ -164,5 +167,5 @@ export default function TestingPage() {
             </article>;
           })}</>}</>}
     </section>{error && <p role="alert" className={styles.error}>{error}</p>}
-  </main>;
+  </div>;
 }

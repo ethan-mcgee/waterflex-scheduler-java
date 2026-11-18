@@ -8,7 +8,7 @@ async function fill(page: Page, method: string, cost: string, fairness: string) 
 }
 
 test("a client chooses its daily search method and times, and the page keeps them", async ({ page }) => {
-  await page.goto("/settings");
+  await page.goto("/settings/solver");
   // Existing clients start on Tabu + K opt with the earlier fixed 10 and 5 seconds.
   await expect(page.getByLabel("Search method")).toHaveValue("TABU_KOPT");
   await expect(page.getByLabel("Cost search time")).toHaveValue("10");
@@ -44,7 +44,7 @@ test("a client chooses its daily search method and times, and the page keeps the
     await page.reload();
     await expect(page.getByLabel("Stop when unimproved")).toHaveValue("8");
   } finally {
-    await page.goto("/settings");
+    await page.goto("/settings/solver");
     await page.getByLabel("Stop when unimproved").fill("");
     await fill(page, "TABU_KOPT", "10", "5");
     await expect(page.getByRole("status").filter({ hasText: "Settings saved." })).toBeVisible();

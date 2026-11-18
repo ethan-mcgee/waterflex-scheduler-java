@@ -1,5 +1,5 @@
 /**
- * The work orders section's building blocks, drawn after the developers' Material-like design: pill buttons, outlined
+ * The portal's building blocks, drawn after the developers' Material-like design: pill buttons, outlined
  * fields with floating labels, a segmented view toggle, chips, type tags and status icons.
  */
 
@@ -64,8 +64,10 @@ export function StatusIcon({ status, size = 16 }: { status: WorkOrderStatus; siz
   </span>;
 }
 
-/** Breadcrumb, title and actions at the top of every page. */
-export function PageHeader({ crumbs, title, actions }: { crumbs: readonly string[]; title: string; actions?: ReactNode }) {
+/** Breadcrumb, title, an optional one-line description and actions at the top of every page. */
+export function PageHeader({ crumbs, title, description, actions }: {
+  crumbs: readonly string[]; title: string; description?: ReactNode; actions?: ReactNode;
+}) {
   return (
     <div className={styles.pageHeader}>
       <div>
@@ -73,6 +75,7 @@ export function PageHeader({ crumbs, title, actions }: { crumbs: readonly string
           <ol>{crumbs.map((crumb, index) => <li key={`${index}-${crumb}`} aria-current={index === crumbs.length - 1 ? "page" : undefined}>{crumb}</li>)}</ol>
         </nav>
         <h1 className={styles.title}>{title}</h1>
+        {description !== undefined && <p className={styles.description}>{description}</p>}
       </div>
       {actions && <div className={styles.headerActions}>{actions}</div>}
     </div>

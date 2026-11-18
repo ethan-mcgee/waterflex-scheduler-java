@@ -973,7 +973,7 @@ export default function ScheduleView({
   );
 
   return (
-    <main className={styles.wrap}>
+    <div className={styles.wrap}>
       <div className={styles.toolbar}>
         {view === "day" ? <>
           <h1 className={styles.title}>Daily schedule</h1>
@@ -1187,7 +1187,7 @@ export default function ScheduleView({
           {hoverText}
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

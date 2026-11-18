@@ -1,7 +1,7 @@
 "use client";
 
 import ui from "../components/ui.module.css";
-import DepotPinMap from "../dealerships/DepotPinMap";
+import DepotPinMap from "@/app/branches/DepotPinMap";
 import { inputStyle } from "./inputStyle";
 import styles from "./technicians.module.css";
 import type { HomeAddress, HomeAddressState } from "./useHomeAddressLookup";

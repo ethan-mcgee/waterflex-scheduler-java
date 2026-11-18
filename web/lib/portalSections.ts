@@ -1,7 +1,6 @@
 /**
  * The portal's sections: each is one icon on the frame's rail and one menu beside it. A page belongs to the section
- * whose menu link matches its path most closely, so /dispatch/follow-up is a work orders page while /dispatch is the
- * dispatch board.
+ * whose menu link matches its path most closely, so /technicians/time-off is the Time off page, not the Roster.
  */
 
 export type SectionKey = "work-orders" | "dispatch" | "technicians" | "branches" | "settings" | "testing";
@@ -21,17 +20,17 @@ export const PORTAL_SECTIONS: readonly PortalSection[] = [
     { href: "/work-orders/schedule", label: "Schedule" },
     // The placement board stays its own page until the work orders calendar takes over placing and moving.
     { href: "/schedule", label: "Place jobs" },
-    { href: "/book", label: "New work order" },
+    { href: "/work-orders/new", label: "New work order" },
     { href: "/work-orders/recurring", label: "Recurring" },
     { href: "/work-orders/outstanding", label: "Outstanding" },
     { href: "/work-orders/statistics", label: "Statistics" },
     { href: "/work-orders/archive", label: "Archive" },
-    { href: "/dispatch/follow-up", label: "Follow-up" },
+    { href: "/work-orders/follow-up", label: "Follow-up" },
   ] },
   { key: "dispatch", label: "Dispatch", links: [{ href: "/dispatch", label: "Optimize routes" }] },
-  { key: "technicians", label: "Technicians", links: [{ href: "/technicians", label: "Roster" }, { href: "/time-off", label: "Time off" }] },
-  { key: "branches", label: "Branches", links: [{ href: "/dealerships", label: "Dealerships and depots" }] },
-  { key: "settings", label: "Settings", links: [{ href: "/settings", label: "Solver settings" }] },
+  { key: "technicians", label: "Technicians", links: [{ href: "/technicians", label: "Roster" }, { href: "/technicians/time-off", label: "Time off" }] },
+  { key: "branches", label: "Branches", links: [{ href: "/branches", label: "Dealerships and depots" }] },
+  { key: "settings", label: "Settings", links: [{ href: "/settings/solver", label: "Solver settings" }] },
   { key: "testing", label: "Booking test", links: [{ href: "/dispatch/testing", label: "Sequential booking test" }], testingOnly: true },
 ];
 

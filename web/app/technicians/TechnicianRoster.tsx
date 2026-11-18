@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar";
 import ui from "../components/ui.module.css";
+import { PageHeader } from "@/app/portal/ui";
 import AddTechnicianForm from "./AddTechnicianForm";
 import DateField, { dateFieldError } from "./DateField";
 import { formatInterval, fromMinutes, toMinutes } from "./format";
@@ -117,7 +118,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   }
 
   return <div className={styles.main}>
-    <div className={styles.top}><p className={styles.eyebrow}>Team</p><h1 className={styles.title}>Technicians</h1><p className={styles.subtitle}>Manage technician profiles, standard availability, and qualifications.</p></div>
+    <PageHeader crumbs={["Technicians", "Roster"]} title="Technicians" description="Manage technician profiles, standard availability, and qualifications." />
     <div className={styles.layout}><div className={`${ui.card} ${styles.roster}`}>
       <label className={styles.search} htmlFor="technician-search"><input id="technician-search" placeholder="Search technicians" value={search} onChange={event => setSearch(event.target.value)} /></label>
       <button type="button" className={`${ui.button} ${ui.buttonBrand}`} style={{ width: "100%", marginBottom: 12 }} onClick={() => setShowAddForm(true)}>+ Add technician</button>
@@ -149,7 +150,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
           <p style={{ margin: 0, fontSize: 13, color: profileFor(tech).bio ? "var(--ink)" : "var(--quiet)", fontStyle: profileFor(tech).bio ? "normal" : "italic" }}>{profileFor(tech).bio || "No bio provided yet."}</p>
         </div>
 
-        <p className={ui.sectionLabel}>Service qualifications</p><div className={`${styles.chipRow} ${styles.profileQualifications}`}>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
+        <p className={ui.sectionLabel}>Service qualifications</p><div className={`${styles.chipRow} ${styles.profileQualifications}`} data-profile-qualifications>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
 
         <p className={ui.sectionLabel}>Current weekly availability</p>
         <StandardAvailabilityGrid days={versionFor(tech, today).days} />

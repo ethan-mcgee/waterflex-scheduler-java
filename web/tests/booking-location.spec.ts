@@ -19,7 +19,7 @@ for (const hasMatch of [true, false]) {
         expect(body.confirmedPin?.lat).not.toBe(locationFixture.candidates[0]?.lat);
         await route.fulfill({ status: 422, json: { status: "UNROUTABLE", error: "Place the pin at your driveway entrance." } });
       });
-      await page.goto("/book");
+      await page.goto("/work-orders/new");
       await page.getByRole("radio", { name: /Pin service/ }).check();
       for (const [label, value] of Object.entries({ "First name": "Pin", "Last name": "Test", Email: "pin@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68130" }))
         await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
@@ -64,7 +64,7 @@ test("address edits abort lookup and prevent stale results from replacing a newe
       if (address.line1 === "Old address") await new Promise<void>(resolve => { release = resolve; });
       try { await route.fulfill({ json: locationFixture }); } catch { /* An edited address cancels this response. */ }
     });
-    await page.goto("/book");
+    await page.goto("/work-orders/new");
     await page.getByRole("radio", { name: /Stale pin service/ }).check();
     for (const [label, value] of Object.entries({ "First name": "Pin", "Last name": "Test", Email: "pin@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68130" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);

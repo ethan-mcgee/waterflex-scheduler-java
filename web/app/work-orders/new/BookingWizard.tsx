@@ -3,8 +3,9 @@
 import { offersResponse, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { appointmentSearchMessage, bookingApiStart, recordBookingApiDuration } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
-import styles from "@/app/book/booking.module.css";
-import AddressPinMap, { type PinCandidate, type ServiceArea } from "@/app/book/AddressPinMap";
+import { PageHeader } from "@/app/portal/ui";
+import styles from "./booking.module.css";
+import AddressPinMap, { type PinCandidate, type ServiceArea } from "./AddressPinMap";
 
 interface ServiceOption {
   code: string;
@@ -261,16 +262,16 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   </div> : null;
 
   if (step === "pending") {
-    return <main className={styles.wrap}><div className={styles.card}>
+    return <div className={styles.wrap}><div className={styles.card}>
       <h1 className={styles.title}>We will follow up</h1>
       <p>We could not safely offer a time online. Please keep this reference: {jobId}</p>
-    </div></main>;
+    </div></div>;
   }
 
   if (step === "pin") {
-    return <main className={styles.wrap}>
-      <h1 className={styles.title}>Confirm your service location</h1>
-      <p className={styles.subtitle}>Check your service location. Drag the pin or click the map to place it at your driveway entrance.</p>
+    return <div className={styles.wrap}>
+      <PageHeader crumbs={["Work orders", "New work order"]} title="Confirm your service location"
+        description="Check your service location. Drag the pin or click the map to place it at your driveway entrance." />
       <p>{form.line1}, {form.city}, {form.state} {form.postalCode}</p>
       {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
@@ -289,12 +290,12 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         <button className={styles.linkButton} disabled={submitting} onClick={() => { setMapAvailable(false); setMapVersion(v => v + 1); }}>Retry map</button>
         <button className={styles.linkButton} disabled={submitting} onClick={() => handlePinConfirmation(true)}>Request follow-up</button>
       </div>
-    </main>;
+    </div>;
   }
 
   if (step === "confirmed" && confirmedOffer) {
     return (
-      <main className={styles.wrap}>
+      <div className={styles.wrap}>
         <div className={styles.card}>
           <div className={styles.confirmBox}>
             <div className={styles.checkmark}>&#9989;</div>
@@ -307,17 +308,14 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
             </p>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (step === "slots") {
     return (
-      <main className={styles.wrap}>
-        <h1 className={styles.title}>Choose a time</h1>
-        <p className={styles.subtitle}>
-          {selectedService?.name} - pick whichever works best for you.
-        </p>
+      <div className={styles.wrap}>
+        <PageHeader crumbs={["Work orders", "New work order"]} title="Choose a time" description={<>{selectedService?.name} - pick whichever works best for you.</>} />
         {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
         <div className={styles.slotGrid}>
@@ -355,14 +353,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         <button className={styles.linkButton} onClick={handleBackToForm} disabled={submitting || confirmingHoldId !== null || releasing}>
           {releasing ? "Releasing times..." : "← Start over"}
         </button>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className={styles.wrap}>
-      <h1 className={styles.title}>Book a service visit</h1>
-      <p className={styles.subtitle}>Tell us what you need and we&apos;ll find the soonest good time.</p>
+    <div className={styles.wrap}>
+      <PageHeader crumbs={["Work orders", "New work order"]} title="Book a service visit" description="Tell us what you need and we'll find the soonest good time." />
       {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
       <form className={styles.card} onSubmit={handleSubmit}>
@@ -507,6 +504,6 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         }}>Request follow-up</button>
         </fieldset>
       </form>
-    </main>
+    </div>
   );
 }

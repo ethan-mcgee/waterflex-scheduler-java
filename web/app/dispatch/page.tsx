@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { activeClient } from "@/lib/activeClient";
 import { tomorrowInTz } from "@/lib/date";
 import { loadSolverSettings } from "@/lib/clientSettingsStore";
+import { MapPinOff } from "lucide-react";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
+import { EmptyState } from "@/app/portal/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +22,14 @@ export default async function DispatchPage({
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
-      <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-        <p>{searchParams.metroId ? "Selected metro is unavailable." : "No metro configured yet."}</p>
-      </main>
+      <EmptyState icon={MapPinOff} title={searchParams.metroId ? "Selected metro is unavailable." : "No metro configured yet."}>
+        {searchParams.metroId ? "It belongs to another dealership or no longer exists." : "Add a depot under Branches to dispatch its routes."}
+      </EmptyState>
     );
   }
 
   const date = searchParams.date ?? tomorrowInTz(metro.timezone);
-  if (!dateContract.safeParse(date).success) return <main><p role="alert">Invalid dispatch date.</p></main>;
+  if (!dateContract.safeParse(date).success) return <p role="alert">Invalid dispatch date.</p>;
   const dayStart = new Date(`${date}T00:00:00.000Z`);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 

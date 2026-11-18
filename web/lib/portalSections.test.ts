@@ -8,14 +8,14 @@ const where = (path: string | null) => { const found = locate(path, all); return
 test("every page belongs to the section whose link matches the most of its path", () => {
   assert.deepEqual(where("/work-orders/schedule"), ["work-orders", "/work-orders/schedule"]);
   assert.deepEqual(where("/schedule"), ["work-orders", "/schedule"]);
-  assert.deepEqual(where("/book"), ["work-orders", "/book"]);
+  assert.deepEqual(where("/work-orders/new"), ["work-orders", "/work-orders/new"]);
   assert.deepEqual(where("/dispatch"), ["dispatch", "/dispatch"]);
-  assert.deepEqual(where("/dispatch/follow-up"), ["work-orders", "/dispatch/follow-up"]);
+  assert.deepEqual(where("/work-orders/follow-up"), ["work-orders", "/work-orders/follow-up"]);
   assert.deepEqual(where("/dispatch/testing"), ["testing", "/dispatch/testing"]);
   assert.deepEqual(where("/technicians"), ["technicians", "/technicians"]);
-  assert.deepEqual(where("/time-off"), ["technicians", "/time-off"]);
-  assert.deepEqual(where("/dealerships"), ["branches", "/dealerships"]);
-  assert.deepEqual(where("/settings"), ["settings", "/settings"]);
+  assert.deepEqual(where("/technicians/time-off"), ["technicians", "/technicians/time-off"]);
+  assert.deepEqual(where("/branches"), ["branches", "/branches"]);
+  assert.deepEqual(where("/settings/solver"), ["settings", "/settings/solver"]);
 });
 
 test("look-alike paths do not match a link, and unknown paths fall back to work orders with no link marked", () => {
@@ -34,7 +34,7 @@ test("the booking test section shows only where booking tests are enabled; witho
 
 test("each section's rail icon leads to its first page, and every link is unique", () => {
   assert.equal(sectionHome(locate("/", all).section), "/work-orders/schedule");
-  assert.equal(sectionHome(locate("/time-off", all).section), "/technicians");
+  assert.equal(sectionHome(locate("/technicians/time-off", all).section), "/technicians");
   const hrefs = PORTAL_SECTIONS.flatMap(section => section.links.map(link => link.href));
   assert.equal(new Set(hrefs).size, hrefs.length);
 });

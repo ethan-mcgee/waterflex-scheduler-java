@@ -17,7 +17,7 @@ test("dealership policy controls save independent departure and return endpoints
       submitted = route.request().postDataJSON() as unknown;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true, effectiveDate }) });
     });
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await page.getByRole("button", { name: "Edit policy" }).click();
     await page.getByRole("group", { name: "Departure" }).last().getByRole("button", { name: "Depot" }).click();
     await page.getByRole("button", { name: "Save policy change" }).click();
@@ -40,7 +40,7 @@ test("detail editors retain failed input and legacy depot address is explicit", 
     expect((await request.patch(`/api/depots/${depot.id}`, { data: { name: "Changed", address: { line1: "1 Main", city: "Omaha", state: "NE", postalCode: "68102" } } })).status()).toBe(400);
     await page.route(`**/api/dealerships/${dealership.id}`, route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Name conflict" }) }));
     await page.route(`**/api/depots/${depot.id}`, route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Active hold prevents edit" }) }));
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await page.getByRole("button", { name: "Edit dealership" }).last().click();
     await page.getByLabel("Dealership name").fill("Retained dealership");
     await page.getByRole("button", { name: "Save dealership" }).click();
@@ -73,7 +73,7 @@ test("changing a saved address requires a newly confirmed pin", async ({ page })
     let submitted: unknown = null;
     await page.route("**/api/technicians/geocode", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ candidates: [{ lat: 41.25, lng: -95.93, precision: "ROOFTOP" }] }) }));
     await page.route(`**/api/depots/${depot.id}`, route => { submitted = route.request().postDataJSON() as unknown; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) }); });
-    await page.goto("/dealerships");
+    await page.goto("/branches");
     await page.getByRole("button", { name: "Edit details" }).last().click();
     await expect(page.getByLabel("Street address").last()).toHaveValue("1 Main St");
     await page.getByLabel("Street address").last().fill("2 Main St");
