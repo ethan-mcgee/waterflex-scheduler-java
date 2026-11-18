@@ -38,7 +38,7 @@ export default async function FollowUpPage() {
             <td>{status === null ? "Not recorded" : <span className={styles.status} data-status={status}>{STATUS[status] ?? status}</span>}</td>
             <td><div className={styles.actions}>
               <FollowUpActions jobId={job.id} />
-              {placeable && <Button variant="text" href={`/schedule?placeJob=${encodeURIComponent(job.id)}`}>Place on calendar</Button>}
+              {placeable && <Button variant="text" href={`/work-orders/schedule?placeJob=${encodeURIComponent(job.id)}`}>Place on calendar</Button>}
             </div></td>
           </tr>;
         })}</tbody>

@@ -115,19 +115,6 @@ export function hourLabel(hour: number, first: boolean): { hour: string; suffix:
   return { hour: String(shown), suffix: first || hour === 12 ? period : "00" };
 }
 
-/**
- * The hours the calendar spans: every shift and every booked visit fits, rounded out to whole hours. A day with
- * neither shows the design's 8 AM to 5 PM.
- */
-export function calendarHours(technicians: readonly WorkOrderTechnician[], cards: readonly WorkOrderCard[]): { start: number; end: number } {
-  const starts = [...technicians.flatMap(tech => tech.shift ? [tech.shift.startMin] : []), ...cards.map(card => card.startMin)];
-  const ends = [...technicians.flatMap(tech => tech.shift ? [tech.shift.endMin] : []), ...cards.map(card => card.endMin)];
-  if (starts.length === 0 || ends.length === 0) return { start: 8, end: 17 };
-  const start = Math.max(0, Math.floor(Math.min(...starts) / 60));
-  const end = Math.min(24, Math.max(start + 1, Math.ceil(Math.max(...ends) / 60)));
-  return { start, end };
-}
-
 export interface CardFilters { type: string; status: string; place: string }
 
 export const NO_FILTERS: CardFilters = { type: "", status: "", place: "" };
@@ -137,17 +124,23 @@ export function hasFilters(filters: CardFilters): boolean {
 }
 
 /** Whether a booked card passes the filters: type and status match exactly, the place matches as typed text. */
+/**
+ * Whether a work order passes the filters. One with no status (waiting for the calendar, or in a state the portal shows
+ * no status for) never matches a status filter.
+ */
+export function itemMatches(item: { typeCode: string; status: WorkOrderStatus | null; place: string }, filters: CardFilters): boolean {
+  if (filters.type !== "" && item.typeCode !== filters.type) return false;
+  if (filters.status !== "" && item.status !== filters.status) return false;
+  return placeMatches(item.place, filters.place);
+}
+
 export function cardMatches(card: WorkOrderCard, filters: CardFilters): boolean {
-  if (filters.type !== "" && card.typeCode !== filters.type) return false;
-  if (filters.status !== "" && card.status !== filters.status) return false;
-  return placeMatches(card.place, filters.place);
+  return itemMatches(card, filters);
 }
 
 /** Waiting work orders have no status, so a status filter hides them all. */
 export function waitingMatches(order: WaitingWorkOrder, filters: CardFilters): boolean {
-  if (filters.status !== "") return false;
-  if (filters.type !== "" && order.typeCode !== filters.type) return false;
-  return placeMatches(order.place, filters.place);
+  return itemMatches({ ...order, status: null }, filters);
 }
 
 function placeMatches(place: string, query: string): boolean {

@@ -68,14 +68,14 @@ function UnassignedList({ waiting, metroId, date }: { waiting: readonly WaitingW
   return (
     <section className={styles.routeCard} aria-label="Unassigned work orders">
       <div className={styles.routeHead}>
-        <span><strong>Unassigned · {waiting.length}</strong><small>Place them from Place jobs</small></span>
+        <span><strong>Unassigned · {waiting.length}</strong><small>Assign opens the day calendar to place one</small></span>
       </div>
       <ol className={styles.stops}>
         {waiting.map(order => <li key={order.jobId}>
           <span className={styles.stopUnassigned} aria-hidden>?</span>
           <span className={styles.stopBody}><span>{order.place}</span><small>{order.typeName} · {durationLabel(order.durationMin)}</small></span>
-          <Link className={styles.assign} href={`/schedule?${new URLSearchParams({ metroId, date, placeJob: order.jobId }).toString()}`}
-            title="Opens Place jobs to place this work order">Assign</Link>
+          <Link className={styles.assign} href={`/work-orders/schedule?${new URLSearchParams({ metroId, date, placeJob: order.jobId }).toString()}`}
+            title="Opens the day calendar with this work order being placed">Assign</Link>
         </li>)}
         {waiting.length === 0 && <li className={styles.quiet}>Nothing waiting</li>}
       </ol>

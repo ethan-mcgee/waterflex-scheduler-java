@@ -7,7 +7,7 @@ const where = (path: string | null) => { const found = locate(path, all); return
 
 test("every page belongs to the section whose link matches the most of its path", () => {
   assert.deepEqual(where("/work-orders/schedule"), ["work-orders", "/work-orders/schedule"]);
-  assert.deepEqual(where("/schedule"), ["work-orders", "/schedule"]);
+  assert.deepEqual(where("/work-orders/schedule/anything"), ["work-orders", "/work-orders/schedule"]);
   assert.deepEqual(where("/work-orders/new"), ["work-orders", "/work-orders/new"]);
   assert.deepEqual(where("/dispatch"), ["dispatch", "/dispatch"]);
   assert.deepEqual(where("/work-orders/follow-up"), ["work-orders", "/work-orders/follow-up"]);
@@ -19,7 +19,7 @@ test("every page belongs to the section whose link matches the most of its path"
 });
 
 test("look-alike paths do not match a link, and unknown paths fall back to work orders with no link marked", () => {
-  assert.deepEqual(where("/schedules"), ["work-orders", null]);
+  assert.deepEqual(where("/work-orders/schedules"), ["work-orders", null]);
   assert.deepEqual(where("/"), ["work-orders", null]);
   assert.deepEqual(where(null), ["work-orders", null]);
   assert.deepEqual(where("/dispatch/proposals/123"), ["dispatch", "/dispatch"]);

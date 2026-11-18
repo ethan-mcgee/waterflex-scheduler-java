@@ -13,6 +13,8 @@ const nextConfig = {
       { source: "/dispatch/follow-up", destination: "/work-orders/follow-up", permanent: true },
       { source: "/time-off", destination: "/technicians/time-off", permanent: true },
       { source: "/dealerships", destination: "/branches", permanent: true },
+      // The classic schedule became the work orders calendar; its date, week, view, metroId and placeJob mean the same.
+      { source: "/schedule", destination: "/work-orders/schedule", permanent: true },
     ];
   },
 };

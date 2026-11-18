@@ -63,7 +63,7 @@ test.describe("the daily schedule", () => {
   test.afterEach(async () => { await fixture.cleanup(); });
 
   test("opens by default with technicians as columns, and the same time lines up across them", async ({ page }) => {
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(dayGrid(page)).toBeVisible();
     await expect(page.locator('[data-schedule-view="week"]')).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Daily schedule" })).toBeVisible();
@@ -82,12 +82,12 @@ test.describe("the daily schedule", () => {
     await expect(card(page, fixture.later)).toHaveCount(0);
 
     // With no date at all, the page still opens on a day, not a week.
-    await page.goto(`/schedule?metroId=${fixture.metroId}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}`);
     await expect(dayGrid(page)).toBeVisible();
   });
 
   test("pages forward and back a day at a time, across the end of the week", async ({ page }) => {
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(card(page, fixture.east)).toBeVisible();
 
     await page.getByRole("button", { name: "Next day" }).click();
@@ -109,7 +109,7 @@ test.describe("the daily schedule", () => {
   });
 
   test("keeps the weekly grid for week links and the view switch", async ({ page }) => {
-    await page.goto(`/schedule?metroId=${fixture.metroId}&week=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&week=${DATE}`);
     await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
     await expect(page.getByRole("heading", { name: "Weekly schedule" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Week" })).toHaveAttribute("aria-current", "page");
@@ -120,7 +120,7 @@ test.describe("the daily schedule", () => {
 
     await page.getByRole("link", { name: "Week" }).click();
     await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
-    await page.goto(`/schedule?metroId=${fixture.metroId}&view=week`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&view=week`);
     await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
   });
 });

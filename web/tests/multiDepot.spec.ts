@@ -36,9 +36,9 @@ test("dispatch and weekly schedule use the depot metro effective on each date", 
     await page.goto(`/dispatch?metroId=${secondMetro.id}&date=2026-10-08`);
     await expect(noVisits).toBeVisible();
     await expect(noTechnicians).toHaveCount(0);
-    await page.goto(`/schedule?metroId=${firstMetro.id}&week=2026-10-05`);
+    await page.goto(`/work-orders/schedule?metroId=${firstMetro.id}&week=2026-10-05`);
     await expect(page.getByText("Assigned to another metro").first()).toBeVisible();
-    await page.goto(`/schedule?metroId=${secondMetro.id}&week=2026-10-05`);
+    await page.goto(`/work-orders/schedule?metroId=${secondMetro.id}&week=2026-10-05`);
     await expect(page.getByText("Assigned to another metro").first()).toBeVisible();
   } finally {
     await prisma.technician.delete({ where: { id: technician.id } });

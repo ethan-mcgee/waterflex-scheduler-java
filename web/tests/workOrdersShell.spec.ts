@@ -49,7 +49,8 @@ async function seed(): Promise<Fixture> {
 }
 
 const frame = (page: Page) => page.locator("[data-portal-frame]");
-const calendar = (page: Page) => page.locator("[data-work-orders-calendar]");
+const calendar = (page: Page) => page.locator('[data-schedule-view="day"]');
+const unassigned = (page: Page) => page.getByRole("complementary", { name: "Place a job" });
 
 test.describe("the work orders section", () => {
   let fixture: Fixture;
@@ -82,27 +83,30 @@ test.describe("the work orders section", () => {
     await expect(page.locator("table")).toHaveCount(0);
   });
 
-  test("the calendar shows the metro's technicians, the booked visit at its time, and the waiting work order", async ({ page }) => {
+  test("the day calendar shows the metro's technicians, the booked visit at its time, and the waiting work order", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
-    await expect(page.getByRole("heading", { name: "Wednesday, 10/07/26" })).toBeVisible();
-    await expect(calendar(page).locator(`[data-technician-column="${fixture.first}"]`)).toHaveText("Wo First Tech");
-    await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toHaveText("Wo Second Tech");
+    await expect(page.locator(`[data-schedule-date="${DATE}"]`)).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Day" })).toHaveAttribute("aria-current", "page");
+    await expect(calendar(page).locator(`[data-technician-column="${fixture.first}"]`)).toContainText("Wo First Tech");
+    await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toContainText("Wo Second Tech");
 
-    const visit = calendar(page).locator(`[data-work-order="${fixture.visit}"]`);
+    const visit = calendar(page).locator(`[data-appointment-id="${fixture.visit}"]`);
     await expect(visit).toContainText("10:15");
-    await expect(visit).toContainText("Omaha, NE 68102");
-    await expect(visit).toContainText("Wo softener service");
+    await expect(visit).toContainText("Wo Customer");
+    await expect(visit).toHaveAttribute("title", "Wo Customer, Wo softener service");
     await expect(visit.getByRole("img", { name: "Scheduled" })).toBeVisible();
-    await expect(calendar(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`)).toContainText("Wo repair call");
+    await expect(unassigned(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`)).toContainText("Wo repair call");
+    await expect(unassigned(page)).toContainText("Unassigned 1");
 
     await expect(page.getByLabel("Reason code", { exact: true })).toBeDisabled();
     await expect(page.getByLabel("Branch", { exact: true })).toBeDisabled();
   });
 
-  test("filters narrow the calendar on the page and clear back", async ({ page }) => {
+  test("filters hide visits and waiting work orders on the page and clear back", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
-    const visit = calendar(page).locator(`[data-work-order="${fixture.visit}"]`);
-    const waiting = calendar(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`);
+    const visit = calendar(page).locator(`[data-appointment-id="${fixture.visit}"]`);
+    const waiting = unassigned(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`);
+    await expect(visit).toBeVisible();
 
     await page.getByLabel("Work order type").selectOption({ label: "Wo repair call" });
     await expect(visit).toHaveCount(0);
@@ -112,6 +116,7 @@ test.describe("the work orders section", () => {
     await page.getByLabel("Status", { exact: true }).selectOption({ label: "Scheduled" });
     await expect(visit).toBeVisible();
     await expect(waiting).toHaveCount(0);
+    await expect(unassigned(page)).toContainText("No waiting jobs match these filters.");
 
     await page.getByRole("button", { name: "Clear filters" }).click();
     await page.getByLabel("City / ZIP").fill("68005");
@@ -119,10 +124,13 @@ test.describe("the work orders section", () => {
     await expect(waiting).toBeVisible();
 
     await page.getByLabel("City / ZIP").fill("Lincoln");
-    await expect(page.getByRole("main").getByRole("status").filter({ hasText: "No work orders match these filters" })).toBeVisible();
+    await expect(visit).toHaveCount(0);
+    await expect(waiting).toHaveCount(0);
+    // The count is of everything waiting, not of what the filters show.
+    await expect(unassigned(page)).toContainText("Unassigned 1");
   });
 
-  test("technicians can be hidden and shown again, and Unassigned folds away", async ({ page }) => {
+  test("technicians can be hidden and shown again, in the day and the week, and Unassigned folds away", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await page.getByRole("button", { name: "Hide Wo Second Tech" }).click();
     await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toHaveCount(0);
@@ -130,29 +138,39 @@ test.describe("the work orders section", () => {
     await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toBeVisible();
 
     await page.getByRole("button", { name: "Collapse unassigned" }).click();
-    await expect(page.locator("[data-unassigned-column]")).toBeHidden();
+    await expect(page.locator("[data-unassigned-column]")).toHaveCount(0);
     await page.getByRole("button", { name: "Expand unassigned" }).click();
     await expect(page.locator("[data-unassigned-column]")).toBeVisible();
+
+    await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Week" }).click();
+    await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
+    await page.getByRole("button", { name: "Hide Wo First Tech" }).click();
+    await expect(page.locator(`[data-tech-header="${fixture.first}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-tech-header="${fixture.second}"]`)).toBeVisible();
   });
 
-  test("the day stepper and the view toggle keep the metro and the day", async ({ page }) => {
-    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+  test("the map pages its own days, and Assign opens the day calendar with that work order being placed", async ({ page }) => {
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}&view=map`);
     await page.getByRole("link", { name: "Next day" }).click();
     await expect(page.getByRole("heading", { name: "Thursday, 10/08/26" })).toBeVisible();
     await page.getByRole("link", { name: "Previous day" }).click();
     await expect(page.getByRole("heading", { name: "Wednesday, 10/07/26" })).toBeVisible();
-
-    await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Map View" }).click();
     await expect(page).toHaveURL(new RegExp(`view=map.*date=${DATE}|date=${DATE}.*view=map`));
+
     const routes = page.getByRole("complementary", { name: "Routes" });
     await expect(routes.getByRole("region", { name: "Wo First Tech's route" })).toContainText("1 stop");
     await expect(routes.getByRole("region", { name: "Unassigned work orders" })).toContainText("Bellevue, NE 68005");
-    await expect(routes.getByRole("link", { name: "Assign" })).toHaveAttribute("href", new RegExp(`/schedule\\?.*placeJob=${fixture.waitingJob}`));
     await expect(page.locator("[data-work-orders-map]")).toBeVisible();
 
     await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Dual View" }).click();
     await expect(calendar(page)).toBeVisible();
     await expect(page.locator("[data-work-orders-map]")).toBeVisible();
+
+    await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Map View" }).click();
+    await routes.getByRole("link", { name: "Assign" }).click();
+    await expect(page).toHaveURL(new RegExp(`/work-orders/schedule\?.*placeJob=${fixture.waitingJob}`));
+    await expect(calendar(page)).toBeVisible();
+    await expect(unassigned(page).getByRole("heading", { name: "Wo Customer, Wo repair call" })).toBeVisible();
   });
 
   test("the dealership menu names the active client and no longer leads to a classic portal", async ({ page }) => {
@@ -179,7 +197,7 @@ test.describe("the work orders section", () => {
 });
 
 test("every page opens in the one portal frame, under its own section, with no classic sidebar", async ({ page }) => {
-  for (const [path, section, link] of [["/", "work-orders", null], ["/schedule", "work-orders", "Place jobs"], ["/work-orders/new", "work-orders", "New work order"],
+  for (const [path, section, link] of [["/", "work-orders", null], ["/work-orders/schedule", "work-orders", "Schedule"], ["/work-orders/new", "work-orders", "New work order"],
     ["/work-orders/follow-up", "work-orders", "Follow-up"], ["/dispatch", "dispatch", "Optimize routes"], ["/technicians", "technicians", "Roster"],
     ["/technicians/time-off", "technicians", "Time off"], ["/branches", "branches", "Dealerships and depots"], ["/settings/solver", "settings", "Solver settings"]] as const) {
     await page.goto(path);
@@ -197,7 +215,8 @@ test("every page opens in the one portal frame, under its own section, with no c
 
 test("the pages' old addresses lead to their places in the portal, keeping the query", async ({ page }) => {
   for (const [from, to] of [["/book", /\/work-orders\/new$/], ["/dispatch/follow-up", /\/work-orders\/follow-up$/],
-    ["/time-off?status=ready", /\/technicians\/time-off\?status=ready$/], ["/dealerships", /\/branches$/], ["/settings", /\/settings\/solver$/]] as const) {
+    ["/time-off?status=ready", /\/technicians\/time-off\?status=ready$/], ["/dealerships", /\/branches$/], ["/settings", /\/settings\/solver$/],
+    ["/schedule?week=2026-10-07&placeJob=job-1", /\/work-orders\/schedule\?week=2026-10-07&placeJob=job-1$/]] as const) {
     await page.goto(from);
     await expect(page).toHaveURL(to);
   }
