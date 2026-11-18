@@ -6,8 +6,8 @@ import { ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import {
   cardMatches, hasFilters, NO_FILTERS, waitingMatches, type CardFilters, type WorkOrdersDay,
 } from "@/lib/workOrdersDayCore";
-import { Chip, EmptyState, FilterBar, Panel, STATUS_LABEL, StatusIcon, type WorkOrderStatus } from "../ui";
-import { SelectField, TextField } from "../ui/fields";
+import { Chip, EmptyState, FilterBar, Panel, STATUS_LABEL, StatusIcon, type WorkOrderStatus } from "@/app/portal/ui";
+import { SelectField, TextField } from "@/app/portal/ui/fields";
 import CalendarGrid from "./CalendarGrid";
 import RoutesMap from "./RoutesMap";
 import styles from "./schedule.module.css";

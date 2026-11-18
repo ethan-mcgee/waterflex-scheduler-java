@@ -8,10 +8,10 @@ import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import {
   clockLabel, durationLabel, routeOf, type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician, type WorkOrdersDay,
 } from "@/lib/workOrdersDayCore";
-import { StatusIcon } from "../ui";
+import { StatusIcon } from "@/app/portal/ui";
 import styles from "./schedule.module.css";
 
-// The classic dispatch map, reused as it is: it fetches the day's road routes and draws every technician's route.
+// The dispatch board's map, reused as it is: it fetches the day's road routes and draws every technician's route.
 const DispatchMap = dynamic(() => import("@/app/dispatch/DispatchMap"), { ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading road routes...</div> });
 
@@ -68,14 +68,14 @@ function UnassignedList({ waiting, metroId, date }: { waiting: readonly WaitingW
   return (
     <section className={styles.routeCard} aria-label="Unassigned work orders">
       <div className={styles.routeHead}>
-        <span><strong>Unassigned · {waiting.length}</strong><small>Place them from the classic schedule</small></span>
+        <span><strong>Unassigned · {waiting.length}</strong><small>Place them from Place jobs</small></span>
       </div>
       <ol className={styles.stops}>
         {waiting.map(order => <li key={order.jobId}>
           <span className={styles.stopUnassigned} aria-hidden>?</span>
           <span className={styles.stopBody}><span>{order.place}</span><small>{order.typeName} · {durationLabel(order.durationMin)}</small></span>
           <Link className={styles.assign} href={`/schedule?${new URLSearchParams({ metroId, date, placeJob: order.jobId }).toString()}`}
-            title="Opens the classic schedule to place this work order">Assign</Link>
+            title="Opens Place jobs to place this work order">Assign</Link>
         </li>)}
         {waiting.length === 0 && <li className={styles.quiet}>Nothing waiting</li>}
       </ol>

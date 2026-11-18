@@ -120,7 +120,7 @@ test("the board optimizes, compares and commits a metro day on the map", async (
     const row = page.getByRole("row").filter({ hasText: "Board South" });
     await expect(row).toContainText("Reassigned");
     await expect(row).toContainText("Board Second Tech");
-    await expect(page.getByRole("button", { name: /Board South.*\(changed\)/ })).toHaveCSS("box-shadow", /rgb\(1, 87, 182\)/);
+    await expect(page.getByRole("button", { name: /Board South.*\(changed\)/ })).toHaveCSS("box-shadow", /rgb\(12, 89, 179\)/);
 
     await row.getByRole("button", { name: /Board Second Tech/ }).click();
     await expect(row.getByRole("button", { name: /Board Second Tech/ })).toHaveAttribute("aria-pressed", "true");

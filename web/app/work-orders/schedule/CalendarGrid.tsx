@@ -6,7 +6,7 @@ import {
   calendarHours, clockLabel, durationLabel, hourLabel, minuteOfDay,
   type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician, type WorkOrderType,
 } from "@/lib/workOrdersDayCore";
-import { StatusIcon } from "../ui";
+import { StatusIcon } from "@/app/portal/ui";
 import styles from "./schedule.module.css";
 
 const HOUR_PX = 54;

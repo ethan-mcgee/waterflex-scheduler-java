@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Whether the portal can schedule for a client through the public API. Only a verified token is CONNECTED;
  * NOT_CONNECTED means the client's own setup is missing or wrong, UNREACHABLE means the scheduling service did not answer
- * usably. Shared by the status route and the sidebar badge.
+ * usably. Shared by the status route and the top bar status.
  */
 export const connectionStatus = z.discriminatedUnion("state", [
   z.object({ state: z.literal("CONNECTED") }).strict(),

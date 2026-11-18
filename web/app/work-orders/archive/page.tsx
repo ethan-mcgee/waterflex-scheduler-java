@@ -1,5 +1,5 @@
 import SectionPlaceholder from "../SectionPlaceholder";
-import { Button } from "../ui";
+import { Button } from "@/app/portal/ui";
 
 export default function WorkOrderArchivePage() {
   const actions = <>

@@ -1,6 +1,6 @@
 /*
- * The work orders section's look, sampled from the WaterFlex developers' Figma file. Tokens live on the section's
- * root element, not :root, so nothing here reaches the classic portal pages.
+ * The portal's look, sampled from the WaterFlex developers' Figma file. The --wo-* tokens live on the frame's root
+ * element; globals.css points the older page tokens (--brand, --ink, ...) at the same palette.
  */
 
 .theme {
