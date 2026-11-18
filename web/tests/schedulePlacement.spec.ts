@@ -59,6 +59,8 @@ async function seed(): Promise<Fixture> {
         await prisma.address.delete({ where: { id: item.address.id } }); await prisma.customer.delete({ where: { id: item.person.id } });
       }
       await prisma.serviceCatalog.delete({ where: { id: service.id } });
+      // A real undo locks the days it writes, which leaves their schedule_day rows behind.
+      await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [first.id, second.id] } } });
       await prisma.technician.deleteMany({ where: { id: { in: [first.id, second.id] } } });
       await prisma.depot.delete({ where: { id: depot.id } }); await prisma.dealership.delete({ where: { id: dealership.id } });
       await prisma.metro.delete({ where: { id: metro.id } });
@@ -139,28 +141,53 @@ test.describe("placing and moving on the schedule", () => {
   test.afterEach(async () => { await fixture.cleanup(); });
 
   test("a waiting job is placed from one preview: every gap shows its drive, and the chosen start is saved", async ({ page }) => {
-    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW" } });
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(panel(page).locator(`[data-job-id="${fixture.unlocated}"]`)).toBeDisabled();
     await expect(panel(page).locator(`[data-job-id="${fixture.unlocated}"]`)).toContainText("Needs its pin confirmed");
     await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
 
-    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("+6 min drive");
-    await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveAttribute("data-gap-fits", "false");
-    await expect(marker(page, fixture.second, undefined, undefined)).toHaveText("+30 min drive");
-    await expect(panel(page).getByRole("list", { name: "Best fits" }).getByRole("listitem").first()).toContainText("+6 min drive");
+    // The cheapest gap is recommended; every other gap is said against it.
+    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");
+    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveAttribute("data-gap-best", "true");
+    // A place where no start fits is not marked at all; dropping there still says why.
+    await expect(marker(page, fixture.first, undefined, fixture.north)).toHaveCount(0);
+    await expect(marker(page, fixture.second, undefined, undefined)).toHaveText("+24 min vs best");
+    await expect(marker(page, fixture.first, fixture.south, undefined)).toHaveText("+6 min vs best");
+    // The four best arrival windows to offer, the recommendation first, each with its added driving.
+    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    await expect(options).toHaveCount(4);
+    await expect(options.nth(0)).toContainText("11:00 AM to 1:00 PM");
+    await expect(options.nth(0)).toContainText("Mon, Oct 5, Place First Tech, from 11:30 AM");
+    await expect(options.nth(0)).toHaveAttribute("data-option-best", "true");
+    await expect(options.nth(0)).toContainText("+6 min");
+    await expect(options.nth(1)).toContainText("12:00 PM to 2:00 PM");
+    await expect(options.nth(2)).toContainText("2:00 PM to 4:00 PM");
+    await expect(options.nth(2)).toContainText("+12 min");
+    await expect(options.nth(3)).toContainText("9:00 AM to 11:00 AM");
+    await expect(options.nth(3)).toContainText("Place Second Tech");
+    await expect(options.nth(3)).toContainText("+30 min");
     expect(sent.previews).toHaveLength(1);
-    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, jobId: fixture.job });
+    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, jobId: fixture.job,
+      timedDates: [DATE], withRestOfWeek: true });
 
     // Hovering and choosing are worked out on the page: no further preview is asked for.
-    await marker(page, fixture.first, undefined, fixture.north).click();
-    await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "CANNOT_HOLD");
-    await expect(panel(page).getByRole("button", { name: "Save" })).toBeDisabled();
-    await marker(page, fixture.first, fixture.north, fixture.south).click();
+    // The selected job opens on the recommended place, ready to save.
+    await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
     await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "NEW");
-    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
-    await expect(panel(page)).toContainText("Arrival window promised: 12:00 PM to 2:00 PM.");
+    // Another option, a start chip and a place on the calendar all choose the same way, and the list follows.
+    await options.nth(1).click();
+    await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("radio", { name: "12:00 PM" })).toBeChecked();
     await expect(grid(page).locator('[data-placement-ghost="NEW"]')).toBeVisible();
+    await expect(grid(page).locator('[data-placement-ghost="NEW"]')).toContainText("6 min there");
+    await marker(page, fixture.first, fixture.south, undefined).click();
+    await expect(options.nth(2)).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toHaveCount(0);
+    await options.nth(0).click();
+    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
+    await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
     expect(sent.previews).toHaveLength(1);
 
     await panel(page).getByRole("button", { name: "Save" }).click();
@@ -169,22 +196,230 @@ test.describe("placing and moving on the schedule", () => {
       spot: { technicianId: fixture.first, serviceDate: DATE, afterAppointmentId: fixture.north, beforeAppointmentId: fixture.south }, plannedStart: utc(17) });
   });
 
+  test("clicking a visit asks once for every place it could go and lists the best ones, moving nothing until one is picked", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(panel(page)).toContainText("Promised Mon, Oct 5, 1:00 PM to 3:00 PM");
+    // Places that keep the promised window, one start each: the second route first, then where it is now.
+    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("Place Second Tech, 1:00 PM");
+    await expect(options.nth(0)).toContainText("+9 min");
+    await expect(options.nth(1)).toContainText("Place First Tech, 1:00 PM");
+    await expect(options.nth(1)).toContainText("where it is now");
+    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.south,
+      timedDates: [DATE], withRestOfWeek: true });
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+
+    await options.nth(0).click();
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    // A start that is not among the options is listed above them as the pick.
+    await options.nth(1).click();
+    await panel(page).getByRole("radio", { name: "1:30 PM" }).check();
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("Your pick");
+    await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+    // The visit's details are a click away.
+    await panel(page).getByRole("button", { name: "Details" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Appointment details");
+    expect(sent.previews).toHaveLength(1);
+  });
+
+  test("the preview is asked as a visit is pressed, and the click it becomes takes that answer over", async ({ page }) => {
+    let release = () => {};
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const previews: unknown[] = [];
+    await page.route("**/api/schedule/placement", async route => {
+      previews.push(route.request().postDataJSON());
+      await held;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(movePreview(fixture)) });
+    });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const box = await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).boundingBox();
+    if (box === null) throw new Error("The visit is not on screen");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    // Asked before the button comes up, and nothing is shown for a press alone.
+    await expect.poll(() => previews.length).toBe(1);
+    await expect(panel(page)).not.toContainText("Moving");
+    await page.mouse.up();
+    await expect(panel(page)).toContainText("Moving");
+    await expect(panel(page)).toContainText("Finding the best times this week");
+    release();
+    await expect(panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button")).toHaveCount(2);
+    expect(previews).toHaveLength(1);
+  });
+
+  test("paging to another day while placing asks for that day's timed stops alone, once, and joins them in", async ({ page }) => {
+    const NEXT = "2026-10-06";
+    const previews: Array<Record<string, unknown>> = [];
+    const week = jobPreview(fixture);
+    // The day paged to: the second route is empty and takes the job at 9 AM.
+    const nextDay = placementPreview.parse({ ...week, answer: { routingIdentity: "omaha", skippedTechnicianDays: [], technicianDays: [
+      { technicianId: fixture.second, serviceDate: NEXT, holdsAsGiven: true, qualified: true, asGiven: totals(0, 0), stops: [], gaps: [
+        gap(undefined, undefined, 30, [{ ...start(14, 0, totals(30, 9000), 14), plannedStart: `${NEXT}T14:00:00.000Z`,
+          window: { start: `${NEXT}T14:00:00.000Z`, end: `${NEXT}T16:00:00.000Z` } }], false)] }] } });
+    await page.route("**/api/schedule/placement", async route => {
+      const body = placementPreviewRequest.parse(route.request().postDataJSON());
+      previews.push(body);
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body.withRestOfWeek ? week : nextDay) });
+    });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toBeVisible();
+    expect(previews).toEqual([expect.objectContaining({ timedDates: [DATE], withRestOfWeek: true })]);
+
+    await page.getByRole("button", { name: "Next day" }).click();
+    const nextMarker = grid(page).locator(`[data-gap-key="${fixture.second}|${NEXT}|start|end"]`);
+    await expect(nextMarker).toBeVisible();
+    expect(previews).toHaveLength(2);
+    expect(previews[1]).toMatchObject({ monday: DATE, jobId: fixture.job, timedDates: [NEXT], withRestOfWeek: false });
+    // The rest of the week is kept: back on the first day, its places are still there and nothing is asked.
+    await page.getByRole("button", { name: "Previous day" }).click();
+    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toBeVisible();
+    await page.getByRole("button", { name: "Next day" }).click();
+    await expect(nextMarker).toBeVisible();
+    expect(previews).toHaveLength(2);
+  });
+
   test("dragging a visit to another technician inside its window compares it with where it was, and saves without acknowledgement", async ({ page }) => {
-    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE" } });
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
     await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "KEEPS_PROMISE");
     await expect(panel(page).locator("[data-placement-comparison]")).toHaveAttribute("data-placement-comparison", "NEW");
     await expect(panel(page)).toContainText("The new assignment is better: with the move, the routes drive 5 minutes less");
     await expect(panel(page).getByRole("alert")).toHaveCount(0);
-    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.south });
+    expect(placementPreviewRequest.parse(sent.previews[0])).toEqual({ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.south,
+      timedDates: [DATE], withRestOfWeek: true });
     await panel(page).getByRole("button", { name: "Save" }).click();
     await expect(page.locator("[data-placement-saved]")).toContainText("moved");
     expect(placementSaveRequest.parse(sent.saves[0])).toMatchObject({ appointmentId: fixture.south, acknowledged: false, plannedStart: utc(18) });
   });
 
+  test("while dragging, the place a drop would land is drawn under the pointer, worked out without asking again", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const pointAt = async (technicianId: string, localMinute: number) => {
+      const target = await cell(page, technicianId).boundingBox();
+      if (target === null) throw new Error("The timeline is not on screen");
+      await page.mouse.move(target.x + target.width / 2, target.y + ((localMinute - LOCAL_START_MINUTE) / 60) * HOUR_PX, { steps: 6 });
+    };
+    const source = await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).boundingBox();
+    if (source === null) throw new Error("The card is not on screen");
+    await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+    await page.mouse.down();
+
+    // Inside the promised window on the second route: the nearest start, and the drive against the recommendation.
+    await pointAt(fixture.second, 13 * 60 + 5);
+    const hover = cell(page, fixture.second).locator("[data-hover-ghost]");
+    await expect(hover).toHaveAttribute("data-hover-ghost", "KEEPS_PROMISE");
+    await expect(hover).toContainText("1:00 PM: Best, +9 min drive");
+    // Later the same route only offers a start outside the window, which is said on the preview.
+    await pointAt(fixture.second, 15 * 60 + 30);
+    await expect(hover).toHaveAttribute("data-hover-ghost", "CHANGES_PROMISE");
+    await expect(hover).toContainText("3:30 PM: Best, +9 min drive, changes the promised window");
+    // Before North on the first route nothing fits: the preview turns into the problem it would be.
+    await pointAt(fixture.first, 9 * 60);
+    await expect(cell(page, fixture.first).locator("[data-hover-ghost]")).toHaveAttribute("data-hover-ghost", "CANNOT_HOLD");
+    await expect(cell(page, fixture.first).locator("[data-hover-ghost]")).toContainText("No start fits here");
+    await expect(hover).toHaveCount(0);
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+    expect(sent.previews).toHaveLength(1);
+
+    // Dropping where the preview was keeps it as the chosen place.
+    await pointAt(fixture.second, 13 * 60 + 5);
+    await page.mouse.up();
+    await expect(grid(page).locator("[data-hover-ghost]")).toHaveCount(0);
+    await expect(cell(page, fixture.second).locator('[data-placement-ghost="KEEPS_PROMISE"]')).toBeVisible();
+    await expect(panel(page).getByRole("radio", { name: "1:00 PM" })).toBeChecked();
+    expect(sent.previews).toHaveLength(1);
+  });
+
+  test("a moved visit can be picked up again and again until Cancel, its legs and its neighbors' taken from the one answer", async ({ page }) => {
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
+    const leg = (minutes: number) => ({ seconds: minutes * 50, meters: minutes * 900, minutes });
+    await page.route(url => url.pathname === "/api/schedule/drive", route => route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ serviceDate: DATE, skipped: [], technicians: [
+        { technicianId: fixture.first, departure: "DEPOT", returnTo: "HOME", segments: [{ appointmentIds: [fixture.north, fixture.south], legs: [leg(17), leg(12), leg(15)] }] },
+        { technicianId: fixture.second, departure: "DEPOT", returnTo: "DEPOT", segments: [] }] }) }));
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const northAfter = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"] [data-drive="after"]`);
+    await expect(northAfter).toHaveAttribute("title", "12 min to next stop");
+
+    // First move, to the second route's empty day: it drives from that route's depot and back to it.
+    await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
+    const onSecond = cell(page, fixture.second).locator("[data-placement-ghost]");
+    await expect(onSecond).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    await expect(onSecond.locator('[data-drive="before"]')).toHaveText("9 min from depot");
+    await expect(onSecond.locator('[data-drive="after"]')).toHaveText("8 min to depot");
+    // South has left the first route: North now drives home, and South's old place is drawn without its legs.
+    await expect(northAfter).toHaveAttribute("title", "8 min to home");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive]`)).toHaveCount(0);
+    // The first route's header says what the move does to its driving: 17 + 12 + 15 becomes 17 + 8.
+    await expect(grid(page).locator(`[data-technician-column="${fixture.first}"] [data-technician-drive-change]`)).toHaveText("-19 min with this place");
+
+    // Second move: the preview itself is picked up and dropped back after North at 1:30 PM.
+    await dragTo(page, onSecond, fixture.first, 13 * 60 + 30);
+    const onFirst = cell(page, fixture.first).locator("[data-placement-ghost]");
+    await expect(onFirst).toHaveAttribute("data-placement-ghost", "KEEPS_PROMISE");
+    await expect(panel(page).getByRole("radio", { name: "1:30 PM" })).toBeChecked();
+    await expect(northAfter).toHaveAttribute("title", "14 min to next stop");
+    await expect(onFirst.locator('[data-drive="before"]')).toHaveCount(0);
+    await expect(onFirst.locator('[data-drive="after"]')).toHaveText("8 min to home");
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveCount(0);
+
+    // Third move, outside the promised window: the violation comes back, and still nothing is asked again.
+    await dragTo(page, onFirst, fixture.second, 15 * 60 + 30);
+    await expect(cell(page, fixture.second).locator("[data-placement-ghost]")).toHaveAttribute("data-placement-ghost", "CHANGES_PROMISE");
+    await expect(panel(page).getByRole("alert").filter({ hasText: "Dealership policy violation" })).toBeVisible();
+    expect(sent.previews).toHaveLength(1);
+
+    // Cancel puts every leg back as it is booked and saves nothing.
+    await panel(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(grid(page).locator("[data-placement-ghost]")).toHaveCount(0);
+    await expect(northAfter).toHaveAttribute("title", "12 min to next stop");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"] [data-drive="after"]`)).toHaveAttribute("title", "15 min to home");
+    expect(sent.saves).toHaveLength(0);
+  });
+
+  test("the preview moves every later visit to the time the scheduler gave it, from the one answer, and Cancel puts them back", async ({ page }) => {
+    // The job's answer with timed stops: at 11:30 AM South keeps 1:15 PM; at 12:00 PM it is pushed to 1:30 PM.
+    const stop = (appointmentId: string, sequence: number, from: [number, number], to: [number, number]) =>
+      ({ appointmentId, sequence, plannedStart: utc(...from), plannedEnd: utc(...to) });
+    const timed = placementPreview.parse({ original: null, job: { id: fixture.job, durationMinutes: 60 }, answer: { routingIdentity: "omaha", skippedTechnicianDays: [], technicianDays: [
+      { technicianId: fixture.first, serviceDate: DATE, holdsAsGiven: true, qualified: true, asGiven: totals(60, 15000), gaps: [
+        { ...gap(fixture.north, fixture.south, 6, []), starts: [
+          { ...start(16, 30, totals(66, 15900), 16), stops: [stop(fixture.north, 0, [15, 15], [16, 0]), stop(fixture.job, 1, [16, 30], [17, 30]), stop(fixture.south, 2, [18, 15], [19, 0])] },
+          { ...start(17, 0, totals(66, 16000), 17), stops: [stop(fixture.north, 0, [15, 15], [16, 0]), stop(fixture.job, 1, [17, 0], [18, 0]), stop(fixture.south, 2, [18, 30], [19, 15])] }] }] },
+    ] } });
+    const sent = await mockPlacement(page, timed, { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await marker(page, fixture.first, fixture.north, fixture.south).click();
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
+    await expect(south).not.toHaveAttribute("data-retimed");
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+
+    await panel(page).getByRole("radio", { name: "12:00 PM" }).check();
+    await expect(south).toHaveAttribute("data-retimed", "true");
+    await expect(south).toContainText("1:30 PM - 2:15 PM");
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"]`)).not.toHaveAttribute("data-retimed");
+    expect(sent.previews).toHaveLength(1);
+
+    await panel(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(south).not.toHaveAttribute("data-retimed");
+    await expect(south).toContainText("1:15 PM - 2:00 PM");
+    expect(sent.saves).toHaveLength(0);
+  });
+
   test("a move to another arrival window is a policy violation that saves only once acknowledged", async ({ page }) => {
-    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE" } });
+    const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE", undoId: "undo-1" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 15 * 60 + 30);
     const violation = panel(page).getByRole("alert").filter({ hasText: "Dealership policy violation" });
@@ -213,7 +448,7 @@ test.describe("placing and moving on the schedule", () => {
       created.push(route.request().postDataJSON());
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: fixture.job }) });
     });
-    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW" } });
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await panel(page).getByRole("button", { name: "New job" }).click();
     const form = panel(page).getByRole("form", { name: "New job" });
@@ -221,10 +456,164 @@ test.describe("placing and moving on the schedule", () => {
       ["Street", "2 Elm St"], ["City", "Omaha"], ["State", "NE"], ["ZIP", "68102"]] as const) await form.getByLabel(label).fill(value);
     await form.getByLabel("Service").selectOption({ label: "Softener install" });
     await form.getByRole("button", { name: "Create and place" }).click();
-    await expect(panel(page)).toContainText("Placing Fresh Customer, Softener install");
-    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("+6 min drive");
+    await expect(panel(page).getByRole("heading", { name: "Fresh Customer, Softener install" })).toBeVisible();
+    await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");
     expect(created).toHaveLength(1);
     expect(created[0]).toMatchObject({ firstName: "Fresh", serviceCode: "UI_PLACE_TEST", line1: "2 Elm St" });
-    expect(sent.previews).toEqual([{ metroId: fixture.metroId, monday: DATE, jobId: fixture.job }]);
+    expect(sent.previews).toEqual([{ metroId: fixture.metroId, monday: DATE, jobId: fixture.job, timedDates: [DATE], withRestOfWeek: true }]);
+  });
+
+  test("each visit is one block with its drive: from the depot before the first, to the next stop, and home after the last", async ({ page }) => {
+    const leg = (minutes: number) => ({ seconds: minutes * 50, meters: minutes * 900, minutes });
+    const asked: string[] = [];
+    await page.route(url => url.pathname === "/api/schedule/drive", async route => {
+      asked.push(route.request().url());
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ serviceDate: DATE, skipped: [], technicians: [
+        { technicianId: fixture.first, departure: "DEPOT", returnTo: "HOME", segments: [{ appointmentIds: [fixture.north, fixture.south], legs: [leg(17), leg(12), leg(15)] }] }] }) });
+    });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const north = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"]`);
+    const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
+    await expect(north.locator('[data-drive="before"]')).toHaveAttribute("title", "17 min from depot");
+    await expect(north.locator('[data-drive="after"]')).toHaveAttribute("title", "12 min to next stop");
+    await expect(south.locator('[data-drive="before"]')).toHaveCount(0);
+    await expect(south.locator('[data-drive="after"]')).toHaveAttribute("title", "15 min to home");
+    await expect(grid(page).locator(`[data-technician-drive="44"]`)).toHaveText("44 min driving");
+    expect(new URL(asked[0] ?? "http://invalid").searchParams.get("date")).toBe(DATE);
+
+    // North starts at 10:15 AM; its block starts 17 minutes earlier, at 9:58 AM, on the timeline that starts at 8 AM.
+    const box = await north.boundingBox(), timeline = await cell(page, fixture.first).boundingBox();
+    if (box === null || timeline === null) throw new Error("The block or the timeline is not on screen");
+    expect(Math.abs(box.y - timeline.y - (118 / 60) * HOUR_PX)).toBeLessThan(2);
+    expect(Math.abs(box.height - ((17 + 45 + 12) / 60) * HOUR_PX)).toBeLessThan(2);
+  });
+
+  test("drive times that cannot be loaded are said, and visits are drawn without them", async ({ page }) => {
+    await page.route(url => url.pathname === "/api/schedule/drive", route =>
+      route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Scheduling is not connected for this client." }) }));
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await expect(page.locator("[data-drive-unavailable]")).toContainText("Drive times are unavailable: Scheduling is not connected for this client.");
+    await expect(grid(page).locator(`[data-appointment-id="${fixture.north}"]`)).toBeVisible();
+    await expect(grid(page).locator("[data-drive]")).toHaveCount(0);
+    await expect(grid(page).locator("[data-technician-drive]")).toHaveCount(0);
+  });
+});
+
+/** The technician-days' lastModified as the public API reads it, so a test can make the undo record a save would. */
+async function stamps(days: Array<{ technicianId: string; serviceDate: string }>) {
+  const rows = await prisma.$queryRaw<Array<{ technicianId: string; lastModified: string }>>`
+    SELECT t.id AS "technicianId",
+      to_char(GREATEST(t."factsChangedAt", c."changedAt") AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "lastModified"
+    FROM technician t LEFT JOIN technician_day_change c ON c."technicianId" = t.id AND c."serviceDate" = ${new Date(`${DATE}T00:00:00Z`)}
+    WHERE t.id IN (${days[0]?.technicianId}, ${days[1]?.technicianId})`;
+  return days.map(day => {
+    const row = rows.find(item => item.technicianId === day.technicianId);
+    if (row === undefined) throw new Error(`No stamp for ${day.technicianId}`);
+    return { ...day, lastModified: row.lastModified };
+  });
+}
+
+/** Tells the page its tab was returned to, which checks the schedule's version at once rather than in 20 seconds. */
+const returnToTab = (page: Page) => page.evaluate(() => window.dispatchEvent(new Event("focus")));
+
+/**
+ * Returns to the tab until `seen` passes. The server-rendered page is on screen before its scripts listen for focus,
+ * so a single event can come too early and be lost; the page itself would find the change at its next 20-second check.
+ */
+async function returnUntil(page: Page, seen: () => Promise<void>) {
+  await expect(async () => { await returnToTab(page); await seen(); }).toPass({ timeout: 15_000, intervals: [250, 500, 1000] });
+}
+
+test.describe("following the schedule and undoing a save", () => {
+  let fixture: Fixture;
+  const undoIds: string[] = [];
+  test.beforeEach(async ({ page }) => {
+    fixture = await seed();
+    await page.setViewportSize({ width: 1600, height: 1400 });
+  });
+  test.afterEach(async () => {
+    await prisma.placementUndo.deleteMany({ where: { id: { in: undoIds.splice(0) } } });
+    await fixture.cleanup();
+  });
+
+  /**
+   * Answers the preview with the move answer and the save by doing what the portal's save does to the database: South
+   * moves to the second technician and the undo record is written, with the days' stamps as the move left them.
+   */
+  async function saveMovesSouth(page: Page) {
+    await page.route("**/api/schedule/placement", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(movePreview(fixture)) }));
+    await page.route("**/api/schedule/placement/save", async route => {
+      const before = await prisma.appointment.findMany({ where: { id: { in: [fixture.north, fixture.south] } } });
+      await prisma.appointment.update({ where: { id: fixture.south }, data: { technicianId: fixture.second, sequence: 0 } });
+      const days = await stamps([{ technicianId: fixture.first, serviceDate: DATE }, { technicianId: fixture.second, serviceDate: DATE }]);
+      const record = await prisma.placementUndo.create({ data: { clientId: DEFAULT_CLIENT_ID, payload: { kind: "KEEPS_PROMISE", technicianDays: days,
+        assignments: before.map(item => ({ appointmentId: item.id, technicianId: item.technicianId, serviceDate: DATE, sequence: item.sequence,
+          plannedStart: item.plannedStart.toISOString(), plannedEnd: item.plannedEnd.toISOString() })) } } });
+      undoIds.push(record.id);
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: record.id }) });
+    });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
+    await panel(page).getByRole("button", { name: "Save" }).click();
+    await expect(page.locator("[data-placement-saved]")).toContainText("moved");
+    await expect(cell(page, fixture.second).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
+  }
+
+  test("Undo puts a saved move back where it was, once", async ({ page }) => {
+    await saveMovesSouth(page);
+    const banner = page.locator("[data-placement-saved]");
+    await banner.getByRole("button", { name: "Undo" }).click();
+    await expect(banner).toContainText("is back where it was");
+    await expect(banner.getByRole("button", { name: "Undo" })).toHaveCount(0);
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
+    const south = await prisma.appointment.findUniqueOrThrow({ where: { id: fixture.south } });
+    expect({ technicianId: south.technicianId, sequence: south.sequence }).toEqual({ technicianId: fixture.first, sequence: 1 });
+    expect((await prisma.placementUndo.findUniqueOrThrow({ where: { id: undoIds[0] } })).usedAt).not.toBeNull();
+    // Our own save and undo are not announced as someone else's change.
+    await returnToTab(page);
+    await expect(page.locator("[data-schedule-updated]")).toHaveCount(0);
+  });
+
+  test("Undo is refused once anything on those days changed since the save, and nothing is overwritten", async ({ page }) => {
+    await saveMovesSouth(page);
+    // Another dispatcher shifts North on the first route after the save.
+    await prisma.appointment.update({ where: { id: fixture.north }, data: { plannedStart: new Date(utc(15, 30)) } });
+    await page.locator("[data-placement-saved]").getByRole("button", { name: "Undo" }).click();
+    await expect(page.locator("[data-placement-saved]").getByRole("alert")).toHaveText("The schedule changed since this was saved. Move it back by hand.");
+    expect((await prisma.appointment.findUniqueOrThrow({ where: { id: fixture.south } })).technicianId).toBe(fixture.second);
+    expect((await prisma.placementUndo.findUniqueOrThrow({ where: { id: undoIds[0] } })).usedAt).toBeNull();
+  });
+
+  test("a change made elsewhere appears without a reload, and says so", async ({ page }) => {
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
+    await prisma.appointment.update({ where: { id: fixture.south }, data: { technicianId: fixture.second, sequence: 0 } });
+    await returnUntil(page, () => expect(cell(page, fixture.second).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible({ timeout: 1000 }));
+    await expect(page.locator("[data-schedule-updated]")).toHaveText("The schedule was updated.");
+  });
+
+  test("an open placement asks for its places again after a change elsewhere, and a chosen place that is gone is cleared", async ({ page }) => {
+    const previews: unknown[] = [];
+    const week = jobPreview(fixture);
+    // After the change, nothing fits between North and South any more.
+    const changed = placementPreview.parse({ ...week, answer: { ...week.answer, technicianDays: week.answer.technicianDays.map(day =>
+      ({ ...day, gaps: day.gaps.map(item => item.afterAppointmentId === fixture.north && item.beforeAppointmentId === fixture.south ? { ...item, starts: [] } : item) })) } });
+    await page.route("**/api/schedule/placement", async route => {
+      previews.push(route.request().postDataJSON());
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(previews.length === 1 ? week : changed) });
+    });
+    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
+
+    await prisma.appointment.update({ where: { id: fixture.north }, data: { plannedEnd: new Date(utc(16, 30)) } });
+    await returnUntil(page, () => expect(panel(page).locator("[data-placement-notice]"))
+      .toHaveText("The schedule changed and that place is gone. Pick again.", { timeout: 1000 }));
+    // Asked again once per change seen; a repeated focus before the reload lands may ask once more, never less.
+    expect(previews.length).toBeGreaterThanOrEqual(2);
+    expect(previews.at(-1)).toMatchObject({ jobId: fixture.job, timedDates: [DATE], withRestOfWeek: true });
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toHaveCount(0);
+    await expect(panel(page).getByRole("button", { name: "Save" })).toHaveCount(0);
   });
 });

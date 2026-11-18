@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { AppointmentFacts, SnapshotFacts } from "./clientSnapshot";
 import type { InsertionJob, PlannedStop, RouteInsertions } from "./insertionContract";
 import { findGap, findStart, verdict, type Original, type Spot, type Verdict } from "./placementRules";
@@ -71,9 +72,13 @@ export function placementPlan(facts: SnapshotFacts, subject: Subject): Placement
 
 /** The dates to send per call so that no call has more technician-days than the scheduler accepts. */
 export function dateBatches(facts: SnapshotFacts, workingDays: (date: string) => number, limit: number): string[][] {
+  return batchDates(facts.dates, workingDays, limit);
+}
+
+function batchDates(dates: readonly string[], workingDays: (date: string) => number, limit: number): string[][] {
   const batches: string[][] = [];
   let current: string[] = [], count = 0;
-  for (const date of [...new Set(facts.dates)].sort()) {
+  for (const date of [...new Set(dates)].sort()) {
     const days = workingDays(date);
     if (days > limit) throw new PlacementRefused(413, `${date} has ${days} technician-days, more than the ${limit} one call can place`);
     if (count + days > limit && current.length > 0) { batches.push(current); current = []; count = 0; }
@@ -81,6 +86,21 @@ export function dateBatches(facts: SnapshotFacts, workingDays: (date: string) =>
   }
   if (current.length > 0) batches.push(current);
   return batches;
+}
+
+/** One route insertion call: the dates it sends, and whether it asks for timed stops. */
+export interface InsertionCall { dates: string[]; routes: boolean }
+
+/**
+ * The calls a preview makes for the `sent` dates. The timed dates (the days on screen) ask for timed stops and the
+ * others are asked without them, since the page re-times only what it shows. Each group is split by date under the
+ * technician-day limit, as `dateBatches` splits a week.
+ */
+export function insertionCalls(sent: readonly string[], timedDates: readonly string[], workingDays: (date: string) => number,
+  limit: number): InsertionCall[] {
+  const timed = new Set(timedDates);
+  const group = (dates: string[], routes: boolean) => batchDates(dates, workingDays, limit).map(batch => ({ dates: batch, routes }));
+  return [...group(sent.filter(day => timed.has(day)), true), ...group(sent.filter(day => !timed.has(day)), false)];
 }
 
 /** Answers for date batches joined into one; every batch must come from the same road graph. */
@@ -145,4 +165,48 @@ export function placementWrite(plan: PlacementPlan, answer: RouteInsertions, spo
       from: { serviceDate: original.serviceDate, windowStart: new Date(original.window.start), windowEnd: new Date(original.window.end) },
       to: { serviceDate: spot.serviceDate, ...window } } } : {}),
   };
+}
+
+const undoInstant = z.iso.datetime({ offset: true });
+const undoDate = z.iso.date();
+const undoId = z.string().min(1);
+const undoPromise = z.object({ serviceDate: undoDate, windowStart: undoInstant, windowEnd: undoInstant }).strict();
+/**
+ * What a save replaced, stored so it can be undone, and checked when written and when read back. `assignments` are
+ * the earlier planned visits of every appointment that was on the technician-days the save wrote; `technicianDays`
+ * are those days' lastModified right after the save, which an undo must still find. `promise` is present when the
+ * save changed a promise (`from` is the earlier one), `created` when it placed a waiting job.
+ */
+export const placementUndoPayload = z.object({
+  kind: z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]),
+  assignments: z.array(z.object({ appointmentId: undoId, technicianId: undoId, serviceDate: undoDate, sequence: z.int().min(0),
+    plannedStart: undoInstant, plannedEnd: undoInstant }).strict()),
+  technicianDays: z.array(z.object({ technicianId: undoId, serviceDate: undoDate, lastModified: z.string().min(1) }).strict()).min(1),
+  promise: z.object({ appointmentId: undoId, from: undoPromise, to: undoPromise }).strict().optional(),
+  created: z.object({ jobId: undoId, followUp: z.string().nullable() }).strict().optional(),
+}).strict()
+  .refine(value => (value.kind === "NEW") === (value.created !== undefined), "A placed job, and only one, records the job it placed")
+  .refine(value => (value.kind === "CHANGES_PROMISE") === (value.promise !== undefined), "A changed promise, and only one, records the earlier promise");
+export type PlacementUndoPayload = z.infer<typeof placementUndoPayload>;
+
+/** A visit as it was booked before a save, read under the save's locks. */
+export interface PriorVisit { id: string; technicianId: string; serviceDate: Date; sequence: number; plannedStart: Date; plannedEnd: Date }
+
+/**
+ * The undo record of a save: the visits as they were before it, and the saved days as they are after it. `followUp`
+ * is the placed job's follow-up status before the save; it is asked for only when the save placed a job.
+ */
+export function undoPayload(write: PlacementWrite, prior: readonly PriorVisit[], after: readonly TechnicianDayVersion[],
+  followUp: () => string | null): PlacementUndoPayload {
+  const change = write.promiseChange;
+  const promise = (value: { serviceDate: string; windowStart: Date; windowEnd: Date }) =>
+    ({ serviceDate: value.serviceDate, windowStart: value.windowStart.toISOString(), windowEnd: value.windowEnd.toISOString() });
+  return placementUndoPayload.parse({
+    kind: write.verdict.kind,
+    assignments: prior.map(visit => ({ appointmentId: visit.id, technicianId: visit.technicianId, serviceDate: visit.serviceDate.toISOString().slice(0, 10),
+      sequence: visit.sequence, plannedStart: visit.plannedStart.toISOString(), plannedEnd: visit.plannedEnd.toISOString() })),
+    technicianDays: after,
+    ...(change === undefined ? {} : { promise: { appointmentId: change.appointmentId, from: promise(change.from), to: promise(change.to) } }),
+    ...(write.create === undefined ? {} : { created: { jobId: write.create.jobId, followUp: followUp() } }),
+  });
 }

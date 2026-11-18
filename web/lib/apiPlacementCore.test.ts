@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { Prisma } from "@prisma/client";
 import type { AppointmentFacts, SnapshotFacts, TechnicianFacts } from "./clientSnapshot";
 import type { InsertionStart, RouteInsertions } from "./insertionContract";
-import { dateBatches, joined, placementPlan, placementWrite, PlacementRefused, type JobRow, type PlacementPlan } from "./apiPlacementCore";
+import { dateBatches, insertionCalls, joined, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload, type JobRow,
+  type PlacementPlan } from "./apiPlacementCore";
+import { placementPreviewRequest } from "./contracts";
 
 const DATE = "2026-11-18";
 const NEXT = "2026-11-19";
@@ -79,6 +81,36 @@ test("a week too big for one call is split by date, and the answers join only fr
   refused(() => joined([one, { ...one, routingIdentity: "other" }]), 503, /road map changed/);
 });
 
+test("only the days on screen are asked with timed stops; the rest of the week is asked without, and each group is split by date", () => {
+  const week = ["2026-11-16", "2026-11-17", DATE, NEXT, "2026-11-20"];
+  // The day view: its one day timed, the other four in one untimed call.
+  assert.deepEqual(insertionCalls(week, [DATE], () => 40, 200),
+    [{ dates: [DATE], routes: true }, { dates: ["2026-11-16", "2026-11-17", NEXT, "2026-11-20"], routes: false }]);
+  // A day paged to while placing is asked alone.
+  assert.deepEqual(insertionCalls([NEXT], [NEXT], () => 40, 200), [{ dates: [NEXT], routes: true }]);
+  // The week view times every day, in one call.
+  assert.deepEqual(insertionCalls(week, week, () => 40, 200), [{ dates: week, routes: true }]);
+  // Each group stays under the technician-day limit on its own.
+  assert.deepEqual(insertionCalls(week, ["2026-11-16", "2026-11-17"], () => 90, 200), [
+    { dates: ["2026-11-16", "2026-11-17"], routes: true },
+    { dates: [DATE, NEXT], routes: false }, { dates: ["2026-11-20"], routes: false }]);
+  refused(() => insertionCalls([DATE], [DATE], () => 201, 200), 413, /more than the 200/);
+});
+
+test("a preview request names the days on screen, inside the week shown, and whether the rest of the week comes too", () => {
+  const body = { metroId: "metro", monday: "2026-11-16", jobId: "job-9", timedDates: [DATE], withRestOfWeek: true };
+  assert.equal(placementPreviewRequest.safeParse(body).success, true);
+  // Sunday is the last day of the week of Monday the 16th; the next Monday is not.
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-22"] }).success, true);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-23"] }).success, false);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: ["2026-11-15"] }).success, false);
+  assert.equal(placementPreviewRequest.safeParse({ ...body, timedDates: [] }).success, false);
+  const { timedDates: _timed, ...untimed } = body;
+  assert.equal(placementPreviewRequest.safeParse(untimed).success, false);
+  const { withRestOfWeek: _rest, ...noRest } = body;
+  assert.equal(placementPreviewRequest.safeParse(noRest).success, false);
+});
+
 test("saving a new job creates its appointment with the promised window and writes only the day it joins", () => {
   const plan = placementPlan(facts(), { kind: "job", job: job() });
   const write = placementWrite(plan, answer("job-9", [start("job-9", 16)]), endOfB, at(DATE, 16).toISOString(), false);
@@ -109,4 +141,40 @@ test("a move that keeps its promise rewrites both days, and one that changes it 
   const leftBroken = { ...late, technicianDays: late.technicianDays.map(item => item.technicianId === "a"
     ? { ...item, holdsAsGiven: false, asGiven: undefined, stops: undefined, gaps: item.gaps.map(gap => ({ ...gap, starts: [] })) } : item) };
   refused(() => placementWrite(plan, leftBroken, endOfB, at(DATE, 18).toISOString(), true), 409, /could not be timed/);
+});
+
+test("a save's undo record keeps the visits as they were and the saved days as the save left them, and is checked when read back", () => {
+  const after = (technicianId: string) => ({ technicianId, serviceDate: DATE, lastModified: "2026-11-17T15:00:00.000001Z" });
+  const prior = (id: string, technicianId: string, sequence: number, hour: number) =>
+    ({ id, technicianId, serviceDate: at(DATE, 0), sequence, plannedStart: at(DATE, hour, 10), plannedEnd: at(DATE, hour + 1, 10) });
+
+  // A placed job: the day it joined as it was, and the job's follow-up to put back.
+  const placed = placementWrite(placementPlan(facts(), { kind: "job", job: job() }), answer("job-9", [start("job-9", 16)]), endOfB, at(DATE, 16).toISOString(), false);
+  const forJob = undoPayload(placed, [prior("b1", "b", 0, 14)], [after("b")], () => "CONTACTED");
+  assert.deepEqual(forJob.created, { jobId: "job-9", followUp: "CONTACTED" });
+  assert.deepEqual(forJob.assignments, [{ appointmentId: "b1", technicianId: "b", serviceDate: DATE, sequence: 0,
+    plannedStart: at(DATE, 14, 10).toISOString(), plannedEnd: at(DATE, 15, 10).toISOString() }]);
+  assert.equal(forJob.promise, undefined);
+
+  // A move that keeps its promise: both days' visits as they were, no promise and no job.
+  const plan: PlacementPlan = placementPlan(facts(), { kind: "appointment", appointmentId: "m" });
+  const kept = placementWrite(plan, answer("m", [start("m", 15, true)]), endOfB, at(DATE, 15).toISOString(), false);
+  const visits = [prior("a1", "a", 0, 14), prior("m", "a", 1, 15), prior("a2", "a", 2, 18), prior("b1", "b", 0, 14)];
+  const forKept = undoPayload(kept, visits, [after("b"), after("a")], () => { throw new Error("A move has no job follow-up to read"); });
+  assert.equal(forKept.kind, "KEEPS_PROMISE");
+  assert.deepEqual(forKept.assignments.map(item => `${item.technicianId}:${item.appointmentId}:${item.sequence}`), ["a:a1:0", "a:m:1", "a:a2:2", "b:b1:0"]);
+  assert.equal(forKept.created, undefined);
+
+  // A move that changes the promise also keeps the promise it broke, to put it back.
+  const changed = placementWrite(plan, answer("m", [start("m", 18, false)]), endOfB, at(DATE, 18).toISOString(), true);
+  const forChanged = undoPayload(changed, visits, [after("b"), after("a")], () => null);
+  assert.deepEqual(forChanged.promise?.from, { serviceDate: DATE, windowStart: at(DATE, 15).toISOString(), windowEnd: at(DATE, 17).toISOString() });
+  assert.deepEqual(forChanged.promise?.to, { serviceDate: DATE, windowStart: at(DATE, 18).toISOString(), windowEnd: at(DATE, 20).toISOString() });
+
+  // What is stored is read back only when it still matches its contract.
+  assert.equal(placementUndoPayload.safeParse(JSON.parse(JSON.stringify(forChanged))).success, true);
+  assert.equal(placementUndoPayload.safeParse({ ...forChanged, promise: undefined }).success, false);
+  assert.equal(placementUndoPayload.safeParse({ ...forJob, created: undefined }).success, false);
+  assert.equal(placementUndoPayload.safeParse({ ...forKept, technicianDays: [] }).success, false);
+  assert.equal(placementUndoPayload.safeParse({ ...forKept, extra: true }).success, false);
 });

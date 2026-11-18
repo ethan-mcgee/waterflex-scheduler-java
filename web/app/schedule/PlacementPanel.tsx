@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { errorMessage } from "@/lib/contracts";
-import { findGap, rankedFits, verdict, type Spot, type Verdict } from "@/lib/placementRules";
+import { bestOptions, findGap, findStart, spotKey, verdict, type PlaceOption, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
 import styles from "./schedule.module.css";
 import type { PlacementState, PlacementSubject } from "./usePlacement";
@@ -45,7 +45,7 @@ function JobList({ jobs, active, onPlace, onPress, clickSuppressed }: {
       {jobs.map(job => (
         <li key={job.id}>
           <button type="button" className={`${styles.jobCard} ${active === job.id ? styles.jobCardActive : ""}`} data-job-id={job.id}
-            disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
+            style={{ borderLeftColor: job.serviceColor.color }} disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
             onClick={() => { if (!clickSuppressed()) onPlace(job); }}>
             <span className={styles.cardCustomer}>{job.customerName}</span>
             <span className={styles.cardService}>{job.serviceName}, {job.durationMin} min</span>
@@ -148,34 +148,105 @@ function Comparison({ verdict: decided }: { verdict: Extract<Verdict, { kind: "K
   );
 }
 
-/** The chosen place: its starts, what it promises, how it compares and whether it can be saved. */
-function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowledge, onSave, onCancel }: {
+/** "+6 min", or "-3 min" when the place sits on the way: buffered minutes, as the scheduler prices them. */
+function driveDelta(minutes: number): string {
+  return minutes >= 0 ? `+${minutes} min` : `${minutes} min`;
+}
+
+/**
+ * One offered option. A new job's row leads with the arrival window, which is what the customer chooses; a move's
+ * window is fixed, so its row leads with the technician and start.
+ */
+function OptionRow({ option, moving, best, pick, on, name, timezone, onChoose }: {
+  option: PlaceOption; moving: boolean; best: boolean; pick: boolean; on: boolean; name: (id: string) => string; timezone: string;
+  onChoose: (spot: Spot, plannedStart: string | null) => void;
+}) {
+  const time = formatTime(option.start.plannedStart, timezone), date = formatDate(option.spot.serviceDate), who = name(option.spot.technicianId);
+  const main = moving ? `${who}, ${time}` : windowText(option.start.window, timezone);
+  const notes = [date, ...(moving ? [] : [who, `from ${time}`]), ...(option.samePlace ? ["where it is now"] : []),
+    ...(moving && option.start.keepsWindow === false ? ["changes the window"] : [])];
+  return (
+    <li>
+      <button type="button" className={`${styles.option} ${on ? styles.optionOn : ""}`} aria-pressed={on} data-option={option.key}
+        data-option-best={best ? "true" : undefined} onClick={() => onChoose(option.spot, option.start.plannedStart)}>
+        <span className={styles.optionMain}>{main}</span>
+        <span className={styles.optionDrive}>
+          {best && <span className={styles.optionTag}>Best</span>}
+          {pick && <span className={styles.optionTagPick}>Your pick</span>}
+          {driveDelta(option.addedBufferedMinutes)}
+        </span>
+        <span className={styles.optionMeta}>{notes.join(", ")}</span>
+      </button>
+    </li>
+  );
+}
+
+/** The place being chosen: the best options to offer, the chosen one's details, and Save. */
+function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
   placement: PlacementState; technicians: ScheduleTechnician[]; timezone: string;
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
+  onDetails: (() => void) | null;
 }) {
-  const verb = placement.subject.kind === "job" ? "Placing" : "Moving";
-  const header = <div className={styles.panelHeader}><h2>{verb} {placement.subject.label}</h2>
-    <button className={styles.button} type="button" onClick={onCancel}>Cancel</button></div>;
-  if (placement.status === "loading") return <section className={styles.placementCard} aria-busy="true">{header}
-    <p role="status">Finding every place on this week&apos;s routes...</p></section>;
+  const moving = placement.subject.kind === "appointment";
+  const header = (
+    <div className={styles.placeHeader}>
+      <div className={styles.placeTitle}>
+        <span className={styles.placeEyebrow}>{moving ? "Moving" : "Placing"}</span>
+        <h2>{placement.subject.label}</h2>
+      </div>
+      <div className={styles.placeHeaderActions}>
+        {onDetails !== null && <button className={styles.button} type="button" onClick={onDetails}>Details</button>}
+        <button className={styles.button} type="button" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+  const title = <h3 className={styles.optionsTitle}>{moving ? "Best places" : "Best times to offer"}</h3>;
+  if (placement.status === "loading") return (
+    <section className={styles.placementCard} aria-busy="true">{header}{title}
+      <p role="status" className={styles.subtle}>Finding the best times this week...</p>
+      <ul className={styles.optionList} aria-hidden="true">{[0, 1, 2, 3].map(index => <li key={index} className={styles.optionSkeleton} />)}</ul>
+    </section>
+  );
   if (placement.status === "error") return <section className={styles.placementCard}>{header}<p role="alert">{placement.message}</p></section>;
   const { preview, chosen } = placement;
   const decided = currentVerdict(placement);
-  const fits = rankedFits(preview.answer).slice(0, 5);
+  const options = bestOptions(preview.answer, preview.original);
   const name = (id: string) => technicians.find(item => item.id === id)?.name ?? id;
   const found = chosen === null ? undefined : findGap(preview.answer, chosen.spot);
+  const chosenStart = chosen === null || chosen.plannedStart === null || found === undefined ? undefined : findStart(found.gap, chosen.plannedStart);
+  const isChosen = (option: PlaceOption) => chosen !== null && chosen.plannedStart !== null && option.key === spotKey(chosen.spot)
+    && Date.parse(option.start.plannedStart) === Date.parse(chosen.plannedStart);
+  // A place picked on the calendar that is not among the options is listed above them, so the choice is always in view.
+  const extra: PlaceOption | null = chosen === null || found === undefined || chosenStart === undefined || found.gap.addedBufferedMinutes === undefined
+    || options.some(isChosen) ? null : { spot: chosen.spot, key: spotKey(chosen.spot), start: chosenStart, addedBufferedMinutes: found.gap.addedBufferedMinutes,
+      samePlace: decided?.kind === "KEEPS_PROMISE" && decided.samePlace };
   const starts: InsertionStart[] = found?.gap.starts ?? [];
+  const legs = found === undefined ? null : legText(found.gap);
   const savable = decided !== null && decided.kind !== "CANNOT_HOLD" && !(decided.kind === "KEEPS_PROMISE" && decided.samePlace)
     && (decided.kind !== "CHANGES_PROMISE" || placement.acknowledged) && !placement.saving;
+  const row = (option: PlaceOption, best: boolean, pick: boolean) => <OptionRow key={`${option.key}|${option.start.plannedStart}`} option={option}
+    moving={moving} best={best} pick={pick} on={isChosen(option)} name={name} timezone={timezone} onChoose={onChoose} />;
+  const compared = decided !== null && (decided.kind === "CHANGES_PROMISE" || (decided.kind === "KEEPS_PROMISE" && !decided.samePlace)) ? decided : null;
   return (
     <section className={styles.placementCard} data-placement-state={decided?.kind ?? "READY"} aria-live="polite">
       {header}
-      {preview.original !== null && <p className={styles.subtle}>Promised {formatDate(preview.original.serviceDate)}, {windowText(preview.original.window, timezone)}.</p>}
-      {chosen === null ? <p role="status">Drag onto a route, or pick a best fit. Each gap shows the driving it adds.</p> : <>
-        <h3>{name(chosen.spot.technicianId)}, {formatDate(chosen.spot.serviceDate)}</h3>
-        {found !== undefined && <p>{addedDriveText(found.gap)}{legText(found.gap) === null ? "" : `: ${legText(found.gap)}`}</p>}
+      {preview.original !== null && <p className={styles.placePromise}>Promised {formatDate(preview.original.serviceDate)}, {windowText(preview.original.window, timezone)}</p>}
+      {placement.notice !== null && <p className={styles.subtle} role="status" data-placement-notice="true">{placement.notice}</p>}
+      {placement.timingError !== null && <p className={styles.subtle} role="status">
+        This day&apos;s visits show their booked times: {placement.timingError}</p>}
+      {title}
+      {options.length === 0 && extra === null
+        ? <p className={styles.subtle}>Nothing fits this week without breaking an arrival window, a shift or the paid limit. Try another week.</p>
+        : <ul className={styles.optionList} aria-label="Recommended times">
+          {extra !== null && row(extra, false, true)}
+          {options.map((option, index) => row(option, index === 0, false))}
+        </ul>}
+      {moving && options.length > 0 && options.every(option => option.start.keepsWindow === false)
+        && <p className={styles.subtle}>No place this week keeps the promised window.</p>}
+      {chosen === null ? <p className={styles.subtle}>Pick a row, or drag onto a technician.</p> : <div className={styles.choice}>
         {decided?.kind === "CANNOT_HOLD" && <p className={styles.placementProblem} role="alert">{decided.reason} It can be dropped here, but not saved.</p>}
-        {starts.length > 0 && <fieldset className={styles.startChips}>
+        {legs !== null && <p className={styles.subtle}>{legs}</p>}
+        {starts.length > 1 && <fieldset className={styles.startChips}>
           <legend>Start</legend>
           {starts.map(start => (
             <label key={start.plannedStart} className={chosen.plannedStart === start.plannedStart ? styles.startChipChosen : styles.startChip}>
@@ -185,10 +256,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
             </label>
           ))}
         </fieldset>}
-        {decided !== null && decided.kind !== "CANNOT_HOLD" && <p>Arrival window promised: {windowText(decided.start.window, timezone)}.</p>}
-        {decided?.kind === "KEEPS_PROMISE" && (decided.samePlace
-          ? <p role="status">This is where the appointment is now.</p>
-          : <Comparison verdict={decided} />)}
+        {decided?.kind === "KEEPS_PROMISE" && decided.samePlace && <p role="status" className={styles.subtle}>This is where the appointment is now.</p>}
         {decided?.kind === "CHANGES_PROMISE" && <div className={styles.policyViolation} role="alert">
           <strong>Dealership policy violation.</strong> This move changes what the customer was promised, from{" "}
           {formatDate(decided.previous.serviceDate)}, {windowText(decided.previous.window, timezone)} to{" "}
@@ -197,42 +265,34 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
             <input type="checkbox" checked={placement.acknowledged} onChange={event => onAcknowledge(event.target.checked)} />
             I acknowledge this breaks the dealership&apos;s policy on promised arrival windows.
           </label>
-          <Comparison verdict={decided} />
         </div>}
+        {compared !== null && <details className={styles.compare}>
+          <summary>Compare with where it is now</summary>
+          <Comparison verdict={compared} />
+        </details>}
         <div className={styles.panelActions}>
-          <button className={styles.button} type="button" disabled={!savable} onClick={onSave}>{placement.saving ? "Saving..." : "Save"}</button>
+          <button className={styles.primaryButton} type="button" disabled={!savable} onClick={onSave}>{placement.saving ? "Saving..." : "Save"}</button>
         </div>
         {placement.saveError !== null && <p className={styles.deleteError} role="alert">{placement.saveError}</p>}
-      </>}
-      {fits.length > 0 && <>
-        <h3>Best fits this week</h3>
-        <ol className={styles.bestFits} aria-label="Best fits">
-          {fits.map(fit => (
-            <li key={fit.key}>
-              <button type="button" className={styles.fitButton} data-fit={fit.key} onClick={() => onChoose(fit.spot, fit.firstStart.plannedStart)}>
-                {formatDate(fit.spot.serviceDate)}, {name(fit.spot.technicianId)}, from {formatTime(fit.firstStart.plannedStart, timezone)}: {addedDriveText(fit.gap)}
-              </button>
-            </li>
-          ))}
-        </ol>
-      </>}
-      {fits.length === 0 && <p className={styles.subtle}>No place this week keeps every arrival window, shift and paid limit. Try another week.</p>}
+      </div>}
     </section>
   );
 }
 
 /** The placement side panel: jobs waiting for the calendar, a new-job form, and the place being chosen. */
 export default function PlacementPanel({ jobs, services, placement, technicians, timezone, onPlaceJob, onPressJob, clickSuppressed,
-  onCreated, onChoose, onAcknowledge, onSave, onCancel }: {
+  onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
   jobs: ScheduleJob[]; services: ScheduleService[]; placement: PlacementState | null; technicians: ScheduleTechnician[]; timezone: string;
   onPlaceJob: (subject: PlacementSubject) => void; onPressJob: (job: ScheduleJob, event: ReactPointerEvent) => void; clickSuppressed: () => boolean;
   onCreated: (jobId: string, label: string) => void;
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
+  /** Opens the moved appointment's details; null while a job is being placed. */
+  onDetails: (() => void) | null;
 }) {
   return (
     <aside className={styles.placementPanel} aria-label="Place a job">
       {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
-        onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} />}
+        onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
       <section>
         <h2>Unscheduled jobs</h2>
         <NewJobForm services={services} onCreated={onCreated} />

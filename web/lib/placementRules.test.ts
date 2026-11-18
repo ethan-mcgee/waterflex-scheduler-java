@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { InsertionGap, InsertionStart, InsertionTechnicianDay, RouteInsertions, RouteTotals } from "./insertionContract";
-import { comparisonSentence, rankedFits, spotAt, spotKey, verdict, whyNot, type Original } from "./placementRules";
+import { bestOptions, comparisonSentence, previewTimes, rankedFits, recommendation, relativeToBest, spotAt, spotKey, verdict, whyNot, withTimedDays, type Original } from "./placementRules";
 
 const DATE = "2026-11-18";
 const totals = (driveMinutes: number, costCents: number, meters = driveMinutes * 1000, bufferSeconds = 0): RouteTotals =>
@@ -39,6 +39,27 @@ test("the best fits are the gaps with a start, least added drive first", () => {
   assert.equal(fits[0]?.addedBufferedMinutes, 5);
   assert.equal(fits[0]?.firstStart.plannedStart, at(15, 30));
   assert.equal(spotKey({ technicianId: "a", serviceDate: DATE }), "a|2026-11-18|start|end", "an empty day's only gap");
+});
+
+test("the recommendation is the best fit; a move is recommended only where it keeps its promise, from the first start that does", () => {
+  assert.equal(recommendation(answer, false)?.key, spotKey(endOfB));
+  assert.equal(recommendation(answer, true)?.firstStart.plannedStart, at(15, 30));
+  // When the cheapest place offers only a changed window, the move is recommended to the cheapest place that keeps it.
+  const changing: RouteInsertions = { ...answer, technicianDays: answer.technicianDays.map(item => item.technicianId !== "b" ? item
+    : day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])) };
+  assert.equal(recommendation(changing, false)?.key, spotKey(endOfB));
+  assert.equal(recommendation(changing, true)?.key, spotKey({ technicianId: "a", serviceDate: DATE, afterAppointmentId: "a1", beforeAppointmentId: "a2" }));
+  const nothingKeeps: RouteInsertions = { ...answer, technicianDays: [day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])] };
+  assert.equal(recommendation(nothingKeeps, true), null);
+  assert.equal(recommendation({ ...answer, technicianDays: [] }, false), null);
+});
+
+test("a gap's drive is said against the recommendation's", () => {
+  const best = recommendation(answer, false);
+  assert.ok(best !== null);
+  assert.equal(relativeToBest(5, best), "Same as best");
+  assert.equal(relativeToBest(9, best), "+4 min vs best");
+  assert.equal(relativeToBest(2, best), "3 min less than best");
 });
 
 test("a drop that cannot hold says why, and never pretends a missing route is a short one", () => {
@@ -103,4 +124,62 @@ test("a drop lands in the gap after every stop that starts before it, at the nea
   assert.deepEqual(spotAt(answer, "z", DATE, 10 * 60, stopMinute, startMinute), { spot: { technicianId: "z", serviceDate: DATE }, plannedStart: null },
     "a technician the answer does not list");
   assert.equal(verdict(answer, original, { technicianId: "z", serviceDate: DATE }, null).kind, "CANNOT_HOLD");
+});
+
+test("a preview takes every later stop's times from the answer: the moved visit's day without it, the chosen day with it", () => {
+  const stop = (appointmentId: string, sequence: number, hour: number, minute: number, minutes: number) =>
+    ({ appointmentId, sequence, plannedStart: at(hour, minute), plannedEnd: new Date(Date.parse(at(hour, minute)) + minutes * 60000).toISOString() });
+  const timedStart = { ...start(15, 30, totals(66, 15900), true), stops: [stop("b1", 0, 14, 0, 45), stop("m", 1, 15, 30, 60)] };
+  const timed: RouteInsertions = { ...answer, technicianDays: [
+    day("a", totals(80, 20000), [gap("a1", "a2", 9, [])], { stops: [stop("a1", 0, 14, 0, 45), stop("a2", 1, 15, 0, 45)] }),
+    day("b", totals(60, 15000), [gap("b1", undefined, 5, [timedStart])]),
+  ] };
+  const moved = previewTimes(timed, original, endOfB, at(15, 30));
+  assert.equal(moved.get("a2")?.plannedStart, at(15, 0), "a2 closes up on a's day once m has left");
+  assert.equal(moved.get("m")?.plannedStart, at(15, 30), "The moved visit is listed at its new start");
+  assert.equal(moved.get("b1")?.plannedEnd, at(14, 45));
+  assert.deepEqual([...previewTimes(timed, original, null, null).keys()], ["a1", "a2"], "With no place chosen, only the day it leaves is re-timed");
+  assert.equal(previewTimes(timed, null, endOfB, at(18, 0)).size, 0, "A start the answer does not offer times nothing");
+  assert.equal(previewTimes(answer, original, endOfB, at(15, 30)).size, 0, "An answer without timed stops leaves every stop as booked");
+});
+
+test("a new job is offered its best distinct arrival windows, the recommendation first", () => {
+  const busy: RouteInsertions = { ...answer, technicianDays: [
+    day("a", totals(80, 20000), [gap("a1", "a2", 9, [start(15, 0, totals(95, 21500)), start(15, 30, totals(96, 21700)), start(16, 0, totals(96, 21800))])]),
+    day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(17, 0, totals(66, 15900)), start(17, 30, totals(66, 16000))]), gap(undefined, "b1", 20, [start(13, 0, totals(80, 17000))])]),
+  ] };
+  const options = bestOptions(busy, null);
+  assert.equal(options.length, 4);
+  assert.equal(options[0]?.key, recommendation(busy, false)?.key);
+  assert.equal(options[0]?.start.plannedStart, recommendation(busy, false)?.firstStart.plannedStart);
+  assert.deepEqual(options.map(option => [option.spot.technicianId, option.start.plannedStart, option.addedBufferedMinutes]),
+    [["b", at(17), 5], ["a", at(15), 9], ["a", at(16), 9], ["b", at(13), 20]],
+    "17:30 shares b's 17:00 to 19:00 window and 15:30 shares a's 15:00 window, so each window is offered once");
+  assert.equal(bestOptions(busy, null, 2).length, 2);
+});
+
+test("a move is offered its best places that keep the promise, one start each, and says where it is now", () => {
+  const options = bestOptions(answer, original);
+  assert.deepEqual(options.map(option => [option.key, option.start.plannedStart, option.samePlace]), [
+    [spotKey(endOfB), at(15, 30), false],
+    [spotKey({ technicianId: "a", serviceDate: DATE, afterAppointmentId: "a1", beforeAppointmentId: "a2" }), at(15), true]]);
+  const nowhere: RouteInsertions = { ...answer, technicianDays: [day("b", totals(60, 15000), [gap("b1", undefined, 5, [start(18, 0, totals(66, 16100), false)])])] };
+  assert.deepEqual(bestOptions(nowhere, original).map(option => option.start.keepsWindow), [false], "With no place that keeps it, window-changing places are offered");
+  assert.deepEqual(bestOptions({ ...answer, technicianDays: [] }, original), [], "Nothing fits, nothing is offered");
+});
+
+test("a day paged to is joined into the week's answer with its timed stops, and only from the same road map", () => {
+  const NEXT = "2026-11-19";
+  const untimedNext = day("a", totals(70, 18000), [gap(undefined, undefined, 12, [])], { serviceDate: NEXT });
+  const week: RouteInsertions = { ...answer, technicianDays: [...answer.technicianDays, untimedNext],
+    skippedTechnicianDays: [...answer.skippedTechnicianDays, { technicianId: "c", serviceDate: NEXT, reason: "LOCATION_UNRESOLVED", message: "Stop c2 has no location." }] };
+  const timedNext = { ...untimedNext, stops: [{ appointmentId: "n1", sequence: 0, plannedStart: at(9), plannedEnd: at(10) }] };
+  const extra: RouteInsertions = { routingIdentity: answer.routingIdentity, technicianDays: [timedNext], skippedTechnicianDays: [] };
+  const joined = withTimedDays(week, extra, [NEXT]);
+  assert.ok(joined !== null);
+  // The paged-to day is replaced, its skipped day with it; the other days are kept as they were.
+  assert.deepEqual(joined.technicianDays.filter(item => item.serviceDate === NEXT), [timedNext]);
+  assert.deepEqual(joined.technicianDays.filter(item => item.serviceDate === DATE), answer.technicianDays);
+  assert.deepEqual(joined.skippedTechnicianDays, answer.skippedTechnicianDays);
+  assert.equal(withTimedDays(week, { ...extra, routingIdentity: "omaha-2026-11" }, [NEXT]), null);
 });

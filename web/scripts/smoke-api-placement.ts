@@ -12,7 +12,7 @@ import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { addCalendarDays, todayInTz } from "../lib/date";
 import { localMinute } from "../lib/zonedTime";
 import { tokenVariable } from "../lib/schedulerApi";
-import { previewPlacement, savePlacement } from "../lib/apiPlacement";
+import { previewPlacement, savePlacement, undoPlacement } from "../lib/apiPlacement";
 import { PlacementRefused } from "../lib/apiPlacementCore";
 import { findGap, gapSpot, type Spot } from "../lib/placementRules";
 import type { InsertionStart } from "../lib/insertionContract";
@@ -33,6 +33,7 @@ assert.ok(base, "SCHEDULER_TEST_URL must point at a running scheduler");
 
 async function removeMetro() {
   const like = "api-placement-%";
+  await prisma.$executeRaw`DELETE FROM placement_undo WHERE "clientId" LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM appointment WHERE "technicianId" LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM job WHERE id LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM address WHERE id LIKE ${like}`;
@@ -109,7 +110,7 @@ const refusedWith = (status: number, message: RegExp) => (error: unknown) =>
 
 /** A start of the spot's gap in a fresh preview, picked by `pick`. */
 async function startAt(input: { jobId?: string; appointmentId?: string }, technician: string, pick: (start: InsertionStart) => boolean) {
-  const preview = await previewPlacement(clientId, METRO, input, [DATE], []);
+  const preview = await previewPlacement(clientId, METRO, input, [DATE], [DATE], true, []);
   const day = preview.answer.technicianDays.find(item => item.technicianId === id(technician) && item.serviceDate === DATE);
   assert.ok(day !== undefined, `Technician ${technician} is in the answer`);
   for (const gap of day.gaps) {
@@ -126,7 +127,7 @@ async function main() {
     const job = await waitingJob("j");
 
     // One preview covers every gap of both routes: a has a stop, so two gaps; b is empty, so one.
-    const preview = await previewPlacement(clientId, METRO, { jobId: job }, [DATE], []);
+    const preview = await previewPlacement(clientId, METRO, { jobId: job }, [DATE], [DATE], true, []);
     const days = new Map(preview.answer.technicianDays.map(day => [day.technicianId, day]));
     assert.equal(days.get(id("a"))?.gaps.length, 2);
     assert.equal(days.get(id("b"))?.gaps.length, 1);
@@ -139,7 +140,8 @@ async function main() {
     // Saving the job on b creates its appointment with the promised window, and closes its follow-up.
     const placed = await startAt({ jobId: job }, "b", () => true);
     const saved = await savePlacement(clientId, METRO, { jobId: job }, placed.spot, placed.start.plannedStart, false, []);
-    assert.deepEqual(saved, { saved: true, appointmentId: job, kind: "NEW" });
+    assert.deepEqual({ ...saved, undoId: undefined }, { saved: true, appointmentId: job, kind: "NEW", undoId: undefined });
+    assert.ok(saved.undoId.length > 0, "A save names its undo record");
     const created = await prisma.appointment.findUniqueOrThrow({ where: { id: job }, include: { job: true } });
     assert.equal(created.technicianId, id("b"));
     assert.equal(created.windowStart.toISOString(), new Date(placed.start.window.start).toISOString());
@@ -173,13 +175,27 @@ async function main() {
     assert.equal(record.fromWindowStart.toISOString(), localMinute(DATE, 540, false, ZONE).toISOString());
     assert.equal(record.toWindowStart.toISOString(), new Date(changed.start.window.start).toISOString());
 
+    // Undoing the changed promise puts x back on b with the window it was promised, and records the way back.
+    await assert.rejects(undoPlacement(otherClientId, changedSave.undoId, []), refusedWith(404, /Nothing to undo/), "Another client's undo is not found");
+    const undone = await undoPlacement(clientId, changedSave.undoId, []);
+    assert.deepEqual(undone, { undone: true, kind: "CHANGES_PROMISE" });
+    const back = await prisma.appointment.findUniqueOrThrow({ where: { id: x } });
+    assert.equal(back.technicianId, id("b"));
+    assert.equal(back.windowStart.toISOString(), localMinute(DATE, 540, false, ZONE).toISOString());
+    assert.equal(back.plannedStart.toISOString(), movedKept.plannedStart.toISOString());
+    assert.equal(await prisma.appointmentWindowChange.count({ where: { appointmentId: x } }), 2, "The way back is recorded too");
+    await assert.rejects(undoPlacement(clientId, changedSave.undoId, []), refusedWith(410, /no longer be undone/), "An undo is used once");
+    // The job's save is older than the moves on b since, so undoing it would overwrite them: refused, nothing written.
+    await assert.rejects(undoPlacement(clientId, saved.undoId, []), refusedWith(409, /changed since this was saved/));
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: job } })).technicianId, id("b"));
+
     // A start the fresh answer does not offer is refused, and another client's appointment is not found.
     const nowhere: Spot = { technicianId: id("a"), serviceDate: DATE };
     const odd = localMinute(DATE, 487, false, ZONE).toISOString();
     await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, nowhere, odd, true, []), refusedWith(409, /no longer fits/));
     assert.equal(findGap(preview.answer, nowhere), undefined);
-    await assert.rejects(previewPlacement(otherClientId, METRO, { appointmentId: x }, [DATE], []), refusedWith(404, /Appointment not found/));
-    console.log("Placement smoke passed: preview, save, kept and changed promises, refusals");
+    await assert.rejects(previewPlacement(otherClientId, METRO, { appointmentId: x }, [DATE], [DATE], true, []), refusedWith(404, /Appointment not found/));
+    console.log("Placement smoke passed: preview, save, kept and changed promises, undo, refusals");
   } finally {
     await removeMetro();
   }

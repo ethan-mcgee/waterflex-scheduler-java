@@ -26,23 +26,33 @@ function cellAt(x: number, y: number): DropCell | null {
 
 /**
  * Drags a card (an appointment, or a job waiting to be placed) onto a technician's cell with pointer events, so the
- * same code serves a mouse, a pen and a touch screen, and a press without movement stays a click. `onStart` runs once
- * when a press becomes a drag; `canDrop` decides which cells take the card; `onDrop` receives the time of the drop,
- * taken in the handler, for timing.
+ * same code serves a mouse, a pen and a touch screen, and a press without movement stays a click. `onPress` runs when
+ * a mouse or pen goes down on a card, before it is known whether the press is a click or a drag (a touch is often
+ * the start of a scroll, so it does not count); `onSettle` runs after every press ends, once the click it may fire is
+ * handled. `onStart` runs once when a press becomes a drag; `canDrop` decides which cells take the card; `onDrop`
+ * receives the time of the drop, taken in the handler, for timing.
  */
-export function useAppointmentDrag<T>({ canDrop, onDrop, onStart }: {
+export function useAppointmentDrag<T>({ canDrop, onDrop, onStart, onPress, onSettle }: {
   canDrop: (item: T, cell: DropCell) => boolean;
   onDrop: (item: T, cell: DropCell, droppedAt: number) => void;
   onStart?: (item: T) => void;
+  onPress?: (item: T) => void;
+  onSettle?: () => void;
 }) {
   const [drag, setDrag] = useState<DragState<T> | null>(null);
   const pressed = useRef<{ item: T; x: number; y: number; dragging: boolean } | null>(null);
   /** Set after a drag ends, so the click the browser may fire on release does not also open the card. */
   const suppressClick = useRef(false);
-  const handlers = useRef({ canDrop, onDrop, onStart });
-  useEffect(() => { handlers.current = { canDrop, onDrop, onStart }; }, [canDrop, onDrop, onStart]);
+  const handlers = useRef({ canDrop, onDrop, onStart, onPress, onSettle });
+  useEffect(() => { handlers.current = { canDrop, onDrop, onStart, onPress, onSettle }; }, [canDrop, onDrop, onStart, onPress, onSettle]);
 
-  const end = useCallback(() => { pressed.current = null; setDrag(null); }, []);
+  const end = useCallback(() => {
+    const wasPressed = pressed.current !== null;
+    pressed.current = null;
+    setDrag(null);
+    // After the click the release may fire, which runs before this timeout, as the click suppression below relies on.
+    if (wasPressed) setTimeout(() => handlers.current.onSettle?.(), 0);
+  }, []);
 
   useEffect(() => {
     function move(event: PointerEvent) {
@@ -83,6 +93,7 @@ export function useAppointmentDrag<T>({ canDrop, onDrop, onStart }: {
   const press = useCallback((item: T, event: ReactPointerEvent) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     pressed.current = { item, x: event.clientX, y: event.clientY, dragging: false };
+    if (event.pointerType !== "touch") handlers.current.onPress?.(item);
   }, []);
 
   /** True when a click right after a drag should be ignored. */

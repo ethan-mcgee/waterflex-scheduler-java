@@ -69,6 +69,92 @@ export function rankedFits(answer: RouteInsertions): Fit[] {
 }
 
 /**
+ * The place to recommend: the best fit, starting at its first start. A move recommends only places that keep the
+ * customer's promised day and window, from the first start that keeps it, because a changed promise breaks the
+ * dealership's policy; with no such place it recommends nothing. Null when nothing fits.
+ */
+export function recommendation(answer: RouteInsertions, moving: boolean): Fit | null {
+  for (const fit of rankedFits(answer)) {
+    if (!moving) return fit;
+    const keeping = fit.gap.starts.find(start => start.keepsWindow === true);
+    if (keeping !== undefined) return { ...fit, firstStart: keeping };
+  }
+  return null;
+}
+
+/** One option offered to the dispatcher: a place, a start in it, and what it promises and costs in driving. */
+export interface PlaceOption {
+  spot: Spot; key: string; start: InsertionStart; addedBufferedMinutes: number;
+  /** Whether a moved appointment would be back where it is booked now. */
+  samePlace: boolean;
+}
+
+/**
+ * The best `count` options to offer, least added drive first, and the first is always the recommendation. A new job
+ * gets distinct arrival windows, the choice a customer makes. A move gets distinct places that keep the promised window,
+ * since its window is fixed; only when no place keeps it are window-changing places offered. Ties go to the earlier
+ * date, then the earlier start, then the technician, so the order never depends on the answer's order.
+ */
+export function bestOptions(answer: RouteInsertions, original: Original | null, count = 4): PlaceOption[] {
+  const moving = original !== null;
+  const candidates: PlaceOption[] = [];
+  for (const day of answer.technicianDays) {
+    for (const gap of day.gaps) {
+      if (gap.addedBufferedMinutes === undefined) continue;
+      const spot = gapSpot(day, gap), key = spotKey(spot);
+      const samePlace = original !== null && original.technicianId === spot.technicianId && original.serviceDate === spot.serviceDate
+        && original.afterAppointmentId === spot.afterAppointmentId && original.beforeAppointmentId === spot.beforeAppointmentId;
+      for (const start of gap.starts) candidates.push({ spot, key, start, addedBufferedMinutes: gap.addedBufferedMinutes, samePlace });
+    }
+  }
+  const keeping = candidates.filter(option => option.start.keepsWindow === true);
+  const pool = moving && keeping.length > 0 ? keeping : candidates;
+  const best = recommendation(answer, moving);
+  const isBest = (option: PlaceOption) => best !== null && option.key === best.key && option.start.plannedStart === best.firstStart.plannedStart;
+  pool.sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || a.addedBufferedMinutes - b.addedBufferedMinutes
+    || a.spot.serviceDate.localeCompare(b.spot.serviceDate) || Date.parse(a.start.plannedStart) - Date.parse(b.start.plannedStart)
+    || a.spot.technicianId.localeCompare(b.spot.technicianId));
+  const seen = new Set<string>(), options: PlaceOption[] = [];
+  for (const option of pool) {
+    const distinct = moving ? option.key : `${option.spot.serviceDate}|${Date.parse(option.start.window.start)}|${Date.parse(option.start.window.end)}`;
+    if (seen.has(distinct)) continue;
+    seen.add(distinct);
+    options.push(option);
+    if (options.length === count) break;
+  }
+  return options;
+}
+
+/** A stop's planned visit, as an instant pair. */
+export interface PlannedTimes { plannedStart: string; plannedEnd: string }
+
+/**
+ * Every stop's planned visit on the days a placement touches, as the scheduler timed them with the subject at
+ * `plannedStart` in `spot`: a moved appointment's own day without it, then the chosen day with it, which wins when they
+ * are the same day. The subject itself is listed too. Stops the answer did not time (asked without routes, or a day
+ * that does not hold as given) are left out, so they keep their booked times rather than an invented one.
+ */
+export function previewTimes(answer: RouteInsertions, original: Original | null, spot: Spot | null, plannedStart: string | null): Map<string, PlannedTimes> {
+  const times = new Map<string, PlannedTimes>();
+  const put = (stops: ReadonlyArray<{ appointmentId: string } & PlannedTimes> | undefined) => {
+    for (const stop of stops ?? []) times.set(stop.appointmentId, { plannedStart: stop.plannedStart, plannedEnd: stop.plannedEnd });
+  };
+  if (original !== null)
+    put(answer.technicianDays.find(day => day.technicianId === original.technicianId && day.serviceDate === original.serviceDate)?.stops);
+  if (spot !== null && plannedStart !== null) {
+    const found = findGap(answer, spot);
+    put(found === undefined ? undefined : findStart(found.gap, plannedStart)?.stops);
+  }
+  return times;
+}
+
+/** How a gap's added drive compares with the recommendation's: "+4 min vs best", "3 min less than best" or "Same as best". */
+export function relativeToBest(addedBufferedMinutes: number, best: Fit): string {
+  const difference = addedBufferedMinutes - best.addedBufferedMinutes;
+  return difference === 0 ? "Same as best" : difference > 0 ? `+${difference} min vs best` : `${-difference} min less than best`;
+}
+
+/**
  * Why nothing can be placed at a spot, or null when it has starts. A drop is never refused: the reason is shown and
  * Save stays off. `gap` is absent when the drop was on a technician-day rather than a gap.
  */
@@ -219,4 +305,19 @@ export function spotAt(answer: RouteInsertions, technicianId: string, serviceDat
   const nearest = minute === null ? chosen.starts[0] : [...chosen.starts]
     .sort((a, b) => Math.abs(startMinute(a) - minute) - Math.abs(startMinute(b) - minute) || startMinute(a) - startMinute(b))[0];
   return { spot: gapSpot(day, chosen), plannedStart: nearest?.plannedStart ?? null };
+}
+
+/**
+ * A week's answer with the given dates' technician-days (and skipped technician-days) taken from `extra`, an answer
+ * asked for those dates alone with timed stops when the page pages to a day the first answer did not time. The
+ * other dates are kept as they were. Null when `extra` comes from another road map, so the two cannot be mixed.
+ */
+export function withTimedDays(answer: RouteInsertions, extra: RouteInsertions, dates: readonly string[]): RouteInsertions | null {
+  if (extra.routingIdentity !== answer.routingIdentity) return null;
+  const replaced = new Set(dates);
+  const keep = <T extends { serviceDate: string }>(items: readonly T[]) => items.filter(item => !replaced.has(item.serviceDate));
+  const take = <T extends { serviceDate: string }>(items: readonly T[]) => items.filter(item => replaced.has(item.serviceDate));
+  return { routingIdentity: answer.routingIdentity,
+    technicianDays: [...keep(answer.technicianDays), ...take(extra.technicianDays)],
+    skippedTechnicianDays: [...keep(answer.skippedTechnicianDays), ...take(extra.skippedTechnicianDays)] };
 }

@@ -296,9 +296,17 @@ export type MoveCheckResult = z.infer<typeof moveCheckResult>;
 /** What to place on the schedule: an unscheduled job, or an appointment to move. Exactly one is named. */
 const placementSubject = { jobId: text.optional(), appointmentId: text.optional() };
 const oneSubject = (value: { jobId?: string; appointmentId?: string }) => (value.jobId === undefined) !== (value.appointmentId === undefined);
-/** A preview covers the week starting on `monday` in one call; hovering and dropping need no other. */
-export const placementPreviewRequest = z.object({ metroId: text, monday: date, ...placementSubject }).strict()
-  .refine(oneSubject, "Name a job or an appointment, not both");
+/** The Monday of a date's week, as days since 1970-01-01 (a Thursday). Kept here because `date.ts` imports this file. */
+const mondayNumber = (value: string) => { const day = Date.parse(`${value}T00:00:00Z`) / 86_400_000; return day - ((day + 3) % 7); };
+/**
+ * A preview covers the week of `monday` in one call; hovering and dropping need no other. Only `timedDates`, the days on
+ * screen, come with timed stops, which is most of an answer's size. `withRestOfWeek` false asks for those days alone,
+ * to fill in a day paged to while placing.
+ */
+export const placementPreviewRequest = z.object({ metroId: text, monday: date, ...placementSubject,
+  timedDates: z.array(date).min(1).max(7), withRestOfWeek: z.boolean() }).strict()
+  .refine(oneSubject, "Name a job or an appointment, not both")
+  .refine(value => value.timedDates.every(day => mondayNumber(day) === mondayNumber(value.monday)), "Timed dates must be in the week shown");
 const spot = z.object({ technicianId: text, serviceDate: date, afterAppointmentId: text.optional(), beforeAppointmentId: text.optional() }).strict();
 const original = z.object({ appointmentId: text, technicianId: text, serviceDate: date, window: z.object({ start: instant, end: instant }).strict(),
   plannedStart: instant, afterAppointmentId: text.optional(), beforeAppointmentId: text.optional() }).strict();
@@ -308,8 +316,14 @@ export const placementPreview = z.object({ answer: routeInsertions, original: or
 /** Saving a start at a spot. `acknowledged` is the dispatcher's acknowledgement of a changed promise. */
 export const placementSaveRequest = z.object({ metroId: text, ...placementSubject, spot, plannedStart: instant, acknowledged: z.boolean() }).strict()
   .refine(oneSubject, "Name a job or an appointment, not both");
-export const placementSaved = z.object({ saved: z.literal(true), appointmentId: text,
-  kind: z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]) }).strict();
+const placementKind = z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]);
+/** `undoId` names the record of what the save replaced, for undoing it. */
+export const placementSaved = z.object({ saved: z.literal(true), appointmentId: text, kind: placementKind, undoId: text }).strict();
+export const placementUndoRequest = z.object({ metroId: text, undoId: text }).strict();
+export const placementUndone = z.object({ undone: z.literal(true), kind: placementKind }).strict();
+/** The schedule's version for a week: an opaque text that changes whenever anything the schedule page shows changes. */
+export const scheduleVersionAnswer = z.object({ version: text }).strict();
+export type PlacementUndone = z.infer<typeof placementUndone>;
 export type PlacementPreviewRequest = z.infer<typeof placementPreviewRequest>;
 export type PlacementPreview = z.infer<typeof placementPreview>;
 export type PlacementSaveRequest = z.infer<typeof placementSaveRequest>;
