@@ -516,6 +516,14 @@ async function stamps(days: Array<{ technicianId: string; serviceDate: string }>
 /** Tells the page its tab was returned to, which checks the schedule's version at once rather than in 20 seconds. */
 const returnToTab = (page: Page) => page.evaluate(() => window.dispatchEvent(new Event("focus")));
 
+/**
+ * Returns to the tab until `seen` passes. The server-rendered page is on screen before its scripts listen for focus,
+ * so a single event can come too early and be lost; the page itself would find the change at its next 20-second check.
+ */
+async function returnUntil(page: Page, seen: () => Promise<void>) {
+  await expect(async () => { await returnToTab(page); await seen(); }).toPass({ timeout: 15_000, intervals: [250, 500, 1000] });
+}
+
 test.describe("following the schedule and undoing a save", () => {
   let fixture: Fixture;
   const undoIds: string[] = [];
@@ -581,8 +589,7 @@ test.describe("following the schedule and undoing a save", () => {
     await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
     await prisma.appointment.update({ where: { id: fixture.south }, data: { technicianId: fixture.second, sequence: 0 } });
-    await returnToTab(page);
-    await expect(cell(page, fixture.second).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
+    await returnUntil(page, () => expect(cell(page, fixture.second).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible({ timeout: 1000 }));
     await expect(page.locator("[data-schedule-updated]")).toHaveText("The schedule was updated.");
   });
 
@@ -601,10 +608,11 @@ test.describe("following the schedule and undoing a save", () => {
     await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
 
     await prisma.appointment.update({ where: { id: fixture.north }, data: { plannedEnd: new Date(utc(16, 30)) } });
-    await returnToTab(page);
-    await expect(panel(page).locator("[data-placement-notice]")).toHaveText("The schedule changed and that place is gone. Pick again.");
-    expect(previews).toHaveLength(2);
-    expect(previews[1]).toMatchObject({ jobId: fixture.job, timedDates: [DATE], withRestOfWeek: true });
+    await returnUntil(page, () => expect(panel(page).locator("[data-placement-notice]"))
+      .toHaveText("The schedule changed and that place is gone. Pick again.", { timeout: 1000 }));
+    // Asked again once per change seen; a repeated focus before the reload lands may ask once more, never less.
+    expect(previews.length).toBeGreaterThanOrEqual(2);
+    expect(previews.at(-1)).toMatchObject({ jobId: fixture.job, timedDates: [DATE], withRestOfWeek: true });
     await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toHaveCount(0);
     await expect(panel(page).getByRole("button", { name: "Save" })).toHaveCount(0);
   });
