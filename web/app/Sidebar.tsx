@@ -12,6 +12,7 @@ import {
   Route,
   SlidersHorizontal,
   Users,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ClientSummary } from "@/lib/clients";
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/time-off", label: "Time Off", icon: CalendarOff },
   { href: "/dispatch/follow-up", label: "Manual Follow-up", icon: PhoneCall },
   { href: "/settings", label: "Solver Settings", icon: SlidersHorizontal },
+  { href: "/work-orders/schedule", label: "Work orders", icon: Wrench },
 ];
 
 const TESTING_ITEM: NavItem = {

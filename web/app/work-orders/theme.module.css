@@ -1,0 +1,72 @@
+/*
+ * The work orders section's look, sampled from the WaterFlex developers' Figma file. Tokens live on the section's
+ * root element, not :root, so nothing here reaches the classic portal pages.
+ */
+
+.theme {
+  /* Brand and surfaces */
+  --wo-primary: #0c59b3;
+  --wo-primary-strong: #094891;
+  --wo-primary-soft: #6193cd;
+  --wo-primary-wash: #ddedfd;
+  --wo-primary-tint: #e3ecf7;
+  --wo-rail-top: #0b56ae;
+  --wo-rail-bottom: #063771;
+  --wo-rail-active: #1a9cfb;
+  --wo-rail-icon: #e4f4fb;
+  --wo-canvas: #f4f8fd;
+  --wo-surface: #ffffff;
+  --wo-surface-muted: #f9f9f9;
+
+  /* Text and lines */
+  --wo-ink: #181919;
+  --wo-ink-soft: #474747;
+  --wo-muted: #717171;
+  --wo-quiet: #989b9e;
+  --wo-line: #dadada;
+  --wo-line-soft: #ededed;
+  --wo-line-field: #c7c7c7;
+  --wo-grid-line: #e4e4e4;
+
+  /* Calendar */
+  --wo-column-head: #afbdc4;
+  --wo-column-head-unassigned: #dfdfdf;
+  --wo-chip: #cfd8db;
+  --wo-now: #e53935;
+
+  /* Work order status icons */
+  --wo-status-scheduled: #546e79;
+  --wo-status-dispatched: #0187d1;
+  --wo-status-outstanding: #ef6b00;
+  --wo-status-completed: #2d7c31;
+
+  /* Feedback */
+  --wo-success: #4baf50;
+  --wo-danger: #c62828;
+  --wo-warning-wash: #fdf1eb;
+  --wo-warning: #e65000;
+
+  /* Shape and type */
+  --wo-radius-field: 4px;
+  --wo-radius-panel: 12px;
+  --wo-radius-pill: 999px;
+  --wo-shadow-raised: 0 2px 6px rgba(12, 89, 179, 0.18);
+  --wo-shadow-popover: 0 6px 24px rgba(24, 25, 25, 0.16);
+  --wo-font: "DM Sans", "Roboto", "Segoe UI", system-ui, sans-serif;
+
+  min-height: 100vh;
+  color: var(--wo-ink);
+  background: var(--wo-canvas);
+  font-family: var(--wo-font);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.theme :where(button, input, select) {
+  font-family: inherit;
+}
+
+.theme :where(a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible) {
+  outline: 3px solid rgba(12, 89, 179, 0.3);
+  outline-offset: 2px;
+}
