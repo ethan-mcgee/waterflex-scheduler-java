@@ -2,12 +2,13 @@ import { prisma } from "./prisma";
 import { assembleSnapshot, loadSnapshotFacts } from "./clientSnapshot";
 import { onlyTechnicians } from "./apiMoveCheckCore";
 import { timed, type Phases } from "./apiMoveCheck";
-import { writeReceipt } from "./apiReceipt";
+import { currentLastModified, StaleReceipt, writeReceipt } from "./apiReceipt";
 import { insertIntoRoutes } from "./schedulerApi";
 import type { RouteInsertions } from "./insertionContract";
-import type { PlacementPreview, PlacementSaved } from "./contracts";
+import type { PlacementPreview, PlacementSaved, PlacementUndone } from "./contracts";
 import type { Spot } from "./placementRules";
-import { insertionCalls, joined, placementPlan, placementWrite, PlacementRefused, type PlacementPlan, type Subject } from "./apiPlacementCore";
+import { insertionCalls, joined, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload, type PlacementPlan,
+  type PriorVisit, type Subject } from "./apiPlacementCore";
 
 /**
  * Placing a job or moving an appointment on the schedule: one preview call for the week, answered by the scheduler's
@@ -18,6 +19,9 @@ import { insertionCalls, joined, placementPlan, placementWrite, PlacementRefused
 const MAX_TECHNICIAN_DAYS = 200;
 /** Planned starts are offered on the half hour, as the dealership asked. */
 const START_STEP_MINUTES = 30;
+/** How long after a save it can still be undone. */
+const UNDO_MINUTES = 10;
+const midnight = (serviceDate: string) => new Date(`${serviceDate}T00:00:00Z`);
 
 export interface SubjectInput { jobId?: string; appointmentId?: string }
 
@@ -85,7 +89,8 @@ export async function previewPlacement(clientId: string, metroId: string, input:
  * Saves a start at a spot. The days involved are loaded fresh and asked again with timed stops; the write then goes
  * through the receipt path, so it lands only while those technician-days are as they were read. A move that changes
  * the promise updates the appointment's day and window and records the acknowledged change in the same transaction.
- * A new job's open follow-up, if any, is resolved with it.
+ * A new job's open follow-up, if any, is resolved with it. What the save replaced is recorded in the same transaction,
+ * so it can be undone while the days stay as the save left them.
  */
 export async function savePlacement(clientId: string, metroId: string, input: SubjectInput, spot: Spot, plannedStart: string,
   acknowledged: boolean, phases: Phases): Promise<PlacementSaved> {
@@ -98,13 +103,24 @@ export async function savePlacement(clientId: string, metroId: string, input: Su
   const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, plan.facts.dates, plan.facts.dates));
   const write = placementWrite(plan, answer, spot, plannedStart, acknowledged);
   const change = write.promiseChange;
+  const days = write.technicianDays.map(day => ({ technicianId: day.technicianId, serviceDate: day.serviceDate }));
+  let prior: PriorVisit[] = [];
+  let followUp: string | null = null;
+  let undoId: string | null = null;
   await timed(phases, "write", () => writeReceipt(clientId, {
     receipt: { assignments: write.assignments, technicianDays: write.technicianDays },
     complete: write.technicianDays.map(day => ({ technicianId: day.technicianId, serviceDate: day.serviceDate })),
     ...(write.create === undefined ? {} : { create: write.create }),
   }, {
-    // The receipt places an appointment only on its current day, so a new day and window are set first.
-    ...(change === undefined ? {} : { before: async tx => {
+    before: async tx => {
+      // The visits as they are now, read under the save's locks, for the undo record.
+      prior = await tx.appointment.findMany({ where: { cancelledAt: null,
+        OR: days.map(day => ({ technicianId: day.technicianId, serviceDate: midnight(day.serviceDate) })) },
+        select: { id: true, technicianId: true, serviceDate: true, sequence: true, plannedStart: true, plannedEnd: true } });
+      if (write.create !== undefined)
+        followUp = (await tx.job.findUniqueOrThrow({ where: { id: plan.job.id }, select: { manualFollowUpStatus: true } })).manualFollowUpStatus;
+      // The receipt places an appointment only on its current day, so a new day and window are set first.
+      if (change === undefined) return;
       const moved = await tx.appointment.updateMany({ where: { id: change.appointmentId, cancelledAt: null,
         serviceDate: new Date(`${change.from.serviceDate}T00:00:00Z`), windowStart: change.from.windowStart, windowEnd: change.from.windowEnd },
         data: { serviceDate: new Date(`${change.to.serviceDate}T00:00:00Z`), windowStart: change.to.windowStart, windowEnd: change.to.windowEnd } });
@@ -112,10 +128,69 @@ export async function savePlacement(clientId: string, metroId: string, input: Su
       await tx.appointmentWindowChange.create({ data: { appointmentId: change.appointmentId,
         fromServiceDate: new Date(`${change.from.serviceDate}T00:00:00Z`), fromWindowStart: change.from.windowStart, fromWindowEnd: change.from.windowEnd,
         toServiceDate: new Date(`${change.to.serviceDate}T00:00:00Z`), toWindowStart: change.to.windowStart, toWindowEnd: change.to.windowEnd } });
-    } }),
-    ...(write.create === undefined ? {} : { record: async tx => {
-      await tx.job.updateMany({ where: { id: plan.job.id, manualFollowUpStatus: { in: ["PENDING", "CONTACTED"] } }, data: { manualFollowUpStatus: "RESOLVED" } });
-    } }),
+    },
+    record: async tx => {
+      if (write.create !== undefined)
+        await tx.job.updateMany({ where: { id: plan.job.id, manualFollowUpStatus: { in: ["PENDING", "CONTACTED"] } }, data: { manualFollowUpStatus: "RESOLVED" } });
+      // Read last, after every write of this save has moved the days' stamps.
+      const stamps = await currentLastModified(tx, days);
+      const after = days.map(day => {
+        const lastModified = stamps.get(`${day.technicianId}|${day.serviceDate}`);
+        if (lastModified === undefined) throw new Error(`Technician ${day.technicianId} has no change time for ${day.serviceDate} after the save`);
+        return { ...day, lastModified };
+      });
+      undoId = (await tx.placementUndo.create({ data: { clientId, payload: undoPayload(write, prior, after, () => followUp) }, select: { id: true } })).id;
+    },
   }));
-  return { saved: true, appointmentId: plan.job.id, kind: write.verdict.kind };
+  if (undoId === null) throw new Error("The save wrote no undo record");
+  return { saved: true, appointmentId: plan.job.id, kind: write.verdict.kind, undoId };
+}
+
+/**
+ * Undoes a save: puts every visit on the days it wrote back where it was, and takes back a changed promise or a
+ * placed job. It applies only while those days still carry the stamps the save left, so nothing done since is
+ * overwritten, and only once, within ten minutes. The scheduler is not asked: what is restored is the schedule as it
+ * was booked, and the stamps prove nothing has changed since. A promise put back is recorded as a change of its own.
+ */
+export async function undoPlacement(clientId: string, undoId: string, phases: Phases): Promise<PlacementUndone> {
+  const row = await timed(phases, "subject", () => prisma.placementUndo.findFirst({ where: { id: undoId, clientId } }));
+  if (row === null) throw new PlacementRefused(404, "Nothing to undo was found");
+  if (row.usedAt !== null || Date.now() - row.createdAt.getTime() > UNDO_MINUTES * 60_000)
+    throw new PlacementRefused(410, "This save can no longer be undone.");
+  const stored = placementUndoPayload.safeParse(row.payload);
+  if (!stored.success) throw new Error(`Undo record ${row.id} does not match its contract`);
+  const { assignments, technicianDays, promise, created, kind } = stored.data;
+  try {
+    await timed(phases, "write", () => writeReceipt(clientId, {
+      receipt: { assignments, technicianDays },
+      complete: technicianDays.map(day => ({ technicianId: day.technicianId, serviceDate: day.serviceDate })),
+    }, {
+      before: async tx => {
+        if (created !== undefined) {
+          const removed = await tx.appointment.deleteMany({ where: { id: created.jobId, jobId: created.jobId, cancelledAt: null } });
+          const waiting = await tx.job.updateMany({ where: { id: created.jobId, status: "SCHEDULED", customer: { clientId } },
+            data: { status: "PENDING", manualFollowUpStatus: created.followUp } });
+          if (removed.count !== 1 || waiting.count !== 1) throw new StaleReceipt(`Job ${created.jobId} is no longer as the save left it`);
+        }
+        if (promise !== undefined) {
+          const { from, to } = promise;
+          const back = await tx.appointment.updateMany({ where: { id: promise.appointmentId, cancelledAt: null, serviceDate: midnight(to.serviceDate),
+            windowStart: new Date(to.windowStart), windowEnd: new Date(to.windowEnd) },
+            data: { serviceDate: midnight(from.serviceDate), windowStart: new Date(from.windowStart), windowEnd: new Date(from.windowEnd) } });
+          if (back.count !== 1) throw new StaleReceipt(`Appointment ${promise.appointmentId} is no longer as the save left it`);
+          await tx.appointmentWindowChange.create({ data: { appointmentId: promise.appointmentId,
+            fromServiceDate: midnight(to.serviceDate), fromWindowStart: new Date(to.windowStart), fromWindowEnd: new Date(to.windowEnd),
+            toServiceDate: midnight(from.serviceDate), toWindowStart: new Date(from.windowStart), toWindowEnd: new Date(from.windowEnd) } });
+        }
+      },
+      record: async tx => {
+        const used = await tx.placementUndo.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
+        if (used.count !== 1) throw new PlacementRefused(410, "This save can no longer be undone.");
+      },
+    }));
+  } catch (error) {
+    if (error instanceof StaleReceipt) throw new PlacementRefused(409, "The schedule changed since this was saved. Move it back by hand.");
+    throw error;
+  }
+  return { undone: true, kind };
 }

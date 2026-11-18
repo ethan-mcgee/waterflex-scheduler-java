@@ -9,13 +9,14 @@ import { addCalendarDays, todayInTz, weekDates } from "@/lib/date";
 import type { MoveCheckResult } from "@/lib/contracts";
 import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
-import { usePlacement, type DropResolver, type PlacementSubject } from "./usePlacement";
+import { postJson, usePlacement, type DropResolver, type PlacementSubject } from "./usePlacement";
+import { useScheduleVersion } from "./useScheduleVersion";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
 import { findGap, gapSpot, previewTimes, recommendation, relativeToBest, spotAt, spotKey, verdict, type Fit, type Spot } from "@/lib/placementRules";
 import type { InsertionGap } from "@/lib/insertionContract";
 import { driveLabel, previewDrives, type VisitDrive } from "@/lib/scheduleDrive";
 import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
-import type { PlacementPreview, PlacementSaved } from "@/lib/contracts";
+import { placementUndone, type PlacementPreview, type PlacementSaved } from "@/lib/contracts";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician, ScheduleViewMode } from "./types";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
@@ -575,6 +576,13 @@ function AppointmentPanel({
   );
 }
 
+/** How long a save's Undo button stays, matching the portal's ten minutes. */
+const UNDO_SHOWN_MS = 10 * 60_000;
+/** A version change this soon after this page's own save or undo is its own, not someone else's. */
+const OWN_CHANGE_MS = 5_000;
+/** How long "The schedule was updated." stays on screen. */
+const UPDATED_SHOWN_MS = 8_000;
+
 export default function ScheduleView({
   metroId,
   monday,
@@ -588,6 +596,7 @@ export default function ScheduleView({
   services,
   serviceLegend,
   placeJobId,
+  version,
 }: {
   metroId: string;
   monday: string;
@@ -606,6 +615,8 @@ export default function ScheduleView({
   serviceLegend: ScheduleServiceLegend[];
   /** A job to start placing when the page opens, from a "Place on calendar" link. */
   placeJobId: string | null;
+  /** The schedule's version when this page was rendered; a different one from the portal means it changed since. */
+  version: string;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
@@ -655,13 +666,36 @@ export default function ScheduleView({
     return day !== undefined && day.member && day.available;
   }, [technicians]);
 
-  const [saved, setSaved] = useState<string | null>(null);
+  /** The last save or undo, as the banner says it. `undoId` is there while the save can still be undone. */
+  const [saved, setSaved] = useState<{ message: string; undoId: string | null; undone: string; undoing: boolean; error: string | null } | null>(null);
+  /** When this page last changed the schedule itself, so its own change is not announced as someone else's. */
+  const ownChange = useRef(Number.NEGATIVE_INFINITY);
   const onSaved = (result: PlacementSaved, subject: PlacementSubject) => {
-    setSaved(result.kind === "NEW" ? `Saved: ${subject.label} is on the calendar.` : result.kind === "CHANGES_PROMISE"
-      ? `Saved: ${subject.label} moved, and the changed promise was recorded. Let the customer know.` : `Saved: ${subject.label} moved.`);
+    const { undoId } = result;
+    setSaved({ undoId, undoing: false, error: null,
+      message: result.kind === "NEW" ? `Saved: ${subject.label} is on the calendar.` : result.kind === "CHANGES_PROMISE"
+        ? `Saved: ${subject.label} moved, and the changed promise was recorded. Let the customer know.` : `Saved: ${subject.label} moved.`,
+      undone: result.kind === "NEW" ? `Undone: ${subject.label} is waiting for the calendar again.` : `Undone: ${subject.label} is back where it was.` });
+    // The portal refuses an undo after ten minutes, so the button goes then too.
+    setTimeout(() => setSaved(current => current !== null && current.undoId === undoId ? { ...current, undoId: null } : current), UNDO_SHOWN_MS);
+    ownChange.current = performance.now();
     router.refresh();
   };
-  const { placement, start: startPlacement, prefetch, settle, choose, drop, acknowledge, cancel: cancelPlacement, save } =
+  /** Puts back what the last save replaced. The portal refuses if anything on those days changed since. */
+  const undo = () => {
+    if (saved === null || saved.undoId === null || saved.undoing) return;
+    const { undoId, undone } = saved;
+    setSaved({ ...saved, undoing: true, error: null });
+    postJson("/api/schedule/placement/undo", { metroId, undoId }, placementUndone)
+      .then(() => {
+        ownChange.current = performance.now();
+        setSaved(current => current === null || current.undoId !== undoId ? current : { ...current, message: undone, undoId: null, undoing: false });
+        router.refresh();
+      })
+      .catch((error: unknown) => setSaved(current => current === null || current.undoId !== undoId ? current
+        : { ...current, undoing: false, error: error instanceof Error ? error.message : "The save could not be undone. Try again." }));
+  };
+  const { placement, start: startPlacement, prefetch, settle, refresh: refreshPlacement, choose, drop, acknowledge, cancel: cancelPlacement, save } =
     usePlacement(metroId, monday, shown, onSaved);
   const opened = useRef(false);
 
@@ -727,6 +761,19 @@ export default function ScheduleView({
   }, [check]);
 
   useEffect(() => () => inFlight.current?.abort(), []);
+
+  // Another dispatcher, a booking or the overnight run changed the schedule: the page reloads its visits and asks the
+  // open placement's places again. A drag or a save in progress is left alone; the next check finds the change again.
+  const [updated, setUpdated] = useState(false);
+  const busy = drag !== null || (placement !== null && placement.status === "ready" && placement.saving) || (saved !== null && saved.undoing);
+  useScheduleVersion(metroId, monday, version, () => {
+    if (busy) return;
+    router.refresh();
+    refreshPlacement();
+    if (performance.now() - ownChange.current < OWN_CHANGE_MS) return;
+    setUpdated(true);
+    setTimeout(() => setUpdated(false), UPDATED_SHOWN_MS);
+  });
 
   const draggingId = drag === null ? null : drag.item.kind === "appointment" ? drag.item.appointment.id : null;
   const cardDrag: CardDrag = { press: (appointment, event) => press({ kind: "appointment", appointment }, event), clickSuppressed, draggingId };
@@ -979,8 +1026,11 @@ export default function ScheduleView({
       </div>
 
       {check !== null && <MoveCheckBanner check={check} onDismiss={() => { inFlight.current?.abort(); setCheck(null); }} />}
+      {updated && <p className={styles.subtle} role="status" data-schedule-updated="true">The schedule was updated.</p>}
       {saved !== null && <div className={`${styles.moveBanner} ${styles.moveFeasible}`} role="status" data-placement-saved="true">
-        <span>{saved}</span>
+        <span>{saved.message}{saved.error !== null && <> <strong role="alert">{saved.error}</strong></>}</span>
+        {saved.undoId !== null && <button className={styles.button} type="button" disabled={saved.undoing} onClick={undo}>
+          {saved.undoing ? "Undoing..." : "Undo"}</button>}
         <button className={styles.button} type="button" onClick={() => setSaved(null)}>Dismiss</button>
       </div>}
 

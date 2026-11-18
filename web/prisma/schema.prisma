@@ -362,6 +362,19 @@ model AppointmentWindowChange {
   @@map("appointment_window_change")
 }
 
+// What a save on the schedule page replaced, kept so the dispatcher can undo it. The payload is checked against its
+// contract when written and when read. No foreign keys: an undo that can no longer apply is refused, never cascaded.
+model PlacementUndo {
+  id        String    @id @default(cuid())
+  clientId  String
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  usedAt    DateTime? @db.Timestamptz(6)
+  payload   Json
+
+  @@index([clientId, createdAt], map: "placement_undo_client")
+  @@map("placement_undo")
+}
+
 // ---------------------------------------------------------------------------
 // Booking concurrency
 // ---------------------------------------------------------------------------

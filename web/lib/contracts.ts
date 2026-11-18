@@ -316,8 +316,14 @@ export const placementPreview = z.object({ answer: routeInsertions, original: or
 /** Saving a start at a spot. `acknowledged` is the dispatcher's acknowledgement of a changed promise. */
 export const placementSaveRequest = z.object({ metroId: text, ...placementSubject, spot, plannedStart: instant, acknowledged: z.boolean() }).strict()
   .refine(oneSubject, "Name a job or an appointment, not both");
-export const placementSaved = z.object({ saved: z.literal(true), appointmentId: text,
-  kind: z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]) }).strict();
+const placementKind = z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]);
+/** `undoId` names the record of what the save replaced, for undoing it. */
+export const placementSaved = z.object({ saved: z.literal(true), appointmentId: text, kind: placementKind, undoId: text }).strict();
+export const placementUndoRequest = z.object({ metroId: text, undoId: text }).strict();
+export const placementUndone = z.object({ undone: z.literal(true), kind: placementKind }).strict();
+/** The schedule's version for a week: an opaque text that changes whenever anything the schedule page shows changes. */
+export const scheduleVersionAnswer = z.object({ version: text }).strict();
+export type PlacementUndone = z.infer<typeof placementUndone>;
 export type PlacementPreviewRequest = z.infer<typeof placementPreviewRequest>;
 export type PlacementPreview = z.infer<typeof placementPreview>;
 export type PlacementSaveRequest = z.infer<typeof placementSaveRequest>;

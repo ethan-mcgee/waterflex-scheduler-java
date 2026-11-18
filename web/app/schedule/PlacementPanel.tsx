@@ -231,6 +231,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
     <section className={styles.placementCard} data-placement-state={decided?.kind ?? "READY"} aria-live="polite">
       {header}
       {preview.original !== null && <p className={styles.placePromise}>Promised {formatDate(preview.original.serviceDate)}, {windowText(preview.original.window, timezone)}</p>}
+      {placement.notice !== null && <p className={styles.subtle} role="status" data-placement-notice="true">{placement.notice}</p>}
       {placement.timingError !== null && <p className={styles.subtle} role="status">
         This day&apos;s visits show their booked times: {placement.timingError}</p>}
       {title}

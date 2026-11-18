@@ -1,5 +1,6 @@
 import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
+import { scheduleVersion } from "@/lib/scheduleVersion";
 import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import type { ScheduleViewMode } from "./types";
@@ -44,6 +45,8 @@ export default async function SchedulePage({
   const weekStart = new Date(`${monday}T00:00:00.000Z`);
   const weekEnd = new Date(`${nextMonday}T00:00:00.000Z`);
 
+  // Read before the schedule itself, so a change that lands while the page loads is seen as newer, never missed.
+  const version = await scheduleVersion(clientId, monday);
   const technicians = await prisma.technician.findMany({
     where: { clientId, active: true },
     orderBy: { name: "asc" },
@@ -158,6 +161,7 @@ export default async function SchedulePage({
       services={scheduleServices}
       serviceLegend={serviceLegend}
       placeJobId={searchParams.placeJob ?? null}
+      version={version}
     />
   </>;
 }

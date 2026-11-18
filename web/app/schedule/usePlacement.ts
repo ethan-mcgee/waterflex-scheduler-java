@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { errorMessage, placementPreview, placementSaved, type PlacementPreview, type PlacementSaved } from "@/lib/contracts";
-import { withTimedDays, type Spot } from "@/lib/placementRules";
+import { findGap, findStart, withTimedDays, type Spot } from "@/lib/placementRules";
 
 /** What is being placed: a job waiting for the calendar, or an appointment being moved. `label` names it on screen. */
 export type PlacementSubject = { kind: "job"; id: string; label: string } | { kind: "appointment"; id: string; label: string };
@@ -23,7 +23,9 @@ export type PlacementState = {
     /** The days whose stops the answer timed; the others keep their booked times until they are asked for. */
     timedDates: string[];
     /** Why a day paged to could not be timed; its visits keep their booked times. */
-    timingError: string | null }
+    timingError: string | null;
+    /** Said after the schedule changed under the placement and its places were asked again. */
+    notice: string | null }
 );
 
 /** Turns a drop into a chosen place once the answer is known. */
@@ -33,7 +35,7 @@ const subjectBody = (subject: PlacementSubject) => subject.kind === "job" ? { jo
 const keyOf = (subject: PlacementSubject, week: string, timed: readonly string[]) => `${subject.kind}:${subject.id}|${week}|${timed.join(",")}`;
 
 /** Posts JSON and checks the answer against its contract; a refusal throws with the portal's own message. */
-async function postJson<T>(path: string, body: unknown, contract: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
+export async function postJson<T>(path: string, body: unknown, contract: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
   const payload: unknown = await response.json().catch(() => undefined);
   if (!response.ok) throw new Error(errorMessage(payload, `The request failed (${response.status}).`));
@@ -94,7 +96,7 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
           if (current === null || current.subject.id !== subject.id) return current;
           const dropped = resolve === null ? null : resolve(preview);
           return { ...current, monday: week, chosen: dropped ?? current.chosen, status: "ready", preview, saving: false, saveError: null,
-            timedDates: [...timedDates], timingError: null };
+            timedDates: [...timedDates], timingError: null, notice: null };
         });
       })
       .catch((error: unknown) => {
@@ -190,8 +192,42 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
 
   const choose = useCallback((spot: Spot, plannedStart: string | null) => {
     setStored(current => current === null ? current : { ...current, chosen: { spot, plannedStart }, acknowledged: false,
-      ...(current.status === "ready" ? { saveError: null } : {}) });
+      ...(current.status === "ready" ? { saveError: null, notice: null } : {}) });
   }, []);
+
+  /**
+   * Asks the week again for the placement on screen, after the schedule changed underneath it. The panel stays as it
+   * is until the answer arrives. A chosen place the new answer still offers is kept; one that is gone is cleared and
+   * said. A refusal (the visit was cancelled, or someone else placed the job) is shown in its place.
+   */
+  const refresh = useCallback(() => {
+    if (stored === null || stored.status !== "ready" || stored.monday !== monday || stored.saving) return;
+    const { subject } = stored;
+    inFlight.current?.abort();
+    filling.current?.controller.abort();
+    filling.current = null;
+    const controller = new AbortController();
+    inFlight.current = controller;
+    send(subject, monday, shownDates, true, controller.signal)
+      .then(preview => {
+        if (controller.signal.aborted) return;
+        setStored(current => {
+          if (current === null || current.status !== "ready" || current.subject.id !== subject.id) return current;
+          const { chosen } = current;
+          const found = chosen === null ? undefined : findGap(preview.answer, chosen.spot);
+          const holds = chosen !== null && found !== undefined && (chosen.plannedStart === null || findStart(found.gap, chosen.plannedStart) !== undefined);
+          return { ...current, preview, timedDates: [...shownDates], timingError: null, chosen: holds ? chosen : null,
+            acknowledged: holds && current.acknowledged, saveError: null,
+            notice: chosen !== null && !holds ? "The schedule changed and that place is gone. Pick again." : "The schedule changed. These places are up to date." };
+        });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setStored(current => current === null || current.subject.id !== subject.id ? current
+          : { subject: current.subject, monday: current.monday, chosen: null, acknowledged: false, status: "error",
+            message: error instanceof Error ? error.message : "The places could not be found. Try again." });
+      });
+  }, [monday, send, shownDates, stored]);
 
   /** A drop: chosen now when the answer is in, otherwise as soon as it arrives. */
   const drop = useCallback((resolve: DropResolver) => {
@@ -229,5 +265,5 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
 
   useEffect(() => abortAll, [abortAll]);
 
-  return { placement, start, prefetch, settle, choose, drop, acknowledge, cancel, save };
+  return { placement, start, prefetch, settle, refresh, choose, drop, acknowledge, cancel, save };
 }
