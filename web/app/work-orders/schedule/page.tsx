@@ -4,7 +4,7 @@ import { date as dateContract } from "@/lib/contracts";
 import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, todayInTz } from "@/lib/date";
 import { clientMetros, loadWorkOrdersDay } from "@/lib/workOrdersDay";
-import { EmptyState, PageHeader, SegmentedToggle, type ToggleItem } from "../ui";
+import { EmptyState, PageHeader, SegmentedToggle, type ToggleItem } from "@/app/portal/ui";
 import ScheduleWorkspace, { type ScheduleViewName } from "./ScheduleWorkspace";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export default async function WorkOrdersSchedulePage({ searchParams: query }: {
     return <>
       {header()}
       <EmptyState icon={MapPinOff} title={searchParams.metroId ? "This metro is not available" : "No metro is set up yet"}>
-        {searchParams.metroId ? "The selected metro belongs to another dealership or no longer exists." : "Add a dealership depot in the classic portal to see its work orders here."}
+        {searchParams.metroId ? "The selected metro belongs to another dealership or no longer exists." : "Add a depot under Branches to see its work orders here."}
       </EmptyState>
     </>;
   }

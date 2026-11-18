@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Construction } from "lucide-react";
-import { EmptyState, FilterBar, PageHeader } from "./ui";
-import { SelectField } from "./ui/fields";
+import { EmptyState, FilterBar, PageHeader } from "@/app/portal/ui";
+import { SelectField } from "@/app/portal/ui/fields";
 
 const NOT_YET = "Not available yet";
 

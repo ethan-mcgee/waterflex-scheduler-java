@@ -48,7 +48,7 @@ async function seed(): Promise<Fixture> {
   } };
 }
 
-const shell = (page: Page) => page.locator("[data-work-orders-shell]");
+const frame = (page: Page) => page.locator("[data-portal-frame]");
 const calendar = (page: Page) => page.locator("[data-work-orders-calendar]");
 
 test.describe("the work orders section", () => {
@@ -59,14 +59,13 @@ test.describe("the work orders section", () => {
   });
   test.afterEach(async () => { await fixture.cleanup(); });
 
-  test("draws its own frame instead of the classic sidebar, and every section is one click away", async ({ page }) => {
+  test("opens in the portal frame, and every work orders page is one click away", async ({ page }) => {
     await page.goto("/work-orders");
     await expect(page).toHaveURL(/\/work-orders\/schedule/);
-    await expect(shell(page)).toBeVisible();
-    await expect(page.locator(".app-sidebar")).toHaveCount(0);
+    await expect(frame(page)).toHaveAttribute("data-section", "work-orders");
     await expect(page.getByRole("heading", { name: "Work Orders Schedule" })).toBeVisible();
 
-    const sections = page.getByRole("navigation", { name: "Work order sections" });
+    const sections = page.getByRole("navigation", { name: "Pages", exact: true });
     for (const [label, path, title] of [["Recurring", "recurring", "Recurring work orders"], ["Outstanding", "outstanding", "Outstanding work orders"],
       ["Statistics", "statistics", "Work Orders Statistics"], ["Archive", "archive", "Work Orders Archive"], ["Schedule", "schedule", "Work Orders Schedule"]] as const) {
       await sections.getByRole("link", { name: label, exact: true }).click();
@@ -78,7 +77,7 @@ test.describe("the work orders section", () => {
 
   test("the placeholder sections show no rows and keep their filters disabled", async ({ page }) => {
     await page.goto("/work-orders/recurring");
-    await expect(page.getByRole("status")).toContainText("Recurring is not built yet");
+    await expect(page.getByRole("main").getByRole("status")).toContainText("Recurring is not built yet");
     for (const label of ["Work order type", "Technician", "Branch", "City / ZIP", "Outreach status"]) await expect(page.getByLabel(label, { exact: true })).toBeDisabled();
     await expect(page.locator("table")).toHaveCount(0);
   });
@@ -120,7 +119,7 @@ test.describe("the work orders section", () => {
     await expect(waiting).toBeVisible();
 
     await page.getByLabel("City / ZIP").fill("Lincoln");
-    await expect(page.getByRole("status").filter({ hasText: "No work orders match these filters" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("status").filter({ hasText: "No work orders match these filters" })).toBeVisible();
   });
 
   test("technicians can be hidden and shown again, and Unassigned folds away", async ({ page }) => {
@@ -156,24 +155,22 @@ test.describe("the work orders section", () => {
     await expect(page.locator("[data-work-orders-map]")).toBeVisible();
   });
 
-  test("the dealership menu names the active client and leads back to the classic portal", async ({ page }) => {
+  test("the dealership menu names the active client and no longer leads to a classic portal", async ({ page }) => {
     await page.goto("/work-orders/schedule");
     await page.locator("[data-dealership-menu]").click();
     const menu = page.getByRole("menu", { name: "Dealership" });
     await expect(menu.getByRole("menuitemradio", { checked: true })).toBeVisible();
-    await menu.getByRole("menuitem", { name: "Classic portal" }).click();
-    await expect(page).toHaveURL(/\/schedule$/);
-    await expect(page.locator(".app-sidebar")).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Classic portal" })).toHaveCount(0);
   });
 
-  test("switching dealership acts for the chosen client, like the classic client switcher", async ({ page }) => {
+  test("switching dealership acts for the chosen client", async ({ page }) => {
     const other = await prisma.client.create({ data: { id: `wo-other-${Date.now()}`, name: "Work orders other client" } });
     try {
       await page.goto("/work-orders/schedule");
       await page.locator("[data-dealership-menu]").click();
       await page.getByRole("menuitemradio", { name: "Work orders other client" }).click();
       await expect(page.locator("[data-dealership-menu]")).toContainText("Work orders other client");
-      await expect(page.getByRole("status")).toContainText("No metro is set up yet");
+      await expect(page.getByRole("main").getByRole("status")).toContainText("No metro is set up yet");
     } finally {
       await page.context().clearCookies();
       await prisma.client.delete({ where: { id: other.id } });
@@ -181,13 +178,17 @@ test.describe("the work orders section", () => {
   });
 });
 
-test("the classic pages keep their sidebar shell and link to the work orders section", async ({ page }) => {
-  for (const path of ["/schedule", "/dispatch", "/book"]) {
+test("every page opens in the one portal frame, under its own section, with no classic sidebar", async ({ page }) => {
+  for (const [path, section, link] of [["/", "work-orders", null], ["/schedule", "work-orders", "Place jobs"], ["/book", "work-orders", "New work order"],
+    ["/dispatch/follow-up", "work-orders", "Follow-up"], ["/dispatch", "dispatch", "Optimize routes"], ["/technicians", "technicians", "Roster"],
+    ["/time-off", "technicians", "Time off"], ["/dealerships", "branches", "Dealerships and depots"], ["/settings", "settings", "Solver settings"]] as const) {
     await page.goto(path);
-    await expect(page.locator(".app-sidebar")).toBeVisible();
-    await expect(page.locator("[data-work-orders-shell]")).toHaveCount(0);
+    await expect(frame(page)).toHaveAttribute("data-section", section);
+    await expect(page.locator(".app-sidebar, #client-switcher")).toHaveCount(0);
+    if (link !== null) await expect(page.getByRole("navigation", { name: "Pages", exact: true }).getByRole("link", { name: link, exact: true })).toHaveAttribute("aria-current", "page");
   }
-  await page.getByRole("navigation", { name: "Scheduler sections" }).getByRole("link", { name: "Work orders" }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Technicians" }).click();
+  await expect(page).toHaveURL(/\/technicians$/);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Work orders" }).click();
   await expect(page).toHaveURL(/\/work-orders\/schedule/);
-  await expect(page.locator("[data-work-orders-shell]")).toBeVisible();
 });

@@ -1,4 +1,4 @@
-/* The frame from the developers' design: an icon rail, a top bar, a section menu and the page on a pale canvas. */
+/* The portal's frame from the developers' design: an icon rail, a top bar, the section's menu and the page on a pale canvas. */
 
 .frame {
   display: grid;
@@ -33,17 +33,12 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.railItems,
-.railFooter {
+.railItems {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 14px 0;
-}
-
-.railFooter {
-  margin-top: auto;
 }
 
 .railItem {
@@ -53,14 +48,14 @@
   place-items: center;
   border-radius: 6px;
   color: var(--wo-rail-icon);
-  cursor: default;
 }
 
-a.railItem {
-  cursor: pointer;
+.railItem:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.railActive {
+.railActive,
+.railActive:hover {
   background: var(--wo-rail-active);
   color: #ffffff;
 }
@@ -194,12 +189,6 @@ a.railItem {
   color: var(--wo-primary);
 }
 
-.menuDivider {
-  height: 1px;
-  margin: 6px 0;
-  background: var(--wo-line-soft);
-}
-
 .menuError {
   position: absolute;
   top: calc(100% + 4px);
@@ -207,6 +196,63 @@ a.railItem {
   color: var(--wo-danger);
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* Scheduling API status chip; the reason opens on hover or focus */
+
+.connection {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--wo-line);
+  border-radius: var(--wo-radius-pill);
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.connectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wo-quiet);
+}
+
+.connection[data-state="CONNECTED"] .connectionDot {
+  background: var(--wo-success);
+}
+
+.connection[data-state="NOT_CONNECTED"] .connectionDot {
+  background: var(--wo-danger);
+}
+
+.connection[data-state="UNREACHABLE"] .connectionDot {
+  background: var(--wo-warning);
+}
+
+.connectionDetail {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: none;
+  width: 300px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--wo-surface);
+  box-shadow: var(--wo-shadow-popover);
+  color: var(--wo-ink-soft);
+  white-space: normal;
+}
+
+.connection:hover .connectionDetail,
+.connection:focus-within .connectionDetail,
+.connection:focus .connectionDetail {
+  display: flex;
 }
 
 /* Section menu */

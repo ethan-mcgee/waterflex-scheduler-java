@@ -1,16 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { ClientSummary } from "@/lib/clients";
-import styles from "./shell.module.css";
+import styles from "./portal.module.css";
 
-/**
- * The top bar's dealership menu. In this portal it chooses the client the pages act for, through the same request as
- * the classic sidebar's client switcher, and it links back to the classic portal.
- */
+/** The top bar's dealership menu: it chooses the client every page and request acts for (the client cookie). */
 export default function DealershipMenu({ clients, activeClientId }: { clients: ClientSummary[]; activeClientId: string }) {
   const router = useRouter();
   const menuId = useId();
@@ -63,8 +59,6 @@ export default function DealershipMenu({ clients, activeClientId }: { clients: C
           className={styles.menuItem} onClick={() => void choose(client.id)}>
           <span>{client.name}</span>{client.id === activeClientId && <Check size={16} aria-hidden />}
         </button>)}
-        <div className={styles.menuDivider} role="separator" />
-        <Link role="menuitem" className={styles.menuItem} href="/schedule">Classic portal</Link>
       </div>}
       {error && <span className={styles.menuError} role="alert">{error}</span>}
     </div>
