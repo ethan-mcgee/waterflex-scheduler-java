@@ -9,12 +9,12 @@ test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("empty datasets expose no shift mutations and disable time-off submission", async ({ page }) => {
   expect(await prisma.serviceCatalog.count()).toBe(0);
-  await page.goto("/book");
+  await page.goto("/work-orders/new");
   await expect(page.getByRole("button", { name: /review service location/i })).toBeDisabled();
   await page.goto("/technicians");
   await expect(page.getByText("No technicians found", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /add exception|save day|edit .*exception|delete .*exception/i })).toHaveCount(0);
-  await page.goto("/time-off");
+  await page.goto("/technicians/time-off");
   await page.getByRole("button", { name: /new request/i }).click();
   await expect(page.getByRole("button", { name: "Submit request" })).toBeDisabled();
 });
@@ -23,7 +23,7 @@ test("malformed booking responses retain entered form data and create no job", a
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_NULL_TEST", name: "UI test service", estDurationMin: 60 } });
   try {
     await page.route("**/api/book/location", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
-    await page.goto("/book");
+    await page.goto("/work-orders/new");
     await page.getByRole("radio").first().check();
     for (const [label, value] of Object.entries({ "First name": "UI", "Last name": "Test", Email: "ui@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
@@ -73,7 +73,7 @@ test("shift drafts follow the selected technician and time-off modal preserves f
     await page.getByRole("button", { name: `Delete Ada Shift's exception for 2099-10-05` }).click();
 
     await page.route("**/api/time-off", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Overlapping time-off request" }) }));
-    await page.goto("/time-off");
+    await page.goto("/technicians/time-off");
     await expect(page.getByText("Progress unknown", { exact: true }).first()).toBeVisible();
     await page.getByRole("button", { name: "Pending" }).click();
     await expect(page.getByRole("button", { name: "Pending" })).toHaveAttribute("aria-pressed", "true");

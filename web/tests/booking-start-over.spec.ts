@@ -32,7 +32,7 @@ test("Refresh searches again directly; Start over retries release, then returns 
         offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T18:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] } });
     });
     await mockBookingLocation(page);
-    await page.goto("/book");
+    await page.goto("/work-orders/new");
     await page.getByRole("radio", { name: /Start over service/ }).check();
     for (const [label, value] of Object.entries({ "First name": "Correct", "Last name": "Me", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);

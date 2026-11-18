@@ -250,6 +250,12 @@
   font-weight: 400;
 }
 
+.description {
+  margin: 6px 0 0;
+  color: var(--wo-ink-soft);
+  font-size: 15px;
+}
+
 .headerActions {
   display: flex;
   gap: 10px;

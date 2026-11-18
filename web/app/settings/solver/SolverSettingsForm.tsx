@@ -6,7 +6,8 @@ import { z } from "zod";
 import { readResponse, errorMessage } from "@/lib/contracts";
 import { DAILY_SEARCHES, MAX_BOOKING_DEADLINE_MS, MAX_SEARCH_SECONDS, MIN_BOOKING_DEADLINE_MS, type DailySearch, type SolverSettingsView } from "@/lib/clientSettings";
 import { HORIZON_MODES, MAX_FULL_PERCENT, MAX_LEAD_WEEKDAYS, MIN_FULL_PERCENT, MIN_LEAD_WEEKDAYS, type HorizonMode } from "@/lib/bookingHorizonCore";
-import ui from "../components/ui.module.css";
+import ui from "@/app/components/ui.module.css";
+import { PageHeader } from "@/app/portal/ui";
 import styles from "./settings.module.css";
 
 const savedView = z.object({ version: z.int().nonnegative(), updatedAt: z.iso.datetime() }).loose();
@@ -95,12 +96,11 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
   }
 
   return (
-    <main className={styles.page}>
-      <h1>Solver settings</h1>
-      <p className={styles.lead}>
+    <div className={styles.page}>
+      <PageHeader crumbs={["Settings", "Solver settings"]} title="Solver settings" description={<>
         Booking and routing settings for <strong>{clientName}</strong>. They are sent with every booking and daily
         routing calculation for this client once booking and dispatch run through the public scheduling API.
-      </p>
+      </>} />
       {version === null &&
         <p className={styles.notice} role="status">This client has no settings yet. Nothing is booked or routed for it until they are saved.</p>}
       <form onSubmit={event => void save(event)} className={styles.form}>
@@ -193,7 +193,7 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
         </div>
       </form>
       {overnight}
-    </main>
+    </div>
   );
 }
 

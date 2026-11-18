@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { errorMessage, readResponse } from "@/lib/contracts";
-import Avatar from "../components/Avatar";
-import ui from "../components/ui.module.css";
+import Avatar from "@/app/components/Avatar";
+import ui from "@/app/components/ui.module.css";
+import { PageHeader } from "@/app/portal/ui";
 import DepotPinMap from "./DepotPinMap";
 import styles from "./dealerships.module.css";
 
@@ -136,11 +137,8 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
 
   return (
     <div className={styles.main}>
-      <div className={styles.top}>
-        <p className={styles.eyebrow}>Setup</p>
-        <h1 className={styles.title}>Dealerships and depots</h1>
-        <p className={styles.subtitle}>Create a dealership, then add one or more depots under it and set each depot&apos;s own departure and return policy.</p>
-      </div>
+      <PageHeader crumbs={["Branches", "Dealerships and depots"]} title="Dealerships and depots"
+        description="Create a dealership, then add one or more depots under it and set each depot's own departure and return policy." />
 
       {/* step 1: add dealership */}
       <div className={`${ui.card} ${styles.card}`}>

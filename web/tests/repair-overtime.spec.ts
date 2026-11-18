@@ -28,7 +28,7 @@ for (const beforeOvertime of [0, 60]) test(`repair with 60 minutes overtime is b
       approvalCalls++;
       await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Overtime prohibited" }) });
     });
-    await page.goto("/time-off?status=ready");
+    await page.goto("/technicians/time-off?status=ready");
     await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
     await expect(page.getByText("This repair requires overtime and needs manual resolution.", { exact: true })).toBeVisible();

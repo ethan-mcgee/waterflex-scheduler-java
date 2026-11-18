@@ -154,16 +154,19 @@ The portal runs each client's overnight optimization itself: Solver Settings set
 
 ### Views
 
-- `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh and immediate confirmation. See [address matching and booking location](docs/address-and-location.md).
+Every page opens in one frame drawn after the WaterFlex developers' design: an icon rail of sections (Work orders, Dispatch, Technicians, Branches, Settings, and Booking test where enabled), a top bar with the dealership menu and the scheduling API's status, and the open section's menu. The pages' old addresses (`/book`, `/dispatch/follow-up`, `/time-off`, `/dealerships`, `/settings`) redirect to the ones below.
+
+- `/work-orders/schedule`: the work orders calendar, map and dual views of one metro day, read only.
+- `/work-orders/new`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh and immediate confirmation. See [address matching and booking location](docs/address-and-location.md).
 - `/schedule`: one day with technicians as columns on a shared time axis (the default, paged a day at a time), or the weekly grid (`?view=week` or `?week=<date>`); approved time-off blocks, promises and reasoned cancellation. Unscheduled jobs and new jobs are placed, and appointments moved, by dragging onto a route: one call to `POST /api/v1/routes/insertions` per job and week shows the drive every gap adds and the half-hour starts that hold, and Save rechecks with fresh facts. A move to another day or arrival window is marked as a dealership policy violation and saves only after the dispatcher acknowledges it (recorded in `appointment_window_change`).
 - `/dispatch`: route review and optimization proposals. A preview optimizes only the active client's routes through `/api/v1/daily/proposals`, and applying it writes the proposal only if none of its technician-days changed since.
-- `/dealerships`: create an organization, then add its metro depots and their route policies. See [dealerships and depots](docs/dealerships.md).
+- `/branches`: create an organization, then add its metro depots and their route policies. See [dealerships and depots](docs/dealerships.md).
 - `/technicians`: create technicians at a depot and schedule same-dealership depot moves by service date. Home lookup searches the full address, then retries without the state filter. Only candidates whose country, ZIP, city or town, street, and house number and state when present agree are used; the best house result is selected, with a street-only result as fallback. An unchanged house pin can be used directly; a moved house pin needs map confirmation within 250 meters of its geocoder result, and a street-only candidate within 100 meters of its street bounds. Every home pin must be inside the depot metro's service area, and the server repeats these checks on create.
 - `/dispatch/testing`: local Compose sequential booking runs that book through the current booking search and show each booked day's road routes. Compose enables it; set `LOCAL_BOOKING_TESTS=false` to opt out. Other environments stay disabled unless they set `LOCAL_BOOKING_TESTS=true`. See [sequential booking tests](docs/sequential-booking-tests.md).
 - `/dispatch/availability`: qualifications and date-specific shifts, which the portal saves itself.
-- `/dispatch/follow-up`: pending and contacted requests without a promised window.
-- `/time-off`: local demo technician selector, request history and staff approval queue. The selector does not authenticate a technician.
-- `/settings`: Solver Settings for the active client.
+- `/work-orders/follow-up`: pending and contacted requests without a promised window.
+- `/technicians/time-off`: local demo technician selector, request history and staff approval queue. The selector does not authenticate a technician.
+- `/settings/solver`: Solver Settings for the active client.
 
 ### Booking and cancellation API
 
@@ -173,7 +176,7 @@ The portal runs each client's overnight optimization itself: Solver Settings set
 
 ### Time off and repair
 
-The `/time-off` form applies the same local start and end times to every date in its inclusive range. Requests need a reason, a future start, a valid interval and at most 31 dates, and may not overlap a pending, ready or approved interval for the same technician. Pending requests do not reduce booking capacity. Staff can retry a failed analysis or deny any unapproved request; denial frees its intervals. Approved requests cannot be denied. The technician selector and staff controls are local demo controls without authentication.
+The `/technicians/time-off` form applies the same local start and end times to every date in its inclusive range. Requests need a reason, a future start, a valid interval and at most 31 dates, and may not overlap a pending, ready or approved interval for the same technician. Pending requests do not reduce booking capacity. Staff can retry a failed analysis or deny any unapproved request; denial frees its intervals. Approved requests cannot be denied. The technician selector and staff controls are local demo controls without authentication.
 
 The portal analyzes a request one day at a time through `/api/v1/repairs/proposals` and stores a report across all requested dates. A repair may reassign and reorder visits, subject to existing promises, qualifications, working limits, approved absences and routing validation. Partial-day absences split a shift into separate working intervals, with travel home before each absence and a new departure afterward. A feasible request whose **first affected date is at least 14 local calendar days away** is applied automatically, even when modeled cost rises; a closer one stays `READY` for staff approval. Any frozen date keeps the whole request pending for coordination. The report records daily and total before and after paid, overtime, drive and waiting minutes, distance, modeled cost in cents and reassigned jobs. Approval commits each day's repair at the scheduler, then writes the request with a compare-and-set on every changed technician-day. No email or SMS is sent.
 
@@ -245,7 +248,7 @@ These come from upstream images or tools and need no action: Nominatim's `ASGI a
 ## Current limitations
 
 - Manual reassignment is not exposed in the dispatch UI; optimization proposals and guarded apply are the supported route-change path.
-- The `/time-off` technician selector and staff controls do not authenticate anyone.
+- The `/technicians/time-off` technician selector and staff controls do not authenticate anyone.
 
 ## Contributing
 

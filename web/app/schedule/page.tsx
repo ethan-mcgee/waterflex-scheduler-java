@@ -28,9 +28,9 @@ export default async function SchedulePage({
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
-      <main>
+      <div>
         <p>{searchParams.metroId ? "Selected metro is unavailable." : "No metro configured yet."}</p>
-      </main>
+      </div>
     );
   }
 

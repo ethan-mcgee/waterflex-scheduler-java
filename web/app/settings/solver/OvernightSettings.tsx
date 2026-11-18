@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { z } from "zod";
 import { errorMessage, overnightRun, overnightRunRequested, overnightSettings, overnightTimesSaved, readResponse } from "@/lib/contracts";
 import { MAX_RUN_TIMES, OVERNIGHT_TIME_ZONE } from "@/lib/overnightCore";
-import ui from "../components/ui.module.css";
+import ui from "@/app/components/ui.module.css";
 import styles from "./settings.module.css";
 
 type Run = z.infer<typeof overnightRun>;

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import styles from "@/app/dispatch/dispatch.module.css";
+import { PageHeader } from "@/app/portal/ui";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import type { ApiProposal } from "@/app/dispatch/ApiProposalReview";
 import type { GeometryResult, MapView } from "@/app/dispatch/DispatchMap";
@@ -207,13 +208,8 @@ export default function DispatchBoard({ metroId, metroName, timezone, date, sear
     : `${shownGeometry.stops.length} visit${shownGeometry.stops.length === 1 ? "" : "s"} on ${new Set(shownGeometry.stops.map(stop => stop.technicianId)).size} route${new Set(shownGeometry.stops.map(stop => stop.technicianId)).size === 1 ? "" : "s"}`;
 
   return <div className={styles.board}>
-    <header className={styles.header}>
-      <div className={styles.stack}>
-        <h1>Dispatch Board</h1>
-        <span className={styles.inkSoft}>{metroName} · {longDate(date)} · {timezone}</span>
-      </div>
-      <DateStepper metroId={metroId} date={date} />
-    </header>
+    <PageHeader crumbs={["Dispatch", "Optimize routes"]} title="Dispatch Board" description={`${metroName} · ${longDate(date)} · ${timezone}`}
+      actions={<DateStepper metroId={metroId} date={date} />} />
     {error && <p role="alert" className={styles.banner}>{error}</p>}
     <OptimizePanel phase={phase} timezone={timezone} current={current} optimized={optimized} searchSeconds={searchSeconds} blockers={blockers} warnings={warnings}
       commitBlockedReason={commitBlockedReason} committing={committing} onOptimize={() => void optimize()} onDiscard={discard} onCommit={() => void commit()}

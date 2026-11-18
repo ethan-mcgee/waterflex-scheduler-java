@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import BookingWizard from "@/app/book/BookingWizard";
+import BookingWizard from "./BookingWizard";
 
 export const dynamic = "force-dynamic";
 

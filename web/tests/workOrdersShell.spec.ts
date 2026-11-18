@@ -179,16 +179,26 @@ test.describe("the work orders section", () => {
 });
 
 test("every page opens in the one portal frame, under its own section, with no classic sidebar", async ({ page }) => {
-  for (const [path, section, link] of [["/", "work-orders", null], ["/schedule", "work-orders", "Place jobs"], ["/book", "work-orders", "New work order"],
-    ["/dispatch/follow-up", "work-orders", "Follow-up"], ["/dispatch", "dispatch", "Optimize routes"], ["/technicians", "technicians", "Roster"],
-    ["/time-off", "technicians", "Time off"], ["/dealerships", "branches", "Dealerships and depots"], ["/settings", "settings", "Solver settings"]] as const) {
+  for (const [path, section, link] of [["/", "work-orders", null], ["/schedule", "work-orders", "Place jobs"], ["/work-orders/new", "work-orders", "New work order"],
+    ["/work-orders/follow-up", "work-orders", "Follow-up"], ["/dispatch", "dispatch", "Optimize routes"], ["/technicians", "technicians", "Roster"],
+    ["/technicians/time-off", "technicians", "Time off"], ["/branches", "branches", "Dealerships and depots"], ["/settings/solver", "settings", "Solver settings"]] as const) {
     await page.goto(path);
     await expect(frame(page)).toHaveAttribute("data-section", section);
     await expect(page.locator(".app-sidebar, #client-switcher")).toHaveCount(0);
+    // The frame holds the page's only main landmark; pages draw no main of their own.
+    await expect(page.getByRole("main")).toHaveCount(1);
     if (link !== null) await expect(page.getByRole("navigation", { name: "Pages", exact: true }).getByRole("link", { name: link, exact: true })).toHaveAttribute("aria-current", "page");
   }
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Technicians" }).click();
   await expect(page).toHaveURL(/\/technicians$/);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Work orders" }).click();
   await expect(page).toHaveURL(/\/work-orders\/schedule/);
+});
+
+test("the pages' old addresses lead to their places in the portal, keeping the query", async ({ page }) => {
+  for (const [from, to] of [["/book", /\/work-orders\/new$/], ["/dispatch/follow-up", /\/work-orders\/follow-up$/],
+    ["/time-off?status=ready", /\/technicians\/time-off\?status=ready$/], ["/dealerships", /\/branches$/], ["/settings", /\/settings\/solver$/]] as const) {
+    await page.goto(from);
+    await expect(page).toHaveURL(to);
+  }
 });

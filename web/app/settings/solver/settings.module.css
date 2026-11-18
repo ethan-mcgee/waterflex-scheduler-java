@@ -1,0 +1,23 @@
+/* Solver settings: one page of white panels, each setting a row with its hint and control. */
+.page { max-width: 760px; }
+.page > section { margin-top: 16px; }
+.page section { padding: 18px 20px; }
+.notice { padding: 12px 16px; background: var(--brand-highlight); color: var(--brand-dark); border-radius: 8px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.page h2 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.label { display: flex; flex-direction: column; gap: 2px; font-weight: 500; }
+.label small { color: var(--muted); font-weight: 400; }
+.control { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.control input,
+.control select { padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 14px; }
+.control input { width: 110px; }
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.error { color: var(--danger); margin: 0; }
+.saved { color: var(--success); margin: 0; }
+.times { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; }
+.time { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--brand-highlight); color: var(--brand-dark); }
+.runs { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.runs details { border-top: 1px solid var(--line); padding-top: 8px; }
+.runs ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 600px) { .row { flex-direction: column; align-items: flex-start; } }

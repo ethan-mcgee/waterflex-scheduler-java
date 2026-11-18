@@ -103,7 +103,7 @@ test("the board optimizes, compares and commits a metro day on the map", async (
     await expect(page.getByText("20 mi", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Map legend" })).toContainText("Technician home");
     await expect(page.getByRole("list", { name: "Map legend" })).toContainText("Depot");
-    const markers = page.locator('[class*="stopMarker"]');
+    const markers = page.locator("[data-stop-marker]");
     await expect(markers).toHaveCount(2);
     await expect(markers.first()).toHaveCSS("border-top-color", "rgb(220, 38, 38)");
     await expect(page.getByRole("img", { name: "Depot" })).toHaveCount(1);
@@ -124,9 +124,9 @@ test("the board optimizes, compares and commits a metro day on the map", async (
 
     await row.getByRole("button", { name: /Board Second Tech/ }).click();
     await expect(row.getByRole("button", { name: /Board Second Tech/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("button", { name: /Board North/ })).toHaveClass(/markerDimmed/);
+    await expect(page.getByRole("button", { name: /Board North/ })).toHaveAttribute("data-dimmed", "");
     await row.getByRole("button", { name: /Board Second Tech/ }).click();
-    await expect(page.getByRole("button", { name: /Board North/ })).not.toHaveClass(/markerDimmed/);
+    await expect(page.getByRole("button", { name: /Board North/ })).not.toHaveAttribute("data-dimmed");
 
     await page.getByRole("button", { name: "Optimized", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Optimized plan", exact: true })).toBeVisible();
