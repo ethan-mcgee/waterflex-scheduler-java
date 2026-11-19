@@ -9,7 +9,9 @@ const nextConfig = {
   // Pages moved into the portal's sections keep their old addresses working. The query string carries over.
   async redirects() {
     return [
-      { source: "/book", destination: "/work-orders/new", permanent: true },
+      // The New work order page became the form on the schedule, opened by ?new=1.
+      { source: "/book", destination: "/work-orders/schedule?new=1", permanent: true },
+      { source: "/work-orders/new", destination: "/work-orders/schedule?new=1", permanent: true },
       { source: "/dispatch/follow-up", destination: "/work-orders/follow-up", permanent: true },
       { source: "/time-off", destination: "/technicians/time-off", permanent: true },
       { source: "/dealerships", destination: "/branches", permanent: true },

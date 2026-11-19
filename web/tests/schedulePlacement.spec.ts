@@ -4,6 +4,7 @@ import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { placementPreview, placementPreviewRequest, placementSaveRequest, selectRequest, type PlacementPreview } from "../lib/contracts";
 import { addCalendarDays, todayInTz } from "../lib/date";
+import { mockBookingLocation } from "./bookingLocationFixture";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -588,27 +589,31 @@ test.describe("placing and moving on the schedule", () => {
     await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
   });
 
-  test("a new job from the form is placed like a waiting one", async ({ page }) => {
+  test("a new work order from the form is placed like a waiting one, with its recommended times asked for", async ({ page }) => {
     const created: unknown[] = [];
+    await mockBookingLocation(page);
     await page.route("**/api/schedule/placement/job", async route => {
       created.push(route.request().postDataJSON());
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: fixture.job }) });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: fixture.job, followUp: false }) });
     });
     const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
-    await panel(page).getByRole("button", { name: "New job" }).click();
-    const form = panel(page).getByRole("form", { name: "New job" });
+    await panel(page).getByRole("button", { name: "New work order" }).click();
+    const form = page.getByRole("dialog");
     for (const [label, value] of [["First name", "Fresh"], ["Last name", "Customer"], ["Email", "fresh@example.invalid"], ["Phone", "4025550111"],
-      ["Street", "2 Elm St"], ["City", "Omaha"], ["State", "NE"], ["ZIP", "68102"]] as const) await form.getByLabel(label).fill(value);
-    await form.getByLabel("Reason code").selectOption({ label: "Softener install" });
-    await form.getByRole("button", { name: "Create and place" }).click();
+      ["City", "Omaha"], ["State", "NE"], ["ZIP", "68102"]] as const) await form.getByLabel(label, { exact: true }).fill(value);
+    await form.getByPlaceholder("Street address").fill("2 Elm St");
+    await form.getByLabel("Reason code", { exact: true }).selectOption("UI_PLACE_TEST");
+    await form.getByRole("button", { name: "Review service location" }).click();
+    await form.getByRole("button", { name: "Confirm pin, create and place" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(panel(page).getByRole("heading", { name: "Fresh Customer, Softener install" })).toBeVisible();
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");
     expect(created).toHaveLength(1);
-    expect(created[0]).toMatchObject({ firstName: "Fresh", serviceCode: "UI_PLACE_TEST", line1: "2 Elm St" });
+    expect(created[0]).toMatchObject({ firstName: "Fresh", serviceCode: "UI_PLACE_TEST", line1: "2 Elm St", confirmedPin: { manuallyConfirmed: true } });
     expect(sent.previews).toEqual([{ metroId: fixture.metroId, monday: DATE, jobId: fixture.job, timedDates: [DATE], withRestOfWeek: true }]);
+    expect(sent.searches).toEqual([{ jobId: fixture.job }]);
   });
-
   test("each visit is one block with its drive: from the depot before the first, to the next stop, and home after the last", async ({ page }) => {
     const leg = (minutes: number) => ({ seconds: minutes * 50, meters: minutes * 900, minutes });
     const asked: string[] = [];

@@ -8,7 +8,8 @@ const where = (path: string | null) => { const found = locate(path, all); return
 test("every page belongs to the section whose link matches the most of its path", () => {
   assert.deepEqual(where("/work-orders/schedule"), ["work-orders", "/work-orders/schedule"]);
   assert.deepEqual(where("/work-orders/schedule/anything"), ["work-orders", "/work-orders/schedule"]);
-  assert.deepEqual(where("/work-orders/new"), ["work-orders", "/work-orders/new"]);
+  // The New work order page became the form on the schedule; its old address marks no link.
+  assert.deepEqual(where("/work-orders/new"), ["work-orders", null]);
   assert.deepEqual(where("/dispatch"), ["dispatch", "/dispatch"]);
   assert.deepEqual(where("/work-orders/follow-up"), ["work-orders", "/work-orders/follow-up"]);
   assert.deepEqual(where("/dispatch/testing"), ["testing", "/dispatch/testing"]);

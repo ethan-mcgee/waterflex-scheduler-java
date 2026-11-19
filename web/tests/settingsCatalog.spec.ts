@@ -1,11 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
+import { openNewWorkOrder, scheduleMetro } from "./newWorkOrderPage";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
-test("a reason code added, edited and retired in Settings is what New work order offers", async ({ page }) => {
+test("a reason code added, edited and retired in Settings is what the new work order form offers", async ({ page }) => {
+  const metro = await scheduleMetro(prisma, "Settings catalog");
   try {
     await page.goto("/settings/reason-codes");
     await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Reason codes" })).toHaveAttribute("aria-current", "page");
@@ -37,15 +39,14 @@ test("a reason code added, edited and retired in Settings is what New work order
     await expect(row.locator("td").nth(4)).toHaveText("66");
     expect(await prisma.serviceCatalog.findUnique({ where: { code: "UI_SET_LEAK" } })).toMatchObject({ estDurationMin: 60, bufferPct: 0.1, active: true });
 
-    await page.goto("/work-orders/new");
-    await expect(page.getByLabel("Reason code", { exact: true }).locator('option[value="UI_SET_LEAK"]')).toHaveCount(1);
+    await expect((await openNewWorkOrder(page, metro.metroId)).getByLabel("Reason code", { exact: true }).locator('option[value="UI_SET_LEAK"]')).toHaveCount(1);
     await page.goto("/settings/reason-codes");
     await page.locator('[data-reason-code="UI_SET_LEAK"]').getByRole("button", { name: "Retire" }).click();
     await expect(page.locator('[data-reason-code="UI_SET_LEAK"]')).toContainText("Retired");
-    await page.goto("/work-orders/new");
-    await expect(page.getByLabel("Reason code", { exact: true }).locator('option[value="UI_SET_LEAK"]')).toHaveCount(0);
+    await expect((await openNewWorkOrder(page, metro.metroId)).getByLabel("Reason code", { exact: true }).locator('option[value="UI_SET_LEAK"]')).toHaveCount(0);
   } finally {
     await prisma.serviceCatalog.deleteMany({ where: { code: "UI_SET_LEAK" } });
+    await metro.cleanup();
   }
 });
 

@@ -18,7 +18,6 @@ export interface PortalSection {
 export const PORTAL_SECTIONS: readonly PortalSection[] = [
   { key: "work-orders", label: "Work orders", links: [
     { href: "/work-orders/schedule", label: "Schedule" },
-    { href: "/work-orders/new", label: "New work order" },
     { href: "/work-orders/recurring", label: "Recurring" },
     { href: "/work-orders/outstanding", label: "Outstanding" },
     { href: "/work-orders/statistics", label: "Statistics" },

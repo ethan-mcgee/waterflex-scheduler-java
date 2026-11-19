@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
-import { errorMessage } from "@/lib/contracts";
 import { todayInTz } from "@/lib/date";
 import { bestOptions, findGap, findStart, spotKey, verdict, type PlaceOption, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
@@ -63,69 +62,6 @@ function JobList({ jobs, waitingCount, active, onPlace, onPress, clickSuppressed
         </li>
       ))}
     </ul>
-  );
-}
-
-/**
- * A new job for the calendar. The server takes it in as the booking wizard does and needs a rooftop match for the
- * address; an address that needs its pin placed by hand goes through the booking wizard.
- */
-function NewJobForm({ services, onCreated }: { services: ScheduleService[]; onCreated: (jobId: string, label: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const field = (name: string) => { const value = form.get(name); return typeof value === "string" ? value.trim() : ""; };
-    const body = { requestId, firstName: field("firstName"), lastName: field("lastName"), email: field("email"), phone: field("phone"),
-      line1: field("line1"), ...(field("line2") ? { line2: field("line2") } : {}), city: field("city"), state: field("state"),
-      postalCode: field("postalCode"), serviceCode: field("serviceCode") };
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/schedule/placement/job", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const payload: unknown = await response.json().catch(() => undefined);
-      if (!response.ok) throw new Error(errorMessage(payload, "The job could not be created."));
-      const jobId = payload !== null && typeof payload === "object" && "jobId" in payload && typeof payload.jobId === "string" ? payload.jobId : null;
-      if (jobId === null) throw new Error("The portal did not return the new job.");
-      const service = services.find(item => item.code === body.serviceCode)?.name ?? "service";
-      onCreated(jobId, `${body.firstName} ${body.lastName}, ${service}`);
-      setRequestId(crypto.randomUUID());
-      setOpen(false);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "The job could not be created.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!open) return <button className={styles.button} type="button" onClick={() => setOpen(true)}>New job</button>;
-  return (
-    <form className={styles.newJobForm} onSubmit={submit} aria-label="New job">
-      <label>First name<input className={styles.select} name="firstName" required autoComplete="off" /></label>
-      <label>Last name<input className={styles.select} name="lastName" required autoComplete="off" /></label>
-      <label>Email<input className={styles.select} name="email" type="email" required autoComplete="off" /></label>
-      <label>Phone<input className={styles.select} name="phone" type="tel" required autoComplete="off" /></label>
-      <label>Street<input className={styles.select} name="line1" required autoComplete="off" /></label>
-      <label>Unit<input className={styles.select} name="line2" autoComplete="off" /></label>
-      <label>City<input className={styles.select} name="city" required autoComplete="off" /></label>
-      <label>State<input className={styles.select} name="state" required maxLength={2} autoComplete="off" /></label>
-      <label>ZIP<input className={styles.select} name="postalCode" required autoComplete="off" /></label>
-      <label>Reason code
-        <select className={styles.select} name="serviceCode" required defaultValue="">
-          <option value="" disabled>Choose a reason code</option>
-          {services.map(service => <option key={service.code} value={service.code}>{service.name}</option>)}
-        </select>
-      </label>
-      <div className={styles.panelActions}>
-        <button className={styles.button} type="submit" disabled={busy}>{busy ? "Creating..." : "Create and place"}</button>
-        <button className={styles.button} type="button" onClick={() => setOpen(false)}>Cancel</button>
-      </div>
-      {error !== null && <p className={styles.deleteError} role="alert">{error} An address that needs its pin placed by hand can be booked in the booking wizard.</p>}
-    </form>
   );
 }
 
@@ -347,11 +283,11 @@ function RecommendedTimes({ offers, now, timezone, onBook, onSearch }: {
 }
 
 /**
- * The calendar's Unassigned column: the place being chosen, a new-job form, and the jobs waiting for the calendar, each
+ * The calendar's Unassigned column: the place being chosen, the New work order button, and the jobs waiting for the calendar, each
  * of which can be dragged onto a route. It folds to a narrow strip while nothing is being placed.
  */
 export default function PlacementPanel({ jobs, waitingCount, startFolded, services, placement, technicians, timezone, onPlaceJob, onPressJob,
-  clickSuppressed, onCreated, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved,
+  clickSuppressed, onNewWorkOrder, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved,
   offers, offersNow, onBookOffer, onSearchOffers }: {
   /** The waiting jobs the filters show, and how many are waiting in all. */
   jobs: ScheduleJob[]; waitingCount: number;
@@ -359,7 +295,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   startFolded: boolean;
   services: ScheduleService[]; placement: PlacementState | null; technicians: ScheduleTechnician[]; timezone: string;
   onPlaceJob: (subject: PlacementSubject) => void; onPressJob: (job: ScheduleJob, event: ReactPointerEvent) => void; clickSuppressed: () => boolean;
-  onCreated: (jobId: string, label: string) => void;
+  /** Opens the new work order form. */
+  onNewWorkOrder: () => void;
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onAcknowledgeSameDay: (value: boolean) => void;
   onSave: () => void; onCancel: () => void;
   /** Opens the moved appointment's details; null while a job is being placed. */
@@ -391,7 +328,7 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
         {placingJob !== null && <WorkOrderPanel key={placingJob.id} jobId={placingJob.id} workOrder={placingJob.workOrder} codeOptions={services}
           onSaved={onWorkOrderSaved} />}
         <section data-unassigned-column>
-          <NewJobForm services={services} onCreated={onCreated} />
+          <button className={styles.button} type="button" onClick={onNewWorkOrder}>New work order</button>
           <JobList jobs={jobs} waitingCount={waitingCount} active={placement?.subject.kind === "job" ? placement.subject.id : null}
             clickSuppressed={clickSuppressed} onPress={onPressJob}
             onPlace={job => onPlaceJob({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` })} />
