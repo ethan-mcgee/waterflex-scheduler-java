@@ -3,6 +3,8 @@
  * in workOrdersDay.ts; everything here runs without one, so it is unit tested.
  */
 
+import { reasonCodesLabel } from "./reasonCodesCore";
+
 export type WorkOrderStatus = "SCHEDULED" | "COMPLETED";
 
 /** The portal's job statuses (JobStatus in the Prisma schema). */
@@ -17,12 +19,41 @@ export interface WorkOrderTechnician {
   usualShift: { startMin: number; endMin: number };
 }
 
+/** A reason code as the portal names it. */
+export interface ReasonCodeRef { code: string; name: string }
+
+/** What a work order says beyond its customer, place and time. Missing values stay null; nothing is filled in. */
+export interface WorkOrderFields {
+  /** One to three codes in order; the first is the job's service, which the scheduler matches qualifications on. */
+  reasonCodes: ReasonCodeRef[];
+  workOrderType: string | null;
+  purchaseOrder: string | null;
+  technicianMessage: string | null;
+  customerRequest: string | null;
+  /** Null when the work order did not say (jobs taken in before the field existed). */
+  callFirst: boolean | null;
+  /** The time allotted, which the scheduler plans with. */
+  durationMin: number;
+  /** The codes' suggestion when the job was taken in; null for jobs taken in before reason codes. */
+  suggestedDurationMin: number | null;
+  durationOverridden: boolean;
+}
+
+/** How a card names its work order: the first reason code, and how many more it has ("Salt bridge +1 more"). */
+export function workOrderLabel(fields: Pick<WorkOrderFields, "reasonCodes">): string {
+  const label = reasonCodesLabel(fields.reasonCodes.map(code => code.name));
+  if (label === null) throw new Error("A work order has no reason code");
+  return label;
+}
+
 export interface WorkOrderCard {
   appointmentId: string; jobId: string; technicianId: string;
   /** Null when the job's status has no work order status yet (see workOrderStatus). */
   status: WorkOrderStatus | null;
   jobStatus: JobStatusName;
+  /** The first reason code, which colors the card and the map pin. */
   typeCode: string; typeName: string;
+  workOrder: WorkOrderFields;
   customerName: string; street: string; place: string;
   startMin: number; endMin: number;
   windowStart: string; windowEnd: string; plannedStart: string; plannedEnd: string;
@@ -31,7 +62,7 @@ export interface WorkOrderCard {
 }
 
 export interface WaitingWorkOrder {
-  jobId: string; typeCode: string; typeName: string; customerName: string; place: string; durationMin: number; located: boolean;
+  jobId: string; typeCode: string; typeName: string; workOrder: WorkOrderFields; customerName: string; place: string; durationMin: number; located: boolean;
 }
 
 export interface WorkOrderType { code: string; name: string; background: string }
@@ -115,21 +146,24 @@ export function hourLabel(hour: number, first: boolean): { hour: string; suffix:
   return { hour: String(shown), suffix: first || hour === 12 ? period : "00" };
 }
 
-export interface CardFilters { type: string; status: string; place: string }
+/** The schedule's filters: a work order type, a reason code, a status and a city or ZIP; "" leaves one out. */
+export interface CardFilters { type: string; reason: string; status: string; place: string }
 
-export const NO_FILTERS: CardFilters = { type: "", status: "", place: "" };
+export const NO_FILTERS: CardFilters = { type: "", reason: "", status: "", place: "" };
 
 export function hasFilters(filters: CardFilters): boolean {
-  return filters.type !== "" || filters.status !== "" || filters.place.trim() !== "";
+  return filters.type !== "" || filters.reason !== "" || filters.status !== "" || filters.place.trim() !== "";
 }
 
-/** Whether a booked card passes the filters: type and status match exactly, the place matches as typed text. */
 /**
- * Whether a work order passes the filters. One with no status (waiting for the calendar, or in a state the portal shows
- * no status for) never matches a status filter.
+ * Whether a work order passes the filters: its type exactly, any of its reason codes, its status exactly, and its place
+ * as typed text. One with no type never matches a type filter, and one with no status (waiting for the calendar, or in
+ * a state the portal shows no status for) never matches a status filter.
  */
-export function itemMatches(item: { typeCode: string; status: WorkOrderStatus | null; place: string }, filters: CardFilters): boolean {
-  if (filters.type !== "" && item.typeCode !== filters.type) return false;
+export function itemMatches(item: { workOrder: Pick<WorkOrderFields, "workOrderType" | "reasonCodes">; status: WorkOrderStatus | null; place: string },
+  filters: CardFilters): boolean {
+  if (filters.type !== "" && item.workOrder.workOrderType !== filters.type) return false;
+  if (filters.reason !== "" && !item.workOrder.reasonCodes.some(code => code.code === filters.reason)) return false;
   if (filters.status !== "" && item.status !== filters.status) return false;
   return placeMatches(item.place, filters.place);
 }

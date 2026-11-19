@@ -5,7 +5,9 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { errorMessage } from "@/lib/contracts";
 import { bestOptions, findGap, findStart, spotKey, verdict, type PlaceOption, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
+import { workOrderLabel } from "@/lib/workOrdersDayCore";
 import styles from "./calendar.module.css";
+import WorkOrderPanel from "./WorkOrderPanel";
 import type { PlacementState, PlacementSubject } from "./usePlacement";
 import type { ScheduleJob, ScheduleService, ScheduleTechnician } from "./types";
 
@@ -51,7 +53,7 @@ function JobList({ jobs, waitingCount, active, onPlace, onPress, clickSuppressed
             style={{ borderLeftColor: job.serviceColor.color }} disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
             onClick={() => { if (!clickSuppressed()) onPlace(job); }}>
             <span className={styles.cardCustomer}>{job.customerName}</span>
-            <span className={styles.cardService}>{job.serviceName}, {job.durationMin} min</span>
+            <span className={styles.cardService}>{workOrderLabel(job.workOrder)}, {job.durationMin} min</span>
             <span className={styles.subtle}>{job.addressLine}</span>
             {!job.located && <span className={styles.subtle}>Needs its pin confirmed before it can be placed.</span>}
             {job.followUp !== null && <span className={styles.subtle}>Follow-up: {job.followUp.toLowerCase()}</span>}
@@ -110,9 +112,9 @@ function NewJobForm({ services, onCreated }: { services: ScheduleService[]; onCr
       <label>City<input className={styles.select} name="city" required autoComplete="off" /></label>
       <label>State<input className={styles.select} name="state" required maxLength={2} autoComplete="off" /></label>
       <label>ZIP<input className={styles.select} name="postalCode" required autoComplete="off" /></label>
-      <label>Service
+      <label>Reason code
         <select className={styles.select} name="serviceCode" required defaultValue="">
-          <option value="" disabled>Choose a service</option>
+          <option value="" disabled>Choose a reason code</option>
           {services.map(service => <option key={service.code} value={service.code}>{service.name}</option>)}
         </select>
       </label>
@@ -287,7 +289,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
  * of which can be dragged onto a route. It folds to a narrow strip while nothing is being placed.
  */
 export default function PlacementPanel({ jobs, waitingCount, startFolded, services, placement, technicians, timezone, onPlaceJob, onPressJob,
-  clickSuppressed, onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
+  clickSuppressed, onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved }: {
   /** The waiting jobs the filters show, and how many are waiting in all. */
   jobs: ScheduleJob[]; waitingCount: number;
   /** Folded when the page opens, where the calendar has little room (beside the map). */
@@ -298,6 +300,9 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
   /** Opens the moved appointment's details; null while a job is being placed. */
   onDetails: (() => void) | null;
+  /** The waiting job being placed, whose work order can be edited here, codes and time included. */
+  placingJob: ScheduleJob | null;
+  onWorkOrderSaved: () => void;
 }) {
   const [folded, setFolded] = useState(startFolded);
   // Something being placed always keeps the column open, so its places and Save stay in reach.
@@ -315,6 +320,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
       {open && <>
         {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
           onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
+        {placingJob !== null && <WorkOrderPanel key={placingJob.id} jobId={placingJob.id} workOrder={placingJob.workOrder} codeOptions={services}
+          onSaved={onWorkOrderSaved} />}
         <section data-unassigned-column>
           <NewJobForm services={services} onCreated={onCreated} />
           <JobList jobs={jobs} waitingCount={waitingCount} active={placement?.subject.kind === "job" ? placement.subject.id : null}

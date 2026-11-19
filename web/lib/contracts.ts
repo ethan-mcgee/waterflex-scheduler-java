@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isValidPhone } from "./phone";
 import { routeInsertions } from "./insertionContract";
+import { MAX_DURATION_MIN, MAX_REASON_CODES, MIN_DURATION_MIN } from "./reasonCodesCore";
 
 // Browser-safe decoders. Keep network and database values unknown until parsed.
 export const text = z.string().trim().min(1);
@@ -166,10 +167,58 @@ export const overnightSettings = z.object({ times: z.array(text), runs: z.array(
 export const overnightTimesSaved = z.object({ times: z.array(text) }).strict();
 export const overnightRunRequested = z.object({ run: overnightRun, alreadyActive: z.boolean() }).strict();
 export const commitProposalRequest = z.object({ proposalId: text }).strict();
-export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
-  phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
-  confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional() })
-  .refine(v => !v.followUp || !v.confirmedPin, "Follow-up cannot include a confirmed pin");
+/**
+ * What a work order says beyond its customer and place. `serviceCode` is its first reason code and `extraReasonCodes`
+ * its second and third; `durationMin` is the dispatcher's time allotted, without which the codes' suggestion is used.
+ */
+const workOrderDetails = {
+  serviceCode: text,
+  extraReasonCodes: z.array(text).max(MAX_REASON_CODES - 1).optional(),
+  durationMin: z.int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN).optional(),
+  workOrderType: text.max(80).optional(),
+  purchaseOrder: text.max(80).optional(),
+  technicianMessage: text.max(1000).optional(),
+  customerRequest: text.max(1000).optional(),
+  callFirst: z.boolean().optional(),
+};
+const distinctCodes = (value: { serviceCode: string; extraReasonCodes?: string[] | undefined }) => {
+  const codes = [value.serviceCode, ...(value.extraReasonCodes ?? [])];
+  return new Set(codes).size === codes.length;
+};
+const contact = { requestId: text.min(16), firstName: text, lastName: text, email: text, phone: text };
+/** A work order at a typed address, located by the geocoder or a pin the caller confirmed, or a follow-up. */
+export const bookingRequest = z.object({ ...contact, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text,
+  confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional(), ...workOrderDetails,
+  // A request naming an account belongs to the account form; it is refused here rather than read as a typed address.
+  accountNumber: z.never().optional() })
+  .refine(v => !v.followUp || !v.confirmedPin, "Follow-up cannot include a confirmed pin")
+  .refine(distinctCodes, "A reason code can be given once");
+/** A work order for a WaterFlex account, at the account's address and the coordinates WaterFlex has for it. */
+export const accountBookingRequest = z.object({ ...contact, accountNumber: text, followUp: z.boolean().optional(), ...workOrderDetails }).strict()
+  .refine(distinctCodes, "A reason code can be given once");
+/**
+ * Editing a work order. The details can change on any work order; `timing` (its reason codes and the time allotted, or
+ * null to follow the codes' suggestion) only while it waits for the calendar, since a booked visit's day was planned
+ * with them.
+ */
+export const workOrderUpdate = z.object({
+  workOrderType: text.max(80).nullable(), purchaseOrder: text.max(80).nullable(), technicianMessage: text.max(1000).nullable(),
+  customerRequest: text.max(1000).nullable(), callFirst: z.boolean().nullable(),
+  timing: z.object({ reasonCodes: z.array(text).min(1).max(MAX_REASON_CODES), durationMin: z.int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN).nullable() }).strict()
+    .refine(value => new Set(value.reasonCodes).size === value.reasonCodes.length, "A reason code can be given once").optional(),
+}).strict();
+export const workOrderSaved = z.object({ saved: z.literal(true) }).strict();
+/** A reason code as Settings edits it: its label, its minutes (1 to 720) and its buffer (0 to 1, so 0.15 is +15%). */
+const reasonCodeTiming = { name: text.max(120), estDurationMin: z.int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN), bufferPct: finite.min(0).max(1) };
+export const reasonCodeCreate = z.object({ code: text.max(40), ...reasonCodeTiming }).strict();
+export const reasonCodeChange = z.object({ ...reasonCodeTiming, active: z.boolean() }).strict();
+export const reasonCodeSaved = z.object({ code: text }).strict();
+/** A WaterFlex account as the New work order page shows it (lib/accountLookup.ts). */
+export const waterflexAccount = z.object({ id: text, accountNumber: text, name: text.nullable(), phone: text.nullable(), email: text.nullable(),
+  line1: text, line2: text.nullable(), city: text, state: text, postalCode: text, location: point.nullable(), importedAt: instant }).strict();
+export const accountSearchResponse = z.object({ accounts: z.array(waterflexAccount) }).strict();
+/** Either kind of work order. The account form is strict, so a typed address is never read as an account. */
+export const workOrderRequest = z.union([accountBookingRequest, bookingRequest]);
 export const bookingAddress = z.object({ line1: text, city: text, state: text, postalCode: text });
 export const locationBounds = z.object({ south: finite.min(-90).max(90), north: finite.min(-90).max(90),
   west: finite.min(-180).max(180), east: finite.min(-180).max(180) }).refine(b => b.south <= b.north && b.west <= b.east);

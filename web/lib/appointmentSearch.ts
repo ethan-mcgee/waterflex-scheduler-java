@@ -7,7 +7,7 @@ export function bookingApiStart(): number {
   return performance.now();
 }
 
-export function recordBookingApiDuration(start: number, flow: "initial" | "pin" | "refresh" | "selection") {
+export function recordBookingApiDuration(start: number, flow: "initial" | "pin" | "account" | "refresh" | "selection") {
   const name = "waterflex.booking-api";
   if (performance.getEntriesByName(name, "measure").length >= 128) performance.clearMeasures(name);
   performance.measure(name, { start, end: performance.now(), detail: { flow, includesAddressValidation: flow === "initial" || flow === "pin" } });

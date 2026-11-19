@@ -28,7 +28,7 @@ for (const limit of [1, 2, 4]) {
       });
       await mockBookingLocation(page);
     await page.goto("/work-orders/new");
-      await page.getByRole("radio", { name: /Offer limit service/ }).check();
+      await page.getByLabel("Reason code", { exact: true }).selectOption(service.code);
       for (const [label, value] of Object.entries({ "First name": "Offer", "Last name": "Limit", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
         await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
       await page.getByPlaceholder("Street address").fill("1 Main St");

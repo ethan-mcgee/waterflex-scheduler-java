@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookingRequest, readBody } from "@/lib/contracts";
+import { workOrderRequest, readBody } from "@/lib/contracts";
 import { activeClient } from "@/lib/activeClient";
 import { geocoderRefusal, intakeJob } from "@/lib/apiJobIntake";
 
@@ -8,7 +8,7 @@ import { geocoderRefusal, intakeJob } from "@/lib/apiJobIntake";
  * placed on the calendar. It needs a location: a follow-up request belongs in the booking wizard.
  */
 export async function POST(req: NextRequest) {
-  const parsed = await readBody(req, bookingRequest);
+  const parsed = await readBody(req, workOrderRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid job" }, { status: 400 });
   if (parsed.data.followUp === true) return NextResponse.json({ error: "A job placed on the calendar needs a confirmed location." }, { status: 400 });
   const client = await activeClient(req);

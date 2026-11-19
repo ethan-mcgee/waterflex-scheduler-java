@@ -7,7 +7,10 @@ export type StopPlacement = { technicianName: string; technicianColor: string; s
   previous: { customerName: string; plannedEnd: string } | null; plan: "current" | "proposal" };
 
 const PRECISION: Record<string, string> = { ROOFTOP: "Rooftop match", RANGE_INTERPOLATED: "Street range match", GEOMETRIC_CENTER: "Area center",
-  APPROXIMATE: "Approximate", SYNTHETIC: "Generated test location", MANUALLY_CONFIRMED: "Pin confirmed" };
+  APPROXIMATE: "Approximate", SYNTHETIC: "Generated test location", MANUALLY_CONFIRMED: "Pin confirmed",
+  WATERFLEX_ACCOUNT: "WaterFlex account location" };
+/** Locations a person or WaterFlex vouched for; the rest are the geocoder's best guess. */
+const TRUSTED: ReadonlySet<string> = new Set(["ROOFTOP", "MANUALLY_CONFIRMED", "WATERFLEX_ACCOUNT"]);
 const STATUS: Record<BoardAppointment["jobStatus"], string> = { PENDING: "Pending", SCHEDULED: "Scheduled", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 
 function pin(appointment: BoardAppointment): { label: string; tone: "good" | "info" | "warn" | "bad" } {
@@ -15,7 +18,7 @@ function pin(appointment: BoardAppointment): { label: string; tone: "good" | "in
   if (appointment.pinConfirmedAt !== null) return { label: "Pin confirmed", tone: "good" };
   if (appointment.geocodePrecision === null) return { label: "Location source not recorded", tone: "warn" };
   const label = PRECISION[appointment.geocodePrecision] ?? appointment.geocodePrecision.toLowerCase().replaceAll("_", " ");
-  return { label, tone: appointment.geocodePrecision === "ROOFTOP" || appointment.geocodePrecision === "MANUALLY_CONFIRMED" ? "good" : "warn" };
+  return { label, tone: TRUSTED.has(appointment.geocodePrecision) ? "good" : "warn" };
 }
 
 /** Hours around the window and the planned visit, for the small timeline. */

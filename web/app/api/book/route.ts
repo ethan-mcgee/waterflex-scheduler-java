@@ -1,4 +1,4 @@
-import { readBody, bookingRequest } from "@/lib/contracts";
+import { readBody, workOrderRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { activeClient } from "@/lib/activeClient";
 import { apiBookingStep } from "@/lib/apiBookingRoute";
@@ -6,7 +6,7 @@ import { searchApiOffers } from "@/lib/apiBooking";
 import { geocoderRefusal, intakeJob } from "@/lib/apiJobIntake";
 
 export async function POST(req: NextRequest) {
-  const parsed = await readBody(req, bookingRequest);
+  const parsed = await readBody(req, workOrderRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid booking request" }, { status: 400 });
   const input = parsed.data;
   const client = await activeClient(req);

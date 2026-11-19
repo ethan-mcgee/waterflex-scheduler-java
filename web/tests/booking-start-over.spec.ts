@@ -33,7 +33,7 @@ test("Refresh searches again directly; Start over retries release, then returns 
     });
     await mockBookingLocation(page);
     await page.goto("/work-orders/new");
-    await page.getByRole("radio", { name: /Start over service/ }).check();
+    await page.getByLabel("Reason code", { exact: true }).selectOption(service.code);
     for (const [label, value] of Object.entries({ "First name": "Correct", "Last name": "Me", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("1 Main St");
@@ -48,7 +48,7 @@ test("Refresh searches again directly; Start over retries release, then returns 
     await expect(page.getByRole("heading", { name: "Choose a time" })).toBeVisible();
     expect(requestIds).toHaveLength(1);
     await page.getByRole("button", { name: /Start over/i }).click();
-    await expect(page.getByRole("heading", { name: "Book a service visit" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "New work order", exact: true })).toBeVisible();
     await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
     await expect(page.locator("label").filter({ hasText: /^First name$/ }).locator("..").locator("input")).toHaveValue("Correct");
     expect(releaseBodies).toEqual([{ jobId: "pending-job", offerId }, { jobId: "pending-job", offerId }]);

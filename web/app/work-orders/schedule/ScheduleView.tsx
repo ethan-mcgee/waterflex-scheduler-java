@@ -19,7 +19,8 @@ import { driveLabel, previewDrives, type VisitDrive } from "@/lib/scheduleDrive"
 import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
 import { placementUndone, type PlacementPreview, type PlacementSaved } from "@/lib/contracts";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician, ScheduleViewMode } from "./types";
-import { hasFilters, itemMatches, type CardFilters } from "@/lib/workOrdersDayCore";
+import { hasFilters, itemMatches, workOrderLabel, type CardFilters } from "@/lib/workOrdersDayCore";
+import WorkOrderPanel from "./WorkOrderPanel";
 import { STATUS_LABEL, StatusIcon } from "@/app/portal/ui";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
@@ -123,7 +124,7 @@ function AppointmentCard({
     <button
       className={`${styles.card} ${timelineStyle ? styles.timelineCard : ""} ${drive ? styles.driveBlock : ""} ${drag?.dragging ? styles.draggingCard : ""} ${retimed ? styles.retimedCard : ""}`}
       style={drive ? blockStyle : cardStyle}
-      title={`${appointment.customerName}, ${appointment.serviceName}`}
+      title={`${appointment.customerName}, ${workOrderLabel(appointment.workOrder)}`}
       type="button"
       data-appointment-id={appointment.id}
       data-retimed={retimed ? "true" : undefined}
@@ -138,7 +139,7 @@ function AppointmentCard({
           {timelineStyle && ` - ${formatTime(appointment.plannedEnd, timezone)}`}
         </span>
         <span className={styles.cardCustomer}>{appointment.customerName}</span>
-        {!drive && <span className={styles.cardService}>{appointment.serviceName}</span>}
+        {!drive && <span className={styles.cardService}>{workOrderLabel(appointment.workOrder)}</span>}
         {was !== undefined && <span className={styles.cardWas}>was {was}</span>}
       </span>
       {drive && band(drive.after, "after")}
@@ -476,6 +477,7 @@ function AppointmentPanel({
   timezone,
   onClose,
   onDeleted,
+  onWorkOrderSaved,
   moveTargets,
   onCheckMove,
 }: {
@@ -483,6 +485,7 @@ function AppointmentPanel({
   timezone: string;
   onClose: () => void;
   onDeleted: () => void;
+  onWorkOrderSaved: () => void;
   /** Technicians working that day who could take the appointment: the keyboard path to the same check as a drag. */
   moveTargets: Array<{ id: string; name: string }>;
   onCheckMove: (targetTechnicianId: string) => void;
@@ -538,8 +541,6 @@ function AppointmentPanel({
         <dl className={styles.detailList}>
           <dt>Customer</dt>
           <dd>{appointment.customerName}</dd>
-          <dt>Service</dt>
-          <dd>{appointment.serviceName}</dd>
           <dt>Technician</dt>
           <dd>{appointment.technicianName}</dd>
           <dt>Address</dt>
@@ -553,6 +554,7 @@ function AppointmentPanel({
           <dt>Appointment ID</dt>
           <dd>{appointment.id}</dd>
         </dl>
+        <WorkOrderPanel key={appointment.jobId} jobId={appointment.jobId} workOrder={appointment.workOrder} codeOptions={null} onSaved={onWorkOrderSaved} />
         {moveTargets.length > 0 && (
           <form className={styles.moveCheck} onSubmit={(event) => { event.preventDefault(); if (moveTarget) onCheckMove(moveTarget); }}>
             <label>
@@ -639,8 +641,8 @@ export default function ScheduleView({
   const visibleTechnicians = technicians.filter(technician => !hiddenTechnicianIds.has(technician.id));
   const filtering = hasFilters(filters);
   const shows = (appointment: ScheduleAppointment) => !filtering
-    || itemMatches({ typeCode: appointment.serviceCode, status: appointment.status, place: appointment.place }, filters);
-  const shownJobs = filtering ? jobs.filter(job => itemMatches({ typeCode: job.serviceCode, status: null, place: job.place }, filters)) : jobs;
+    || itemMatches(appointment, filters);
+  const shownJobs = filtering ? jobs.filter(job => itemMatches({ ...job, status: null }, filters)) : jobs;
   const shiftHours = technicians.flatMap(technician => shown.flatMap(key => technician.days[key] ?? []).flatMap(day =>
     day.member && day.available && day.shiftStartMin != null && day.shiftEndMin != null ? [{ start: day.shiftStartMin, end: day.shiftEndMin }] : []));
   const timelineStart = shiftHours.length
@@ -1040,7 +1042,9 @@ export default function ScheduleView({
           if (view === "day" && spot.serviceDate !== date) goToDay(spot.serviceDate);
         }}
         onAcknowledge={acknowledge} onSave={save} onCancel={cancelPlacement}
-        onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null} />
+        onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null}
+        placingJob={placement?.subject.kind === "job" ? jobs.find(job => job.id === placement.subject.id) ?? null : null}
+        onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); refreshPlacement(); }} />
       <div className={styles.scheduleMain}>
       {technicians.length === 0 ? (
         <div className={styles.empty}>No active technicians are configured.</div>
@@ -1162,13 +1166,14 @@ export default function ScheduleView({
       </div>
       {selected && (
         <AppointmentPanel
-          appointment={selected}
+          appointment={appointments.find(item => item.id === selected.id) ?? selected}
           timezone={timezone}
           onClose={() => setSelected(null)}
           onDeleted={() => {
             setSelected(null);
             router.refresh();
           }}
+          onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); }}
           moveTargets={technicians.filter(item => item.id !== selected.technicianId && takes(item.id, selected.date))
             .map(item => ({ id: item.id, name: item.name }))}
           onCheckMove={(targetTechnicianId) => {

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Home, PanelLeftClose, PanelLeftOpen, Warehouse } from "lucide-react";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import {
+  workOrderLabel,
   clockLabel, durationLabel, routeOf, type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician, type WorkOrdersDay,
 } from "@/lib/workOrdersDayCore";
 import { StatusIcon } from "@/app/portal/ui";
@@ -22,7 +23,7 @@ function boardTechnician(tech: WorkOrderTechnician): BoardTechnician {
 
 function boardAppointment(card: WorkOrderCard): BoardAppointment {
   return { id: card.appointmentId, technicianId: card.technicianId, sequence: card.sequence, windowStart: card.windowStart, windowEnd: card.windowEnd,
-    plannedStart: card.plannedStart, plannedEnd: card.plannedEnd, customerName: card.customerName, serviceName: card.typeName,
+    plannedStart: card.plannedStart, plannedEnd: card.plannedEnd, customerName: card.customerName, serviceName: workOrderLabel(card.workOrder),
     addressLine: `${card.street}, ${card.place}`, lat: card.lat, lng: card.lng, durationMin: card.durationMin,
     geocodePrecision: card.geocodePrecision, pinConfirmedAt: card.pinConfirmedAt, jobStatus: card.jobStatus };
 }
@@ -54,7 +55,7 @@ function RouteCard({ tech, cards, typeBackground, open, onToggle }: {
           <span className={styles.stopNumber} style={{ background: tech.color }}>{index + 1}</span>
           <span className={styles.stopBody}>
             <span><mark style={{ background: typeBackground(stop.typeCode) }}>{clockLabel(stop.startMin)}</mark> {stop.place}</span>
-            <small>{stop.typeName}</small>
+            <small>{workOrderLabel(stop.workOrder)}</small>
           </span>
           {stop.status && <StatusIcon status={stop.status} />}
         </li>)}
@@ -73,7 +74,7 @@ function UnassignedList({ waiting, metroId, date }: { waiting: readonly WaitingW
       <ol className={styles.stops}>
         {waiting.map(order => <li key={order.jobId}>
           <span className={styles.stopUnassigned} aria-hidden>?</span>
-          <span className={styles.stopBody}><span>{order.place}</span><small>{order.typeName} · {durationLabel(order.durationMin)}</small></span>
+          <span className={styles.stopBody}><span>{order.place}</span><small>{workOrderLabel(order.workOrder)} · {durationLabel(order.durationMin)}</small></span>
           <Link className={styles.assign} href={`/work-orders/schedule?${new URLSearchParams({ metroId, date, placeJob: order.jobId }).toString()}`}
             title="Opens the day calendar with this work order being placed">Assign</Link>
         </li>)}

@@ -20,38 +20,37 @@ model Metro {
   serviceRadiusMi Float    @default(65) // customer coverage radius from the nearest metro depot
   createdAt       DateTime @default(now())
 
-  depots           Depot[]
-  apiOfferSets     PortalApiOfferSet[]
+  depots            Depot[]
+  apiOfferSets      PortalApiOfferSet[]
   apiDailyProposals PortalApiDailyProposal[]
-  overnightDays PortalOvernightDay[]
+  overnightDays     PortalOvernightDay[]
 
   @@map("metro")
 }
 
 model Depot {
-  id        String   @id @default(cuid())
-  metroId   String
-  metro     Metro    @relation(fields: [metroId], references: [id])
-  name      String
-  lat       Float
-  lng       Float
-  addressLine1 String?
-  addressCity String?
-  addressState String?
+  id                String    @id @default(cuid())
+  metroId           String
+  metro             Metro     @relation(fields: [metroId], references: [id])
+  name              String
+  lat               Float
+  lng               Float
+  addressLine1      String?
+  addressCity       String?
+  addressState      String?
   addressPostalCode String?
-  geocodeLat Float?
-  geocodeLng Float?
-  geocodePrecision String?
-  pinConfirmedAt DateTime?
-  createdAt DateTime @default(now())
+  geocodeLat        Float?
+  geocodeLng        Float?
+  geocodePrecision  String?
+  pinConfirmedAt    DateTime?
+  createdAt         DateTime  @default(now())
 
-  dealershipId String
-  dealership Dealership @relation(fields: [dealershipId], references: [id])
+  dealershipId     String
+  dealership       Dealership                  @relation(fields: [dealershipId], references: [id])
   endpointPolicies DepotEndpointPolicy[]
-  assignments TechnicianDepotAssignment[]
+  assignments      TechnicianDepotAssignment[]
 
   @@index([dealershipId])
-
   @@map("depot")
 }
 
@@ -61,11 +60,11 @@ enum RouteAnchor {
 }
 
 model DepotEndpointPolicy {
-  depotId String
-  depot Depot @relation(fields: [depotId], references: [id], onDelete: Cascade)
+  depotId       String
+  depot         Depot       @relation(fields: [depotId], references: [id], onDelete: Cascade)
   effectiveDate DateTime
-  departure RouteAnchor
-  returnTo RouteAnchor
+  departure     RouteAnchor
+  returnTo      RouteAnchor
 
   @@id([depotId, effectiveDate])
   @@map("depot_endpoint_policy")
@@ -73,112 +72,113 @@ model DepotEndpointPolicy {
 
 /// A client the portal schedules for, standing in for WaterFlex Software. Its API token is in the environment.
 model Client {
-  id          String       @id
-  name        String
-  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
-  dealerships Dealership[]
-  technicians Technician[]
-  customers   Customer[]
-  solverSettings ClientSolverSettings?
-  apiOfferSets   PortalApiOfferSet[]
+  id                String                   @id
+  name              String
+  createdAt         DateTime                 @default(now()) @db.Timestamptz(6)
+  dealerships       Dealership[]
+  technicians       Technician[]
+  customers         Customer[]
+  solverSettings    ClientSolverSettings?
+  apiOfferSets      PortalApiOfferSet[]
   apiDailyProposals PortalApiDailyProposal[]
-  overnightTimes ClientOvernightTime[]
-  overnightRuns  PortalOvernightRun[]
-  bookingTestRuns BookingTestRun[]
+  overnightTimes    ClientOvernightTime[]
+  overnightRuns     PortalOvernightRun[]
+  bookingTestRuns   BookingTestRun[]
+  accounts          Account[]
 
   @@map("client")
 }
 
 // A client's own booking and routing settings. No row means the client has not configured them yet.
 model ClientSolverSettings {
-  clientId               String   @id
-  client                 Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  clientId                String   @id
+  client                  Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   // The scheduler's cost rate contract: at most 500 an hour and 25 a mile (CHECK constraints, spec 1.7.0).
-  regularHourly          Decimal  @db.Decimal(14, 4)
-  overtimeHourly         Decimal  @db.Decimal(14, 4)
-  mileagePerMile         Decimal  @db.Decimal(14, 4)
-  travelBufferPct        Decimal  @db.Decimal(6, 4)
-  travelBufferMinutes    Int
-  fairnessBudget         Decimal  @db.Decimal(6, 4)
-  offerLimit             Int
-  windowHours            Int
+  regularHourly           Decimal  @db.Decimal(14, 4)
+  overtimeHourly          Decimal  @db.Decimal(14, 4)
+  mileagePerMile          Decimal  @db.Decimal(14, 4)
+  travelBufferPct         Decimal  @db.Decimal(6, 4)
+  travelBufferMinutes     Int
+  fairnessBudget          Decimal  @db.Decimal(6, 4)
+  offerLimit              Int
+  windowHours             Int
   // The fixed horizon's length, or the dynamic horizon's cap: 1 to 15 weekdays (CHECK constraint).
-  bookingHorizonWeekdays Int
+  bookingHorizonWeekdays  Int
   // FIXED or DYNAMIC (CHECK constraint); read through clientSettings.ts, which validates it.
-  horizonMode            String
+  horizonMode             String
   // 1 to 5 (CHECK constraint): weekdays a dynamic horizon books past the furthest booked-out weekday.
-  horizonLeadWeekdays    Int
+  horizonLeadWeekdays     Int
   // 50 to 100 (CHECK constraint): the route span share at which a weekday counts as booked out.
-  horizonFullPercent     Int
+  horizonFullPercent      Int
   // TABU, TABU_KOPT or TABU_KOPT_SIZE_3 (CHECK constraint); read through clientSettings.ts, which validates it.
-  dailySearch            String
-  costSearchSeconds      Int
-  fairnessSearchSeconds  Int
+  dailySearch             String
+  costSearchSeconds       Int
+  fairnessSearchSeconds   Int
   // 1 to costSearchSeconds (CHECK constraint): a daily search also ends once its best plan has not improved for
   // this long. Null is the client's choice that every search spends its whole time.
   unimprovedSearchSeconds Int?
   // 1000 to 5000 (CHECK constraint): a booking search or confirm's deadline at the scheduler.
-  bookingDeadlineMs      Int
+  bookingDeadlineMs       Int
   // 0 to 1000 (CHECK constraint): regular windows above which the booking refinement is kept short.
-  regularWindowThreshold Int
+  regularWindowThreshold  Int
   // The late-arrival buffer (spec 1.9.0): percent of each window, 0 to 50, held between the two minute bounds, 0 to 240
   // with min <= max (CHECK constraints). A max of 0 is no buffer. Every client starts at 25 percent, 15 to 60 minutes.
   arrivalBufferPercent    Int      @default(25)
   arrivalBufferMinMinutes Int      @default(15)
   arrivalBufferMaxMinutes Int      @default(60)
-  version                Int      @default(0)
-  updatedAt              DateTime @default(now()) @db.Timestamptz(6)
+  version                 Int      @default(0)
+  updatedAt               DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("client_solver_settings")
 }
 
 model Dealership {
-  id String @id @default(cuid())
-  clientId String
-  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  name String
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  depots Depot[]
+  depots    Depot[]
 
   @@index([clientId], map: "dealership_client")
   @@map("dealership")
 }
 
 model Technician {
-  id                 String      @id @default(cuid())
-  clientId           String
-  client             Client      @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  name               String
-  email              String?
-  phone              String?
-  bio                String?
-  color              String
-  homeAddressLine1   String?
-  homeAddressCity    String?
-  homeAddressState   String?
+  id                    String   @id @default(cuid())
+  clientId              String
+  client                Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  name                  String
+  email                 String?
+  phone                 String?
+  bio                   String?
+  color                 String
+  homeAddressLine1      String?
+  homeAddressCity       String?
+  homeAddressState      String?
   homeAddressPostalCode String?
-  homeLat            Float
-  homeLng            Float
-  homePinProvenance  String? // GEOCODER_HOUSE | MANUALLY_CONFIRMED; null for legacy homes
-  shiftStartMin      Int // minutes from local midnight, e.g. 480 = 8:00am
-  shiftEndMin        Int
-  maxDailyMinutes    Int         @default(540)
-  maxOvertimeMinutes Int         @default(60)
-  active             Boolean     @default(true)
-  factsChangedAt     DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6) // set by database triggers
-  externalId         String?     @unique // integration seam
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  homeLat               Float
+  homeLng               Float
+  homePinProvenance     String? // GEOCODER_HOUSE | MANUALLY_CONFIRMED; null for legacy homes
+  shiftStartMin         Int // minutes from local midnight, e.g. 480 = 8:00am
+  shiftEndMin           Int
+  maxDailyMinutes       Int      @default(540)
+  maxOvertimeMinutes    Int      @default(60)
+  active                Boolean  @default(true)
+  factsChangedAt        DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6) // set by database triggers
+  externalId            String?  @unique // integration seam
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  appointments Appointment[]
-  scheduleDays ScheduleDay[]
-  dayChanges   TechnicianDayChange[]
-  qualifications TechnicianQualification[]
-  shiftOverrides TechnicianShiftOverride[]
+  appointments         Appointment[]
+  scheduleDays         ScheduleDay[]
+  dayChanges           TechnicianDayChange[]
+  qualifications       TechnicianQualification[]
+  shiftOverrides       TechnicianShiftOverride[]
   availabilityVersions TechnicianAvailabilityVersion[]
-  timeOffRequests TimeOffRequest[]
-  depotAssignments TechnicianDepotAssignment[]
+  timeOffRequests      TimeOffRequest[]
+  depotAssignments     TechnicianDepotAssignment[]
 
   @@index([active])
   @@index([clientId], map: "technician_client")
@@ -186,11 +186,11 @@ model Technician {
 }
 
 model TechnicianDepotAssignment {
-  technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  technicianId  String
+  technician    Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
   effectiveDate DateTime
-  depotId String
-  depot Depot @relation(fields: [depotId], references: [id])
+  depotId       String
+  depot         Depot      @relation(fields: [depotId], references: [id])
 
   @@id([technicianId, effectiveDate])
   @@index([depotId, effectiveDate])
@@ -198,23 +198,23 @@ model TechnicianDepotAssignment {
 }
 
 model TechnicianAvailabilityVersion {
-  id String @id @default(cuid())
-  technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  id            String                      @id @default(cuid())
+  technicianId  String
+  technician    Technician                  @relation(fields: [technicianId], references: [id], onDelete: Cascade)
   effectiveDate DateTime
-  days TechnicianAvailabilityDay[]
+  days          TechnicianAvailabilityDay[]
 
   @@unique([technicianId, effectiveDate])
   @@map("technician_availability_version")
 }
 
 model TechnicianAvailabilityDay {
-  versionId String
-  version TechnicianAvailabilityVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
-  dayOfWeek Int
-  available Boolean
+  versionId     String
+  version       TechnicianAvailabilityVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  dayOfWeek     Int
+  available     Boolean
   shiftStartMin Int?
-  shiftEndMin Int?
+  shiftEndMin   Int?
 
   @@id([versionId, dayOfWeek])
   @@map("technician_availability_day")
@@ -224,6 +224,9 @@ model TechnicianAvailabilityDay {
 // Catalog
 // ---------------------------------------------------------------------------
 
+// The reason code catalog (shown as "Reason codes" in the portal). `code` is WaterFlex's complaint code, and a job's
+// suggested time comes from its codes' minutes and buffers. The table keeps its service name because the scheduler
+// takes the first code's ID as `serviceId`, which it uses only to match technician qualifications.
 model ServiceCatalog {
   id             String   @id @default(cuid())
   code           String   @unique
@@ -236,9 +239,9 @@ model ServiceCatalog {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  jobs Job[]
+  jobs           Job[]
   qualifications TechnicianQualification[]
-
+  jobReasonCodes JobReasonCode[]
 
   @@map("service_catalog")
 }
@@ -256,6 +259,9 @@ model Customer {
   email      String
   phone      String
   externalId String?  @unique
+  // The WaterFlex account this customer was booked from; null for customers taken in from a typed address.
+  accountId  String?  @unique
+  account    Account? @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   createdAt  DateTime @default(now())
 
   addresses Address[]
@@ -276,9 +282,9 @@ model Address {
   postalCode       String
   lat              Float?
   lng              Float?
-  geocodePrecision String? // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | SYNTHETIC | MANUALLY_CONFIRMED
+  geocodePrecision String? // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | SYNTHETIC | MANUALLY_CONFIRMED | WATERFLEX_ACCOUNT
   geocodedAt       DateTime?
-  pinConfirmedAt  DateTime?
+  pinConfirmedAt   DateTime?
   createdAt        DateTime  @default(now())
 
   jobs Job[]
@@ -294,27 +300,75 @@ enum JobStatus {
 }
 
 model Job {
-  id               String         @id @default(cuid())
-  customerId       String
-  customer         Customer       @relation(fields: [customerId], references: [id])
-  addressId        String
-  address          Address        @relation(fields: [addressId], references: [id])
-  serviceId        String
-  service          ServiceCatalog @relation(fields: [serviceId], references: [id])
-  durationMin      Int // snapshot of service.estDurationMin * (1 + bufferPct) at booking time
-  status           JobStatus      @default(PENDING)
-  externalId       String?        @unique
-  bookingRequestId String?        @unique // client retry key for the slot-search attempt
+  id                        String          @id @default(cuid())
+  customerId                String
+  customer                  Customer        @relation(fields: [customerId], references: [id])
+  addressId                 String
+  address                   Address         @relation(fields: [addressId], references: [id])
+  serviceId                 String // the first reason code; the second and third are in reasonCodes
+  service                   ServiceCatalog  @relation(fields: [serviceId], references: [id])
+  durationMin               Int // the time allotted, which the scheduler plans with: the suggestion, or the dispatcher's override
+  // The codes' minutes plus buffers when the job was taken in; null for jobs taken in before reason codes.
+  suggestedDurationMin      Int?
+  durationOverridden        Boolean         @default(false)
+  workOrderType             String?
+  purchaseOrder             String?
+  technicianMessage         String?
+  callFirst                 Boolean? // null: the work order did not say
+  customerRequest           String?
+  reasonCodes               JobReasonCode[]
+  status                    JobStatus       @default(PENDING)
+  externalId                String?         @unique
+  bookingRequestId          String?         @unique // client retry key for the slot-search attempt
   bookingRequestFingerprint String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
 
   appointment          Appointment?
-  apiOfferSets   PortalApiOfferSet[]
+  apiOfferSets         PortalApiOfferSet[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
 
   @@map("job")
+}
+
+// A job's second and third reason codes. Its first is Job.serviceId, so every job has at least one code.
+model JobReasonCode {
+  jobId        String
+  job          Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  position     Int // 2 or 3
+  reasonCodeId String
+  reasonCode   ServiceCatalog @relation(fields: [reasonCodeId], references: [id], onDelete: Restrict)
+
+  @@id([jobId, position])
+  @@unique([jobId, reasonCodeId])
+  @@map("job_reason_code")
+}
+
+// A WaterFlex customer account: its service address and the coordinates WaterFlex geocoded it to. Filled from
+// WaterFlex's account export (scripts/import-accounts.ts) until the portal can ask WaterFlex itself; lib/accountLookup.ts
+// is the only reader. An account without coordinates can be booked only as a follow-up.
+model Account {
+  id            String    @id @default(cuid())
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  accountNumber String
+  name          String?
+  phone         String?
+  email         String?
+  line1         String
+  line2         String?
+  city          String
+  state         String
+  postalCode    String
+  lat           Float?
+  lng           Float?
+  source        String // WATERFLEX_IMPORT
+  importedAt    DateTime  @db.Timestamptz(6)
+  customer      Customer?
+
+  @@unique([clientId, accountNumber])
+  @@map("account")
 }
 
 model Appointment {
@@ -332,10 +386,10 @@ model Appointment {
   plannedEnd   DateTime
   sequence     Int // internal position in the technician's route for serviceDate
 
-  externalId String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  cancelledAt DateTime?
+  externalId         String?   @unique
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  cancelledAt        DateTime?
   cancellationReason String?
 
   windowChanges AppointmentWindowChange[]
@@ -440,26 +494,26 @@ model PortalApiOffer {
 }
 
 model PortalApiDailyProposal {
-  id              String    @id
-  clientId        String
-  client          Client    @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  metroId         String
-  metro           Metro     @relation(fields: [metroId], references: [id], onDelete: Restrict)
-  serviceDate     DateTime  @db.Date
-  requestId       String    @unique @db.Uuid
-  kind            String
+  id               String              @id
+  clientId         String
+  client           Client              @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  metroId          String
+  metro            Metro               @relation(fields: [metroId], references: [id], onDelete: Restrict)
+  serviceDate      DateTime            @db.Date
+  requestId        String              @unique @db.Uuid
+  kind             String
   timeOffRequestId String?
-  timeOffRequest  TimeOffRequest? @relation(fields: [timeOffRequestId], references: [id], onDelete: Cascade)
-  decision        String
-  proposal        Json
-  technicianDays  Json
-  baseline        Json
-  commitRequestId String?   @unique @db.Uuid
-  receiptId       String?   @unique
-  committedAt     DateTime? @db.Timestamptz(6)
-  commitRefusal   String?
-  createdAt       DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
-  overnightDay    PortalOvernightDay?
+  timeOffRequest   TimeOffRequest?     @relation(fields: [timeOffRequestId], references: [id], onDelete: Cascade)
+  decision         String
+  proposal         Json
+  technicianDays   Json
+  baseline         Json
+  commitRequestId  String?             @unique @db.Uuid
+  receiptId        String?             @unique
+  committedAt      DateTime?           @db.Timestamptz(6)
+  commitRefusal    String?
+  createdAt        DateTime            @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  overnightDay     PortalOvernightDay?
 
   @@index([clientId, metroId, serviceDate, createdAt], map: "portal_api_daily_proposal_day")
   @@index([timeOffRequestId], map: "portal_api_daily_proposal_time_off")
@@ -467,16 +521,16 @@ model PortalApiDailyProposal {
 }
 
 model TimeOffRequest {
-  id String @id @default(cuid())
-  technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id])
-  category String
-  reason String
-  status String @default("PENDING")
-  createdAt DateTime @default(now())
-  decidedAt DateTime?
-  intervals TimeOffInterval[]
-  report TimeOffReport?
+  id                 String                   @id @default(cuid())
+  technicianId       String
+  technician         Technician               @relation(fields: [technicianId], references: [id])
+  category           String
+  reason             String
+  status             String                   @default("PENDING")
+  createdAt          DateTime                 @default(now())
+  decidedAt          DateTime?
+  intervals          TimeOffInterval[]
+  report             TimeOffReport?
   apiRepairProposals PortalApiDailyProposal[]
 
   @@index([technicianId, status])
@@ -484,48 +538,48 @@ model TimeOffRequest {
 }
 
 model TimeOffInterval {
-  id String @id @default(cuid())
-  requestId String
-  request TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id          String         @id @default(cuid())
+  requestId   String
+  request     TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   serviceDate DateTime
-  startMin Int
-  endMin Int
+  startMin    Int
+  endMin      Int
 
   @@index([serviceDate])
   @@map("time_off_interval")
 }
 
 model TimeOffReport {
-  id String @id @default(cuid())
-  requestId String @unique
-  request TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  status String @default("QUEUED")
-  progress Int @default(0)
-  data Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String         @id @default(cuid())
+  requestId String         @unique
+  request   TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status    String         @default("QUEUED")
+  progress  Int            @default(0)
+  data      Json?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@map("time_off_report")
 }
 
 model TechnicianQualification {
   technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id])
-  serviceId String
-  service ServiceCatalog @relation(fields: [serviceId], references: [id])
+  technician   Technician     @relation(fields: [technicianId], references: [id])
+  serviceId    String
+  service      ServiceCatalog @relation(fields: [serviceId], references: [id])
 
   @@id([technicianId, serviceId])
   @@map("technician_qualification")
 }
 
 model TechnicianShiftOverride {
-  id String @id @default(cuid())
-  technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id])
-  serviceDate DateTime
-  available Boolean @default(true)
+  id            String     @id @default(cuid())
+  technicianId  String
+  technician    Technician @relation(fields: [technicianId], references: [id])
+  serviceDate   DateTime
+  available     Boolean    @default(true)
   shiftStartMin Int?
-  shiftEndMin Int?
+  shiftEndMin   Int?
 
   @@unique([technicianId, serviceDate])
   @@map("technician_shift_override")
@@ -533,68 +587,72 @@ model TechnicianShiftOverride {
 
 // Local sequential booking harness. Jobs use stable IDs derived from request IDs.
 model BookingTestRun {
-  id String @id
+  id          String                 @id
   /// The client a public-API run books for; null for runs that book through the scheduler's portal endpoints.
-  clientId String?
-  client Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  config Json
-  horizon Json
-  status String @default("PAUSED")
-  revision Int @default(0)
-  error String?
-  purgedAt DateTime?
+  clientId    String?
+  client      Client?                @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  config      Json
+  horizon     Json
+  status      String                 @default("PAUSED")
+  revision    Int                    @default(0)
+  error       String?
+  purgedAt    DateTime?
   purgedCount Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  requests BookingTestRequest[]
-  previews BookingTestPreview[]
-  generation BookingTestGeneration?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  requests    BookingTestRequest[]
+  previews    BookingTestPreview[]
+  generation  BookingTestGeneration?
+
   @@map("booking_test_run")
 }
 
 model BookingTestGeneration {
-  runId String @id
-  run BookingTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  acceptedInputs Json @default("[]")
-  randomState BigInt
-  roundRobinCursor Int @default(0)
-  pendingCandidates Json?
-  candidatesTried BigInt @default(0)
-  batches BigInt @default(0)
-  elapsedMs BigInt @default(0)
-  consecutiveNoProgressBatches BigInt @default(0)
-  completedAt DateTime?
+  runId                        String         @id
+  run                          BookingTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  acceptedInputs               Json           @default("[]")
+  randomState                  BigInt
+  roundRobinCursor             Int            @default(0)
+  pendingCandidates            Json?
+  candidatesTried              BigInt         @default(0)
+  batches                      BigInt         @default(0)
+  elapsedMs                    BigInt         @default(0)
+  consecutiveNoProgressBatches BigInt         @default(0)
+  completedAt                  DateTime?
+
   @@map("booking_test_generation")
 }
 
 model BookingTestRequest {
-  id String @id
-  runId String
-  run BookingTestRun @relation(fields: [runId], references: [id])
-  ordinal Int
-  input Json
-  status String @default("PENDING")
-  offers Json @default("[]")
-  selected Json?
-  attempts Json @default("[]")
+  id            String         @id
+  runId         String
+  run           BookingTestRun @relation(fields: [runId], references: [id])
+  ordinal       Int
+  input         Json
+  status        String         @default("PENDING")
+  offers        Json           @default("[]")
+  selected      Json?
+  attempts      Json           @default("[]")
   appointmentId String?
-  serviceDate String?
-  error String?
-  elapsedMs Int @default(0)
-  startedAt DateTime?
-  completedAt DateTime?
+  serviceDate   String?
+  error         String?
+  elapsedMs     Int            @default(0)
+  startedAt     DateTime?
+  completedAt   DateTime?
+
   @@unique([runId, ordinal])
   @@map("booking_test_request")
 }
 
 model BookingTestPreview {
-  id String @id
-  runId String
-  run BookingTestRun @relation(fields: [runId], references: [id])
-  serviceDate String
+  id             String         @id
+  runId          String
+  run            BookingTestRun @relation(fields: [runId], references: [id])
+  serviceDate    String
   optimizationId String?
-  result Json?
-  error String?
+  result         Json?
+  error          String?
+
   @@unique([runId, serviceDate])
   @@map("booking_test_preview")
 }

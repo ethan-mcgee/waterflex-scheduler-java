@@ -1,5 +1,5 @@
 import type { ServiceColor } from "@/lib/serviceColors";
-import type { WorkOrderStatus } from "@/lib/workOrdersDayCore";
+import type { WorkOrderFields, WorkOrderStatus } from "@/lib/workOrdersDayCore";
 
 export interface ScheduleTechnician {
   id: string;
@@ -12,6 +12,7 @@ export interface ScheduleTechnician {
 
 export interface ScheduleAppointment {
   id: string;
+  jobId: string;
   technicianId: string;
   technicianName: string;
   date: string;
@@ -22,6 +23,7 @@ export interface ScheduleAppointment {
   serviceColor: ServiceColor;
   /** The work order status, or null for a job state the portal shows no status for. */
   status: WorkOrderStatus | null;
+  workOrder: WorkOrderFields;
   addressLine: string;
   /** City, state and ZIP, which the City / ZIP filter searches. */
   place: string;
@@ -46,6 +48,7 @@ export interface ScheduleJob {
   serviceName: string;
   serviceColor: ServiceColor;
   durationMin: number;
+  workOrder: WorkOrderFields;
   addressLine: string;
   /** City, state and ZIP, which the City / ZIP filter searches. */
   place: string;
@@ -58,8 +61,8 @@ export interface ScheduleJob {
 /** A service on screen and the color it is drawn in, for the legend. */
 export interface ScheduleServiceLegend { code: string; name: string; color: ServiceColor }
 
-/** A service the new-job form offers. */
-export interface ScheduleService { code: string; name: string }
+/** A reason code the new-job form and the work order editor offer, with the minutes that suggest a time. */
+export interface ScheduleService { code: string; name: string; estDurationMin: number; bufferPct: number }
 
 /** The calendar's day view (technicians as columns on one time axis) or its weekly grid. */
 export type ScheduleViewMode = "day" | "week";
