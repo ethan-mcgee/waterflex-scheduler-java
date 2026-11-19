@@ -6,7 +6,7 @@ import { DEFAULT_CLIENT_ID } from "../lib/clients";
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
-test("dispatch and weekly schedule use the depot metro effective on each date", async ({ page }) => {
+test("dispatch and the day calendar use the depot metro effective on each date", async ({ page }) => {
   const firstMetro = await prisma.metro.create({ data: { name: "Lincoln browser fixture", timezone: "America/Chicago" } });
   const secondMetro = await prisma.metro.create({ data: { name: "Omaha browser fixture", timezone: "America/Chicago" } });
   const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Two metro browser fixture" } });
@@ -36,9 +36,9 @@ test("dispatch and weekly schedule use the depot metro effective on each date", 
     await page.goto(`/dispatch?metroId=${secondMetro.id}&date=2026-10-08`);
     await expect(noVisits).toBeVisible();
     await expect(noTechnicians).toHaveCount(0);
-    await page.goto(`/work-orders/schedule?metroId=${firstMetro.id}&week=2026-10-05`);
+    await page.goto(`/work-orders/schedule?metroId=${firstMetro.id}&date=2026-10-08`);
     await expect(page.getByText("Assigned to another metro").first()).toBeVisible();
-    await page.goto(`/work-orders/schedule?metroId=${secondMetro.id}&week=2026-10-05`);
+    await page.goto(`/work-orders/schedule?metroId=${secondMetro.id}&date=2026-10-07`);
     await expect(page.getByText("Assigned to another metro").first()).toBeVisible();
   } finally {
     await prisma.technician.delete({ where: { id: technician.id } });

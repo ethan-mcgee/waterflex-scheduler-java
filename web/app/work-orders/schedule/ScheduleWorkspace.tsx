@@ -1,29 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
+import { ListFilter } from "lucide-react";
 import { cardMatches, hasFilters, NO_FILTERS, waitingMatches, type CardFilters, type WorkOrdersDay } from "@/lib/workOrdersDayCore";
 import { Chip, EmptyState, FilterBar, Panel, STATUS_LABEL, type WorkOrderStatus } from "@/app/portal/ui";
 import { SelectField, TextField } from "@/app/portal/ui/fields";
 import type { CalendarData } from "./loadCalendar";
+import DayStepper, { dayHeading } from "./DayStepper";
 import RoutesMap from "./RoutesMap";
 import ScheduleView from "./ScheduleView";
+import type { ScheduleViewName } from "./scheduleHref";
 import styles from "./schedule.module.css";
 
-/** Day and Week are the calendar; Map draws the day's routes; Dual is the day calendar beside the map. */
-export type ScheduleViewName = "day" | "week" | "map" | "dual";
+export type { ScheduleViewName };
 
 const STATUSES: readonly WorkOrderStatus[] = ["SCHEDULED", "COMPLETED"];
 const NOT_YET = "Not available yet: the portal does not keep this for work orders.";
-
-/** "Tuesday, 10/15/24", as the design heads the day. */
-function dayHeading(date: string): string {
-  const instant = new Date(`${date}T12:00:00.000Z`);
-  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(instant);
-  const short = new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit", year: "2-digit", timeZone: "UTC" }).format(instant);
-  return `${weekday}, ${short}`;
-}
 
 export interface CalendarProps extends CalendarData {
   metroId: string;
@@ -33,17 +25,20 @@ export interface CalendarProps extends CalendarData {
 }
 
 /**
- * The schedule's filters, technician picker and the chosen view. Filters and the picker apply on the page: the
- * calendar hides what they leave out but still works out places from every visit.
+ * The schedule's filters, its head (the day and the technician picker, on one row for every view) and the chosen view.
+ * Filters and the picker apply on the page: the calendar hides what they leave out but still works out places from
+ * every visit.
  */
-export default function ScheduleWorkspace({ view, calendar, day, previousHref, nextHref }: {
+export default function ScheduleWorkspace({ view, calendar, day, metroId, timezone, date }: {
   view: ScheduleViewName;
-  /** The calendar week, for the Day, Week and Dual views. */
+  /** The calendar's week, for the Calendar and Dual views. */
   calendar: CalendarProps | null;
   /** The metro day's routes, for the Map and Dual views. */
   day: WorkOrdersDay | null;
-  previousHref: string;
-  nextHref: string;
+  metroId: string;
+  timezone: string;
+  /** The day on screen. */
+  date: string;
 }) {
   const [filters, setFilters] = useState<CardFilters>(NO_FILTERS);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
@@ -71,16 +66,17 @@ export default function ScheduleWorkspace({ view, calendar, day, previousHref, n
         <span className={styles.chipDot} style={{ background: tech.color }} />{tech.name}
       </Chip>)}
       {hiddenTechnicians.length > 0 && <select className={styles.pickerMore} value="" aria-label="Show a hidden technician"
+        title={`${hiddenTechnicians.length} hidden`}
         onChange={event => { const id = event.target.value; setHidden(current => new Set([...current].filter(item => item !== id))); }}>
         <option value="">+{hiddenTechnicians.length}</option>
         {hiddenTechnicians.map(tech => <option key={tech.id} value={tech.id}>{tech.name}</option>)}
       </select>}
-      {technicians.length === 0 && <span className={styles.pickerNone}>No technicians work in this metro {view === "week" ? "this week" : "this day"}</span>}
+      {technicians.length === 0 && <span className={styles.pickerNone}>No technicians work in this metro this week</span>}
     </fieldset>
   );
 
   const calendarView = calendar === null ? null : <ScheduleView metroId={calendar.metroId}
-    monday={calendar.monday} view={view === "week" ? "week" : "day"} date={calendar.date} timezone={calendar.timezone}
+    monday={calendar.monday} date={calendar.date} timezone={calendar.timezone}
     technicians={calendar.technicians} appointments={calendar.appointments} absences={calendar.absences} jobs={calendar.jobs}
     services={calendar.services} serviceLegend={calendar.serviceLegend} placeJobId={calendar.placeJobId} version={calendar.version}
     filters={filters} hiddenTechnicianIds={hidden} compact={view === "dual"} />;
@@ -105,12 +101,7 @@ export default function ScheduleWorkspace({ view, calendar, day, previousHref, n
 
     <Panel className={styles.board} label="Schedule">
       <div className={styles.boardHead}>
-        {/* The calendar pages its own days; the map is paged here. */}
-        {view === "map" && day !== null && <div className={styles.stepper}>
-          <Link href={previousHref} aria-label="Previous day"><ChevronLeft size={20} aria-hidden /></Link>
-          <h2>{dayHeading(day.date)}</h2>
-          <Link href={nextHref} aria-label="Next day"><ChevronRight size={20} aria-hidden /></Link>
-        </div>}
+        <DayStepper metroId={metroId} view={view} date={date} timezone={timezone} />
         {picker}
       </div>
 

@@ -309,8 +309,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   const open = !folded || placement !== null;
   return (
     <aside className={`${styles.placementPanel} ${open ? "" : styles.placementFolded}`} aria-label="Place a job">
-      <div className={styles.unassignedHead}>
-        <h2>Unassigned <span className={styles.unassignedCount}>{waitingCount}</span></h2>
+      <div className={styles.unassignedHead} data-unassigned-head>
+        <h2><span className={styles.unassignedLabel} data-unassigned-label>Unassigned</span> <span className={styles.unassignedCount} data-unassigned-count>{waitingCount}</span></h2>
         {placement === null && <button type="button" className={styles.foldButton} aria-expanded={open}
           aria-label={open ? "Collapse unassigned" : "Expand unassigned"} title={open ? "Collapse unassigned" : "Expand unassigned"}
           onClick={() => setFolded(!folded)}>
