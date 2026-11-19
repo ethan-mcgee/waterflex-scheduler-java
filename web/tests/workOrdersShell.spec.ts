@@ -168,7 +168,7 @@ test.describe("the work orders section", () => {
 
     await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Map View" }).click();
     await routes.getByRole("link", { name: "Assign" }).click();
-    await expect(page).toHaveURL(new RegExp(`/work-orders/schedule\?.*placeJob=${fixture.waitingJob}`));
+    await expect(page).toHaveURL(new RegExp(`/work-orders/schedule\\?.*placeJob=${fixture.waitingJob}`));
     await expect(calendar(page)).toBeVisible();
     await expect(unassigned(page).getByRole("heading", { name: "Wo Customer, Wo repair call" })).toBeVisible();
   });
