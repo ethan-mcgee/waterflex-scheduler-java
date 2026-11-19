@@ -57,7 +57,7 @@ function hours(start: number | null, end: number | null): { startMin: number; en
 }
 
 /** The working shift on a date, or null for a day off; a date exception replaces the weekly day, as in the scheduler. */
-export function shiftOn(technician: TechnicianFacts, date: string): { startMin: number; endMin: number } | null {
+export function shiftOn(technician: Pick<TechnicianFacts, "id" | "versions" | "overrides">, date: string): { startMin: number; endMin: number } | null {
   let weekly;
   try { weekly = resolveWeeklyDay(technician.versions, date); }
   catch (error) { throw inconsistent(`Technician ${technician.id}: ${error instanceof Error ? error.message : "weekly availability is invalid"}`); }

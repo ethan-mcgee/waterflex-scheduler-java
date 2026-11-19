@@ -213,6 +213,21 @@ const reasonCodeTiming = { name: text.max(120), estDurationMin: z.int().min(MIN_
 export const reasonCodeCreate = z.object({ code: text.max(40), ...reasonCodeTiming }).strict();
 export const reasonCodeChange = z.object({ ...reasonCodeTiming, active: z.boolean() }).strict();
 export const reasonCodeSaved = z.object({ code: text }).strict();
+/**
+ * Reserving times for due recurring customers in one branch week: the technician-days to use, in the order to fill them,
+ * and the series to place. The server works the free time out again; it never trusts the page's copy.
+ */
+export const reservationRequest = z.object({ branchId: text, week: date,
+  days: z.array(z.object({ technicianId: text, date }).strict()).min(1).max(100),
+  seriesIds: z.array(text).min(1).max(500) }).strict()
+  .refine(value => new Set(value.seriesIds).size === value.seriesIds.length, "A series can be given once")
+  .refine(value => new Set(value.days.map(item => `${item.technicianId}|${item.date}`)).size === value.days.length, "A day can be given once");
+export const reservationResult = z.object({ reserved: z.array(z.object({ id: text, seriesId: text, technicianId: text, date, startMin: minute, endMin: minute }).strict()),
+  unplaced: z.array(text) }).strict();
+/** Booking a reservation takes its work order in; the contact is the person the dispatcher confirmed. */
+export const reservationBookRequest = z.object({ firstName: text, lastName: text, email: text, phone: text }).strict();
+export const reservationBooked = z.object({ jobId: text, placeHref: text }).strict();
+export const reservationReleased = z.object({ released: z.literal(true) }).strict();
 /** A WaterFlex account as the New work order page shows it (lib/accountLookup.ts). */
 export const waterflexAccount = z.object({ id: text, accountNumber: text, name: text.nullable(), phone: text.nullable(), email: text.nullable(),
   line1: text, line2: text.nullable(), city: text, state: text, postalCode: text, location: point.nullable(), importedAt: instant }).strict();

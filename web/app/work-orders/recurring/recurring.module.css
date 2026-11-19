@@ -1,0 +1,440 @@
+/* Recurring work orders: List and Demand tabs, the branch-by-week grid, the week's schedule and the reserve panel. */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--wo-line);
+}
+
+.tabs a {
+  padding: 10px 18px;
+  border-bottom: 3px solid transparent;
+  color: var(--wo-ink-soft);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.tabs a[aria-current="page"] {
+  border-bottom-color: var(--wo-primary);
+  color: var(--wo-primary);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 24px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.main {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Without a selected week, the grid takes the full width. */
+.layout:not(:has(.reservePanel)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.gridPanel,
+.weekPanel,
+.listPanel {
+  overflow-x: auto;
+  padding: 20px 24px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelHead h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.panelHead span,
+.muted {
+  color: var(--wo-muted);
+  font-size: 13px;
+}
+
+.muted {
+  margin: 4px 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 10px 0 16px;
+  padding: 0;
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend span {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.swatchEnough {
+  border: 1px solid var(--wo-line);
+  background: var(--wo-surface-muted);
+}
+
+.swatchShort {
+  border: 1px solid var(--wo-warning);
+  background: var(--wo-warning-wash);
+}
+
+.swatchSelected {
+  border: 2px solid var(--wo-primary);
+  background: var(--wo-primary-wash);
+}
+
+.swatchBooked {
+  background: var(--wo-primary-tint);
+}
+
+.swatchReserved {
+  border: 1.5px dashed var(--wo-primary);
+}
+
+.grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px;
+  table-layout: fixed;
+}
+
+.grid thead th {
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.grid tbody th {
+  width: 120px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.grid tbody th small {
+  display: block;
+  color: var(--wo-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.cell {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 12px;
+  border: 1px solid var(--wo-line);
+  border-radius: 8px;
+  background: var(--wo-surface-muted);
+  color: var(--wo-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cell:hover {
+  border-color: var(--wo-primary);
+}
+
+.cellShort {
+  border-color: var(--wo-warning);
+  background: var(--wo-warning-wash);
+}
+
+.cellSelected {
+  border: 2px solid var(--wo-primary);
+  background: var(--wo-primary-wash);
+}
+
+.cellCount {
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+}
+
+.cellCount strong {
+  margin-right: 4px;
+  color: var(--wo-ink);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.cellLine {
+  color: var(--wo-muted);
+  font-size: 12px;
+}
+
+.cellShortLine {
+  color: var(--wo-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--wo-muted);
+  font-size: 13px;
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.weekDay {
+  min-height: 160px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--wo-surface-muted);
+}
+
+.weekDay h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.techDay + .techDay {
+  margin-top: 10px;
+}
+
+.bookedBlock,
+.reservedBlock {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.bookedBlock {
+  background: var(--wo-primary-tint);
+}
+
+.reservedBlock {
+  border: 1.5px dashed var(--wo-primary);
+  background: var(--wo-surface);
+}
+
+.reservePanel {
+  position: sticky;
+  top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--wo-line);
+  border-radius: var(--wo-radius-panel);
+  background: var(--wo-surface);
+}
+
+.reserveHead {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--wo-line);
+}
+
+.reserveHead h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.reserveHead p {
+  margin: 4px 0 0;
+  color: var(--wo-ink-soft);
+  font-size: 14px;
+}
+
+.reserveBody {
+  padding: 16px 24px;
+}
+
+.reserveBody + .reserveBody {
+  border-top: 1px solid var(--wo-line-soft);
+}
+
+.reserveBody h3 {
+  margin: 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dayList,
+.customerList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dayList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--wo-line-soft);
+  font-size: 14px;
+}
+
+.dayList label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dayList input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--wo-primary);
+}
+
+.dayList span {
+  color: var(--wo-ink-soft);
+}
+
+.enough,
+.shortText {
+  margin: 12px 0 4px;
+  font-size: 14px;
+}
+
+.enough {
+  color: var(--wo-success);
+}
+
+.shortText {
+  color: var(--wo-warning);
+}
+
+.reserveActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.outcome {
+  margin: 0;
+  padding: 12px 24px;
+  background: var(--wo-primary-wash);
+  font-size: 14px;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--wo-danger);
+  font-size: 14px;
+}
+
+.customerList li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--wo-line-soft);
+}
+
+.customerList li:last-child {
+  border-bottom: 0;
+}
+
+.customerList p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.reservationLine {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.reservationLine p {
+  margin: 0;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bookForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bookForm label {
+  display: grid;
+  gap: 4px;
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+}
+
+.input {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--wo-line-field);
+  border-radius: var(--wo-radius-field);
+  background: var(--wo-surface);
+  color: var(--wo-ink);
+  font: inherit;
+}
+
+.list {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.list th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wo-line);
+  color: var(--wo-ink-soft);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.list td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wo-line-soft);
+  vertical-align: top;
+}
+
+.list td small {
+  display: block;
+  margin-top: 2px;
+  color: var(--wo-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reservePanel {
+    position: static;
+  }
+}
