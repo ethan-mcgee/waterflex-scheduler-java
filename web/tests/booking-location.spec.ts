@@ -20,7 +20,7 @@ for (const hasMatch of [true, false]) {
         await route.fulfill({ status: 422, json: { status: "UNROUTABLE", error: "Place the pin at your driveway entrance." } });
       });
       await page.goto("/work-orders/new");
-      await page.getByRole("radio", { name: /Pin service/ }).check();
+      await page.getByLabel("Reason code", { exact: true }).selectOption(service.code);
       for (const [label, value] of Object.entries({ "First name": "Pin", "Last name": "Test", Email: "pin@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68130" }))
         await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
       await page.getByPlaceholder("Street address").fill("123 Cascio Drive");
@@ -48,7 +48,7 @@ for (const hasMatch of [true, false]) {
         await route.fulfill({ json: { jobId: "follow-up", pendingReference: "follow-up", status: "FOLLOW_UP" } });
       });
       await page.getByRole("button", { name: "Request follow-up" }).click();
-      await expect(page.getByRole("heading", { name: "We will follow up" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Sent to follow-up" })).toBeVisible();
     } finally { await prisma.serviceCatalog.delete({ where: { id: service.id } }); }
   });
 }
@@ -65,7 +65,7 @@ test("address edits abort lookup and prevent stale results from replacing a newe
       try { await route.fulfill({ json: locationFixture }); } catch { /* An edited address cancels this response. */ }
     });
     await page.goto("/work-orders/new");
-    await page.getByRole("radio", { name: /Stale pin service/ }).check();
+    await page.getByLabel("Reason code", { exact: true }).selectOption(service.code);
     for (const [label, value] of Object.entries({ "First name": "Pin", "Last name": "Test", Email: "pin@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68130" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("Old address");

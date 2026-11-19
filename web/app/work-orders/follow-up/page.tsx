@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Names for the stored codes. A code the portal does not know is shown as stored rather than guessed at. */
 const STATUS: Readonly<Record<string, string>> = { PENDING: "Waiting", CONTACTED: "Contacted" };
-const REASON: Readonly<Record<string, string>> = { ADDRESS_UNVERIFIED: "Address not verified" };
+const REASON: Readonly<Record<string, string>> = { ADDRESS_UNVERIFIED: "Address not verified",
+  ACCOUNT_UNLOCATED: "Account has no WaterFlex coordinates", FOLLOW_UP_REQUESTED: "Follow-up requested" };
 
 export default async function FollowUpPage() {
   const clientId = (await activeClient()).id;

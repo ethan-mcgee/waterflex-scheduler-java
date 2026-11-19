@@ -16,7 +16,7 @@ test("appointment search shows indeterminate progress and retains inputs after f
     });
     await mockBookingLocation(page);
     await page.goto("/work-orders/new");
-    await page.getByRole("radio", { name: /Progress test service/ }).check();
+    await page.getByLabel("Reason code", { exact: true }).selectOption(service.code);
     for (const [label, value] of Object.entries({ "First name": "Keep", "Last name": "Details", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("1 Main St");
