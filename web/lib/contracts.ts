@@ -208,6 +208,11 @@ export const workOrderUpdate = z.object({
     .refine(value => new Set(value.reasonCodes).size === value.reasonCodes.length, "A reason code can be given once").optional(),
 }).strict();
 export const workOrderSaved = z.object({ saved: z.literal(true) }).strict();
+/** A reason code as Settings edits it: its label, its minutes (1 to 720) and its buffer (0 to 1, so 0.15 is +15%). */
+const reasonCodeTiming = { name: text.max(120), estDurationMin: z.int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN), bufferPct: finite.min(0).max(1) };
+export const reasonCodeCreate = z.object({ code: text.max(40), ...reasonCodeTiming }).strict();
+export const reasonCodeChange = z.object({ ...reasonCodeTiming, active: z.boolean() }).strict();
+export const reasonCodeSaved = z.object({ code: text }).strict();
 /** A WaterFlex account as the New work order page shows it (lib/accountLookup.ts). */
 export const waterflexAccount = z.object({ id: text, accountNumber: text, name: text.nullable(), phone: text.nullable(), email: text.nullable(),
   line1: text, line2: text.nullable(), city: text, state: text, postalCode: text, location: point.nullable(), importedAt: instant }).strict();

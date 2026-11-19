@@ -99,7 +99,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
             </div>
             <StandardAvailabilityGrid days={days} onToggle={toggleDay} onHours={(dayOfWeek, field, value) => setDays(current => current.map(day => day.dayOfWeek === dayOfWeek ? { ...day, [field]: value } : day))} />
 
-            <label className={ui.sectionLabel}>Qualifications</label>
+            <label className={ui.sectionLabel} title="A work order's first reason code decides which technicians are qualified for it.">Reason code qualifications</label>
             <div className={styles.chipRow} style={{ marginBottom: 22 }}>
               {services.map((service) => {
                 const on = quals.includes(service.id);

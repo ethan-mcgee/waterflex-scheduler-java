@@ -135,7 +135,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
       {tech ? <div className={`${ui.card} ${styles.detail}`}>
         <div className={styles.detailHead}><div className={styles.detailId}><Avatar name={tech.name} color={profileFor(tech).color} size={52} /><div><h2>{tech.name}</h2>{!tech.active && <span className={styles.inactive}>Inactive technician</span>}</div></div>
           <div className={styles.detailActions}>
-            <span className={`${ui.pill} ${ui.pillBrand}`}>{tech.qualifications.filter(id => activeServiceIds.has(id)).length} of {services.length} active services qualified</span>
+            <span className={`${ui.pill} ${ui.pillBrand}`}>{tech.qualifications.filter(id => activeServiceIds.has(id)).length} of {services.length} active reason codes qualified</span>
             <button className={ui.button} type="button" onClick={() => { setModalError(""); setShowProfileModal(true); }}>Edit profile</button>
             <button className={`${ui.button} ${ui.buttonBrand}`} type="button" disabled={busy} onClick={() => resetDraft(tech, true)}>+ Add exception</button>
           </div></div>
@@ -150,7 +150,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
           <p style={{ margin: 0, fontSize: 13, color: profileFor(tech).bio ? "var(--ink)" : "var(--quiet)", fontStyle: profileFor(tech).bio ? "normal" : "italic" }}>{profileFor(tech).bio || "No bio provided yet."}</p>
         </div>
 
-        <p className={ui.sectionLabel}>Service qualifications</p><div className={`${styles.chipRow} ${styles.profileQualifications}`} data-profile-qualifications>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
+        <p className={ui.sectionLabel} title="A work order's first reason code decides which technicians are qualified for it.">Reason code qualifications</p><div className={`${styles.chipRow} ${styles.profileQualifications}`} data-profile-qualifications>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
 
         <p className={ui.sectionLabel}>Current weekly availability</p>
         <StandardAvailabilityGrid days={versionFor(tech, today).days} />

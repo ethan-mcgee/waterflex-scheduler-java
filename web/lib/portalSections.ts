@@ -28,7 +28,8 @@ export const PORTAL_SECTIONS: readonly PortalSection[] = [
   { key: "dispatch", label: "Dispatch", links: [{ href: "/dispatch", label: "Optimize routes" }] },
   { key: "technicians", label: "Technicians", links: [{ href: "/technicians", label: "Roster" }, { href: "/technicians/time-off", label: "Time off" }] },
   { key: "branches", label: "Branches", links: [{ href: "/branches", label: "Dealerships and depots" }] },
-  { key: "settings", label: "Settings", links: [{ href: "/settings/solver", label: "Solver settings" }] },
+  { key: "settings", label: "Settings", links: [{ href: "/settings/solver", label: "Solver settings" },
+    { href: "/settings/reason-codes", label: "Reason codes" }, { href: "/settings/accounts", label: "Accounts" }] },
   { key: "testing", label: "Booking test", links: [{ href: "/dispatch/testing", label: "Sequential booking test" }], testingOnly: true },
 ];
 

@@ -16,6 +16,8 @@ test("every page belongs to the section whose link matches the most of its path"
   assert.deepEqual(where("/technicians/time-off"), ["technicians", "/technicians/time-off"]);
   assert.deepEqual(where("/branches"), ["branches", "/branches"]);
   assert.deepEqual(where("/settings/solver"), ["settings", "/settings/solver"]);
+  assert.deepEqual(where("/settings/reason-codes"), ["settings", "/settings/reason-codes"]);
+  assert.deepEqual(where("/settings/accounts"), ["settings", "/settings/accounts"]);
 });
 
 test("look-alike paths do not match a link, and unknown paths fall back to work orders with no link marked", () => {
