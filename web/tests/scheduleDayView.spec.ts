@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
-import { addCalendarDays } from "../lib/date";
+import { addCalendarDays, todayInTz } from "../lib/date";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -66,8 +66,10 @@ test.describe("the daily schedule", () => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(dayGrid(page)).toBeVisible();
     await expect(page.locator('[data-schedule-view="week"]')).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Daily schedule" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Day" })).toHaveAttribute("aria-current", "page");
+    // The day heads the calendar as the design writes it, in the same row as the technician picker.
+    await expect(page.getByRole("heading", { name: "Wednesday, 10/07/26" })).toHaveAttribute("data-schedule-date", DATE);
+    await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("link", { name: "Week" })).toHaveCount(0);
 
     const firstHeader = dayGrid(page).locator(`[data-technician-column="${fixture.first.id}"]`);
     await expect(firstHeader).toContainText("Day First Tech");
@@ -81,9 +83,10 @@ test.describe("the daily schedule", () => {
     expect(west.x).toBeGreaterThan(east.x + east.width - 1);
     await expect(card(page, fixture.later)).toHaveCount(0);
 
-    // With no date at all, the page still opens on a day, not a week.
+    // With no date at all, the page opens on today, the day a CSR on the phone checks first.
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}`);
     await expect(dayGrid(page)).toBeVisible();
+    await expect(page.locator(`[data-schedule-date="${todayInTz("America/Chicago")}"]`)).toBeVisible();
   });
 
   test("pages forward and back a day at a time, across the end of the week", async ({ page }) => {
@@ -108,19 +111,14 @@ test.describe("the daily schedule", () => {
     await expect(page.locator(`[data-schedule-date="${next}"]`)).toBeVisible();
   });
 
-  test("keeps the weekly grid for week links and the view switch", async ({ page }) => {
+  test("older week links open the day calendar, since the weekly grid is gone", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&week=${DATE}`);
-    await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Weekly schedule" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Week" })).toHaveAttribute("aria-current", "page");
-
-    await page.getByRole("link", { name: "Day" }).click();
     await expect(page.locator(`[data-schedule-date="${DATE}"]`)).toBeVisible();
     await expect(dayGrid(page)).toBeVisible();
+    await expect(page.locator('[data-schedule-view="week"]')).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Week" }).click();
-    await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
-    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&view=week`);
-    await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&view=week&date=${DATE}`);
+    await expect(dayGrid(page)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
   });
 });

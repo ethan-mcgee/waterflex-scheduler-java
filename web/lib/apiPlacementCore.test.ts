@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Prisma } from "@prisma/client";
 import type { AppointmentFacts, SnapshotFacts, TechnicianFacts } from "./clientSnapshot";
 import type { InsertionStart, RouteInsertions } from "./insertionContract";
-import { dateBatches, insertionCalls, joined, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload, type JobRow,
+import { checkWhen, dateBatches, insertionCalls, joined, placeableDates, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload, withoutPast, type JobRow,
   type PlacementPlan } from "./apiPlacementCore";
 import { placementPreviewRequest } from "./contracts";
 
@@ -177,4 +177,30 @@ test("a save's undo record keeps the visits as they were and the saved days as t
   assert.equal(placementUndoPayload.safeParse({ ...forJob, created: undefined }).success, false);
   assert.equal(placementUndoPayload.safeParse({ ...forKept, technicianDays: [] }).success, false);
   assert.equal(placementUndoPayload.safeParse({ ...forKept, extra: true }).success, false);
+});
+
+test("a week in progress sends only today and later, so no place on a day that is over is ever offered", () => {
+  const week = ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20", "2026-11-21", "2026-11-22"];
+  assert.deepEqual(placeableDates(week, "2026-11-19"), ["2026-11-19", "2026-11-20", "2026-11-21", "2026-11-22"]);
+  assert.deepEqual(placeableDates(week, "2026-11-23"), [], "A week that is over has nothing to place on");
+  assert.deepEqual(placeableDates(week, "2026-11-01"), week);
+});
+
+test("on today, only starts after now are kept; a day before today is dropped; later days are untouched", () => {
+  const today = answer("job-9", [start("job-9", 13), start("job-9", 16), start("job-9", 17)]);
+  // At 16:00 UTC on DATE, the 13:00 and 16:00 starts have passed and the 17:00 one has not.
+  const trimmed = withoutPast(today, DATE, at(DATE, 16));
+  assert.deepEqual(trimmed.technicianDays.find(day => day.technicianId === "b")?.gaps[0]?.starts.map(item => item.plannedStart), [at(DATE, 17).toISOString()]);
+  assert.deepEqual(trimmed.technicianDays.find(day => day.technicianId === "a")?.gaps[0]?.starts, [], "A gap with no start left stays listed, empty");
+  assert.equal(withoutPast(today, NEXT, at(NEXT, 9)).technicianDays.length, 0, "Every day before today is dropped");
+  assert.deepEqual(withoutPast(today, "2026-11-01", at("2026-11-01", 9)), today, "Days after today keep every start");
+});
+
+test("a save on a day that is over, or a start that has passed, is refused; today needs the acknowledgement", () => {
+  const spot = { technicianId: "b", serviceDate: DATE, afterAppointmentId: "b1" };
+  refused(() => checkWhen(spot, at(DATE, 17).toISOString(), NEXT, at(NEXT, 8), true), 422, /2026-11-18 is over/);
+  refused(() => checkWhen(spot, at(DATE, 15).toISOString(), DATE, at(DATE, 16), true), 422, /already passed/);
+  refused(() => checkWhen(spot, at(DATE, 17).toISOString(), DATE, at(DATE, 16), false), 400, /contact the technician/);
+  assert.doesNotThrow(() => checkWhen(spot, at(DATE, 17).toISOString(), DATE, at(DATE, 16), true));
+  assert.doesNotThrow(() => checkWhen(spot, at(DATE, 9).toISOString(), "2026-11-17", at("2026-11-17", 20), false), "A later day needs nothing");
 });

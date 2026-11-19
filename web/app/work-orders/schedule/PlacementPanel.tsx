@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { errorMessage } from "@/lib/contracts";
+import { todayInTz } from "@/lib/date";
 import { bestOptions, findGap, findStart, spotKey, verdict, type PlaceOption, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
 import { workOrderLabel } from "@/lib/workOrdersDayCore";
@@ -187,9 +188,10 @@ function OptionRow({ option, moving, best, pick, on, name, timezone, onChoose }:
 }
 
 /** The place being chosen: the best options to offer, the chosen one's details, and Save. */
-function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
+function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails }: {
   placement: PlacementState; technicians: ScheduleTechnician[]; timezone: string;
-  onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
+  onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onAcknowledgeSameDay: (value: boolean) => void;
+  onSave: () => void; onCancel: () => void;
   onDetails: (() => void) | null;
 }) {
   const moving = placement.subject.kind === "appointment";
@@ -215,7 +217,10 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
   if (placement.status === "error") return <section className={styles.placementCard}>{header}<p role="alert">{placement.message}</p></section>;
   const { preview, chosen } = placement;
   const decided = currentVerdict(placement);
-  const options = bestOptions(preview.answer, preview.original);
+  // Today's route is already out: its places come after every later day's, and saving one needs the dispatcher's word.
+  const today = todayInTz(timezone);
+  const options = bestOptions(preview.answer, preview.original, 4, today);
+  const onToday = chosen !== null && chosen.spot.serviceDate === today;
   const name = (id: string) => technicians.find(item => item.id === id)?.name ?? id;
   const found = chosen === null ? undefined : findGap(preview.answer, chosen.spot);
   const chosenStart = chosen === null || chosen.plannedStart === null || found === undefined ? undefined : findStart(found.gap, chosen.plannedStart);
@@ -228,7 +233,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
   const starts: InsertionStart[] = found?.gap.starts ?? [];
   const legs = found === undefined ? null : legText(found.gap);
   const savable = decided !== null && decided.kind !== "CANNOT_HOLD" && !(decided.kind === "KEEPS_PROMISE" && decided.samePlace)
-    && (decided.kind !== "CHANGES_PROMISE" || placement.acknowledged) && !placement.saving;
+    && (decided.kind !== "CHANGES_PROMISE" || placement.acknowledged) && (!onToday || placement.sameDayAcknowledged) && !placement.saving;
   const row = (option: PlaceOption, best: boolean, pick: boolean) => <OptionRow key={`${option.key}|${option.start.plannedStart}`} option={option}
     moving={moving} best={best} pick={pick} on={isChosen(option)} name={name} timezone={timezone} onChoose={onChoose} />;
   const compared = decided !== null && (decided.kind === "CHANGES_PROMISE" || (decided.kind === "KEEPS_PROMISE" && !decided.samePlace)) ? decided : null;
@@ -262,6 +267,13 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
           ))}
         </fieldset>}
         {decided?.kind === "KEEPS_PROMISE" && decided.samePlace && <p role="status" className={styles.subtle}>This is where the appointment is now.</p>}
+        {onToday && decided !== null && decided.kind !== "CANNOT_HOLD" && <div className={styles.policyViolation} role="alert" data-same-day-warning>
+          <strong>This is today.</strong> The route is already out: contact the technician before saving.
+          <label className={styles.acknowledge}>
+            <input type="checkbox" checked={placement.sameDayAcknowledged} onChange={event => onAcknowledgeSameDay(event.target.checked)} />
+            I will contact the technician about this change to today&apos;s route.
+          </label>
+        </div>}
         {decided?.kind === "CHANGES_PROMISE" && <div className={styles.policyViolation} role="alert">
           <strong>Dealership policy violation.</strong> This move changes what the customer was promised, from{" "}
           {formatDate(decided.previous.serviceDate)}, {windowText(decided.previous.window, timezone)} to{" "}
@@ -289,7 +301,7 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
  * of which can be dragged onto a route. It folds to a narrow strip while nothing is being placed.
  */
 export default function PlacementPanel({ jobs, waitingCount, startFolded, services, placement, technicians, timezone, onPlaceJob, onPressJob,
-  clickSuppressed, onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved }: {
+  clickSuppressed, onCreated, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved }: {
   /** The waiting jobs the filters show, and how many are waiting in all. */
   jobs: ScheduleJob[]; waitingCount: number;
   /** Folded when the page opens, where the calendar has little room (beside the map). */
@@ -297,7 +309,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   services: ScheduleService[]; placement: PlacementState | null; technicians: ScheduleTechnician[]; timezone: string;
   onPlaceJob: (subject: PlacementSubject) => void; onPressJob: (job: ScheduleJob, event: ReactPointerEvent) => void; clickSuppressed: () => boolean;
   onCreated: (jobId: string, label: string) => void;
-  onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
+  onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onAcknowledgeSameDay: (value: boolean) => void;
+  onSave: () => void; onCancel: () => void;
   /** Opens the moved appointment's details; null while a job is being placed. */
   onDetails: (() => void) | null;
   /** The waiting job being placed, whose work order can be edited here, codes and time included. */
@@ -309,8 +322,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   const open = !folded || placement !== null;
   return (
     <aside className={`${styles.placementPanel} ${open ? "" : styles.placementFolded}`} aria-label="Place a job">
-      <div className={styles.unassignedHead}>
-        <h2>Unassigned <span className={styles.unassignedCount}>{waitingCount}</span></h2>
+      <div className={styles.unassignedHead} data-unassigned-head>
+        <h2><span className={styles.unassignedLabel} data-unassigned-label>Unassigned</span> <span className={styles.unassignedCount} data-unassigned-count>{waitingCount}</span></h2>
         {placement === null && <button type="button" className={styles.foldButton} aria-expanded={open}
           aria-label={open ? "Collapse unassigned" : "Expand unassigned"} title={open ? "Collapse unassigned" : "Expand unassigned"}
           onClick={() => setFolded(!folded)}>
@@ -319,7 +332,7 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
       </div>
       {open && <>
         {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
-          onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
+          onChoose={onChoose} onAcknowledge={onAcknowledge} onAcknowledgeSameDay={onAcknowledgeSameDay} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
         {placingJob !== null && <WorkOrderPanel key={placingJob.id} jobId={placingJob.id} workOrder={placingJob.workOrder} codeOptions={services}
           onSaved={onWorkOrderSaved} />}
         <section data-unassigned-column>

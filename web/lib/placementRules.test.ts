@@ -183,3 +183,17 @@ test("a day paged to is joined into the week's answer with its timed stops, and 
   assert.deepEqual(joined.skippedTechnicianDays, answer.skippedTechnicianDays);
   assert.equal(withTimedDays(week, { ...extra, routingIdentity: "omaha-2026-11" }, [NEXT]), null);
 });
+
+test("today ranks after every later day, so it is recommended only when nothing later fits", () => {
+  // b's cheap gap is on DATE (today); a's dearer gap is moved to the next day.
+  const NEXT = "2026-11-19";
+  const split: RouteInsertions = { ...answer, technicianDays: answer.technicianDays.map(item => item.technicianId === "a" ? { ...item, serviceDate: NEXT } : item) };
+  const aOnNext = spotKey({ technicianId: "a", serviceDate: NEXT, afterAppointmentId: "a1", beforeAppointmentId: "a2" });
+  assert.equal(recommendation(split, false)?.key, spotKey(endOfB), "Without a today, the cheapest place wins");
+  assert.equal(recommendation(split, false, DATE)?.key, aOnNext, "With DATE as today, the later day is recommended");
+  assert.deepEqual(rankedFits(split, DATE).map(fit => fit.key), [aOnNext, spotKey(endOfB)], "Today's gap is still listed, last");
+  assert.equal(bestOptions(split, null, 4, DATE)[0]?.key, aOnNext);
+  assert.equal(bestOptions(split, null, 4, DATE).at(-1)?.spot.serviceDate, DATE);
+  const onlyToday: RouteInsertions = { ...answer, technicianDays: answer.technicianDays.filter(item => item.technicianId === "b") };
+  assert.equal(recommendation(onlyToday, false, DATE)?.key, spotKey(endOfB), "When only today fits, today is recommended");
+});

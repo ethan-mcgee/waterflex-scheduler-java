@@ -62,7 +62,7 @@ async function mockMoveCheck(page: Page, responses: Array<{ status: number; body
   return sent;
 }
 
-const grid = (page: Page) => page.locator('[aria-label="Weekly technician schedule"]');
+const grid = (page: Page) => page.locator('[data-schedule-view="day"]');
 const card = (page: Page, appointmentId: string) => grid(page).locator(`[data-appointment-id="${appointmentId}"]`);
 const banner = (page: Page) => page.locator("[data-move-check]");
 const cell = (page: Page, technicianId: string, date = DATE) => grid(page).locator(`[data-drop-technician="${technicianId}"][data-drop-date="${date}"]`);
@@ -88,12 +88,12 @@ async function dragTo(page: Page, appointmentId: string, technicianId: string, d
   await page.mouse.up();
 }
 
-test.describe("checking a move on the weekly schedule", () => {
+test.describe("checking a move on the day calendar", () => {
   let fixture: Fixture;
   test.beforeEach(async ({ page }) => {
     fixture = await seed();
     await page.setViewportSize({ width: 1500, height: 1500 });
-    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&week=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(card(page, fixture.north)).toBeVisible();
   });
   test.afterEach(async () => { await fixture.cleanup(); });
@@ -132,9 +132,8 @@ test.describe("checking a move on the weekly schedule", () => {
     await dragTo(page, fixture.north, fixture.second.id);
     await expect(page.getByRole("complementary", { name: "Place a job" })).toContainText("Scheduling is not connected for this client.");
     expect(sent).toHaveLength(0);
-    // The weekly grid shows every day, so every day's stops come timed, in the one request the press already sent.
-    const week = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"];
-    expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north, timedDates: week, withRestOfWeek: true }]);
+    // The calendar shows one day, so that day's stops come timed, in the one request the press already sent.
+    expect(previews).toEqual([{ metroId: fixture.metroId, monday: DATE, appointmentId: fixture.north, timedDates: [DATE], withRestOfWeek: true }]);
     await card(page, fixture.north).click();
     await page.getByRole("complementary", { name: "Place a job" }).getByRole("button", { name: "Details" }).click();
     await expect(page.getByRole("dialog")).toContainText("Appointment details");

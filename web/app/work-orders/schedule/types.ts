@@ -63,6 +63,3 @@ export interface ScheduleServiceLegend { code: string; name: string; color: Serv
 
 /** A reason code the new-job form and the work order editor offer, with the minutes that suggest a time. */
 export interface ScheduleService { code: string; name: string; estDurationMin: number; bufferPct: number }
-
-/** The calendar's day view (technicians as columns on one time axis) or its weekly grid. */
-export type ScheduleViewMode = "day" | "week";

@@ -151,7 +151,7 @@ export default function TestingPage() {
         {!routeDates.length && <p>Routes appear after requests are booked.</p>}
         {routeDates.map(date => <article key={date} className={styles.preview} aria-label={`Routes for ${date}`}><h3>{date}</h3>
           <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha" date={date} /></div>
-          <Link href={`/work-orders/schedule?view=week&date=${date}`}>View schedule</Link>{" | "}<Link href={`/dispatch?date=${date}`}>Open the day in Dispatch</Link>
+          <Link href={`/work-orders/schedule?date=${date}`}>View schedule</Link>{" | "}<Link href={`/dispatch?date=${date}`}>Open the day in Dispatch</Link>
         </article>)}
         {run.previews.length > 0 && <><h2>Saved proposals</h2><p>This run predates booking-only tests and saved a daily optimization proposal per day.</p>
           {run.previews.map(preview => {

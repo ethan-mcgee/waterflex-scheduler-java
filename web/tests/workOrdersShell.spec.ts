@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
@@ -87,7 +87,7 @@ test.describe("the work orders section", () => {
   test("the day calendar shows the metro's technicians, the booked visit at its time, and the waiting work order", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(page.locator(`[data-schedule-date="${DATE}"]`)).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Day" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
     await expect(calendar(page).locator(`[data-technician-column="${fixture.first}"]`)).toContainText("Wo First Tech");
     await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toContainText("Wo Second Tech");
 
@@ -140,7 +140,7 @@ test.describe("the work orders section", () => {
     await expect(unassigned(page)).toContainText("Unassigned 1");
   });
 
-  test("technicians can be hidden and shown again, in the day and the week, and Unassigned folds away", async ({ page }) => {
+  test("technicians can be hidden and shown again, and Unassigned folds away", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await page.getByRole("button", { name: "Hide Wo Second Tech" }).click();
     await expect(calendar(page).locator(`[data-technician-column="${fixture.second}"]`)).toHaveCount(0);
@@ -151,19 +151,49 @@ test.describe("the work orders section", () => {
     await expect(page.locator("[data-unassigned-column]")).toHaveCount(0);
     await page.getByRole("button", { name: "Expand unassigned" }).click();
     await expect(page.locator("[data-unassigned-column]")).toBeVisible();
+  });
 
-    await page.getByRole("navigation", { name: "Schedule view" }).getByRole("link", { name: "Week" }).click();
-    await expect(page.locator('[data-schedule-view="week"]')).toBeVisible();
-    await page.getByRole("button", { name: "Hide Wo First Tech" }).click();
-    await expect(page.locator(`[data-tech-header="${fixture.first}"]`)).toHaveCount(0);
-    await expect(page.locator(`[data-tech-header="${fixture.second}"]`)).toBeVisible();
+  test("the calendar keeps one layout on a laptop and on a wide monitor", async ({ page }) => {
+    const box = async (locator: Locator) => {
+      const found = await locator.boundingBox();
+      if (found === null) throw new Error("Expected the element on screen");
+      return found;
+    };
+    for (const [width, height] of [[1280, 720], [2560, 1440]] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+      // The day and the technician picker share the calendar's head row.
+      const day = await box(page.locator(`h2[data-schedule-date="${DATE}"]`));
+      const picker = await box(page.getByRole("group", { name: "Display calendar for" }));
+      expect(picker.y).toBeLessThan(day.y + day.height);
+      expect(day.y).toBeLessThan(picker.y + picker.height);
+
+      // Unassigned is the first column: its head starts on the technicians' line and is as tall as theirs.
+      const head = await box(page.locator("[data-unassigned-head]"));
+      const column = await box(calendar(page).locator(`[data-technician-column="${fixture.first}"]`));
+      expect(Math.abs(head.y - column.y)).toBeLessThan(1);
+      expect(Math.abs(head.height - column.height)).toBeLessThan(1);
+      // The grid fills the board to the legend's edge rather than stopping at a fixed width.
+      const grid = await box(calendar(page));
+      const legend = await box(page.getByLabel("Schedule legend"));
+      expect(Math.abs(grid.x + grid.width - (legend.x + legend.width))).toBeLessThan(2);
+
+      // Folded, the strip runs the calendar's height and its count sits clear of the name.
+      await page.getByRole("button", { name: "Collapse unassigned" }).click();
+      const count = await box(page.locator("[data-unassigned-count]"));
+      const label = await box(page.locator("[data-unassigned-label]"));
+      expect(count.y + count.height <= label.y || label.y + label.height <= count.y).toBe(true);
+      const strip = await box(unassigned(page));
+      expect(strip.height).toBeGreaterThanOrEqual((await box(calendar(page))).height - 1);
+      await page.getByRole("button", { name: "Expand unassigned" }).click();
+    }
   });
 
   test("the map pages its own days, and Assign opens the day calendar with that work order being placed", async ({ page }) => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}&view=map`);
-    await page.getByRole("link", { name: "Next day" }).click();
+    await page.getByRole("button", { name: "Next day" }).click();
     await expect(page.getByRole("heading", { name: "Thursday, 10/08/26" })).toBeVisible();
-    await page.getByRole("link", { name: "Previous day" }).click();
+    await page.getByRole("button", { name: "Previous day" }).click();
     await expect(page.getByRole("heading", { name: "Wednesday, 10/07/26" })).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`view=map.*date=${DATE}|date=${DATE}.*view=map`));
 

@@ -70,6 +70,34 @@ export function placementPlan(facts: SnapshotFacts, subject: Subject): Placement
   };
 }
 
+/** The days of a week a placement may use: today and later, `today` being the metro's own date. */
+export function placeableDates(week: readonly string[], today: string): string[] {
+  return week.filter(day => day >= today);
+}
+
+/**
+ * The answer without what is already past: no day before today, and on today no start at or before `now`. A gap
+ * left with no start stays listed, so the page can still say that nothing fits there.
+ */
+export function withoutPast(answer: RouteInsertions, today: string, now: Date): RouteInsertions {
+  const at = now.getTime();
+  return { ...answer, technicianDays: answer.technicianDays.filter(day => day.serviceDate >= today).map(day => day.serviceDate !== today ? day
+    : { ...day, gaps: day.gaps.map(gap => ({ ...gap, starts: gap.starts.filter(start => Date.parse(start.plannedStart) > at) })) }) };
+}
+
+/**
+ * Refuses a save on a day that is over or at a start that has passed. A save onto today needs the dispatcher's
+ * acknowledgement that the technician will be told, since today's route is already out; the booking service never
+ * offers today.
+ */
+export function checkWhen(spot: Spot, plannedStart: string, today: string, now: Date, sameDayAcknowledged: boolean): void {
+  if (spot.serviceDate < today) throw new PlacementRefused(422, `${spot.serviceDate} is over. Pick today or a later day.`);
+  if (spot.serviceDate !== today) return;
+  if (Date.parse(plannedStart) <= now.getTime()) throw new PlacementRefused(422, "That start has already passed. Pick a later start.");
+  if (!sameDayAcknowledged)
+    throw new PlacementRefused(400, "This places it today, on a route that is already out. Acknowledge that you will contact the technician to save it.");
+}
+
 /** The dates to send per call so that no call has more technician-days than the scheduler accepts. */
 export function dateBatches(facts: SnapshotFacts, workingDays: (date: string) => number, limit: number): string[][] {
   return batchDates(facts.dates, workingDays, limit);

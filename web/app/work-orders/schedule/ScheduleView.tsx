@@ -5,8 +5,8 @@ import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useAbortOnUnmount } from "@/app/portal/useAbortOnUnmount";
+import { todayInTz } from "@/lib/date";
 import styles from "./calendar.module.css";
-import { addCalendarDays, todayInTz, weekDates } from "@/lib/date";
 import type { MoveCheckResult } from "@/lib/contracts";
 import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
@@ -18,15 +18,13 @@ import type { InsertionGap } from "@/lib/insertionContract";
 import { driveLabel, previewDrives, type VisitDrive } from "@/lib/scheduleDrive";
 import { useScheduleDrive, type DriveState } from "./useScheduleDrive";
 import { placementUndone, type PlacementPreview, type PlacementSaved } from "@/lib/contracts";
-import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician, ScheduleViewMode } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician } from "./types";
 import { hasFilters, itemMatches, workOrderLabel, type CardFilters } from "@/lib/workOrdersDayCore";
 import WorkOrderPanel from "./WorkOrderPanel";
+import { scheduleHref } from "./scheduleHref";
 import { STATUS_LABEL, StatusIcon } from "@/app/portal/ui";
 
-const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 const TIMELINE_HOUR_HEIGHT_PX = 64;
-const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
 function localDate(dateKey: string): Date {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -72,15 +70,6 @@ function formatWindow(appointment: ScheduleAppointment, timezone: string): strin
   return `${formatTime(appointment.windowStart, timezone)} - ${formatTime(
     appointment.windowEnd,
     timezone
-  )}`;
-}
-
-function formatWeekLabel(monday: string): string {
-  const start = localDate(monday);
-  const end = localDate(addCalendarDays(monday, 6));
-  return `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${end.toLocaleDateString(
-    undefined,
-    { month: "short", day: "numeric", year: "numeric" }
   )}`;
 }
 
@@ -339,9 +328,12 @@ function gapLabel(gap: InsertionGap, key: string, best: Fit | null): string {
   return best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
 }
 
-/** A selected job opens on the recommended place, so the common case is select, then Save. */
-const recommendedPlace: DropResolver = preview => {
-  const fit = recommendation(preview.answer, preview.original !== null);
+/**
+ * A selected job opens on the recommended place, so the common case is select, then Save. Today's route is already out,
+ * so a place on `today` is recommended only when no later day fits.
+ */
+const recommendedPlace = (today: string): DropResolver => preview => {
+  const fit = recommendation(preview.answer, preview.original !== null, today);
   return fit === null ? null : { spot: fit.spot, plannedStart: fit.firstStart.plannedStart };
 };
 
@@ -434,8 +426,10 @@ function DayGrid({
               <span className={styles.techName}>{technician.name}</span>
             </span>
             <span className={styles.techShift}>{status.label}{status.working ? `, ${entries.length} ${entries.length === 1 ? "visit" : "visits"}` : ""}</span>
-            {minutes !== undefined && <span className={styles.techDrive} data-technician-drive={minutes}>{minutes} min driving</span>}
-            {change !== 0 && <span className={styles.techDelta} data-technician-drive-change={change}>{change > 0 ? "+" : ""}{change} min with this place</span>}
+            <span className={styles.techLine}>
+              {minutes !== undefined && <span className={styles.techDrive} data-technician-drive={minutes}>{minutes} min driving</span>}
+              {change !== 0 && <span className={styles.techDelta} data-technician-drive-change={change}>{change > 0 ? "+" : ""}{change} min with this place</span>}
+            </span>
             {shift > 0 && <span className={styles.loadBar} title="Share of the shift on visits and on driving">
               <i className={styles.loadVisits} style={{ width: `${Math.min(100, (visitMinutes / shift) * 100)}%` }} />
               {minutes !== undefined && <i className={styles.loadDrive} style={{ width: `${Math.min(100, (minutes / shift) * 100)}%` }} />}
@@ -592,7 +586,6 @@ const UPDATED_SHOWN_MS = 8_000;
 export default function ScheduleView({
   metroId,
   monday,
-  view,
   date,
   timezone,
   technicians,
@@ -608,10 +601,9 @@ export default function ScheduleView({
   compact,
 }: {
   metroId: string;
+  /** The Monday of the day's week: places are found across the whole week, so a better day can be offered. */
   monday: string;
-  /** The day view (the default) or the weekly grid. */
-  view: ScheduleViewMode;
-  /** The day the day view shows; in the weekly view, the date the week was opened from. */
+  /** The day on screen. */
   date: string;
   timezone: string;
   technicians: ScheduleTechnician[];
@@ -635,9 +627,8 @@ export default function ScheduleView({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
-  const days = weekDates(monday);
-  // The days on screen: the day view's one day, or the week. The time axis covers only their shifts.
-  const shown = view === "day" ? [date] : days;
+  // The day on screen. The time axis covers only its shifts; placement times this day's stops first.
+  const shown = useMemo(() => [date], [date]);
   const visibleTechnicians = technicians.filter(technician => !hiddenTechnicianIds.has(technician.id));
   const filtering = hasFilters(filters);
   const shows = (appointment: ScheduleAppointment) => !filtering
@@ -651,10 +642,6 @@ export default function ScheduleView({
   const timelineEnd = shiftHours.length
     ? Math.ceil(Math.max(...shiftHours.map(shift => shift.end)) / 60) * 60
     : 17 * 60;
-  const timelineHours = Array.from(
-    { length: Math.max(1, (timelineEnd - timelineStart) / 60) },
-    (_, index) => timelineStart + index * 60
-  );
   const byCell = useMemo(() => {
     const cells = new Map<string, ScheduleAppointment[]>();
     for (const appointment of appointments) {
@@ -669,7 +656,7 @@ export default function ScheduleView({
   // The day view's drive times, asked again whenever the day's visits move.
   const driveVersion = useMemo(() => appointments.filter(item => item.date === date)
     .map(item => `${item.id}@${item.technicianId}@${item.plannedStart}@${item.plannedEnd}`).sort().join(","), [appointments, date]);
-  const drive = useScheduleDrive(metroId, date, view === "day", driveVersion);
+  const drive = useScheduleDrive(metroId, date, true, driveVersion);
 
   const [check, setCheck] = useState<MoveCheck | null>(null);
   const checkCount = useRef(0);
@@ -711,17 +698,19 @@ export default function ScheduleView({
       .catch((error: unknown) => setSaved(current => current === null || current.undoId !== undoId ? current
         : { ...current, undoing: false, error: error instanceof Error ? error.message : "The save could not be undone. Try again." }));
   };
-  const { placement, start: startPlacement, prefetch, settle, refresh: refreshPlacement, choose, drop, acknowledge, cancel: cancelPlacement, save } =
-    usePlacement(metroId, monday, shown, onSaved);
+  const { placement, start: startPlacement, prefetch, settle, refresh: refreshPlacement, choose, drop, acknowledge, acknowledgeSameDay, cancel: cancelPlacement,
+    save } = usePlacement(metroId, monday, shown, onSaved);
   const opened = useRef(false);
+  // The metro's today: its places rank after every later day's, and saving one there needs the dispatcher's word.
+  const today = todayInTz(timezone);
 
   // A "Place on calendar" link opens the page with that job being placed.
   useEffect(() => {
     if (opened.current || placeJobId === null) return;
     opened.current = true;
     const job = jobs.find(item => item.id === placeJobId);
-    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace);
-  }, [jobs, placeJobId, startPlacement]);
+    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace(today));
+  }, [jobs, placeJobId, startPlacement, today]);
 
   const subjectOf = useCallback((item: DragItem): PlacementSubject => item.kind === "job"
     ? { kind: "job", id: item.job.id, label: `${item.job.customerName}, ${item.job.serviceName}` }
@@ -823,7 +812,7 @@ export default function ScheduleView({
     const landed = landing(answer, over);
     const found = findGap(answer, landed.spot);
     const key = spotKey(landed.spot);
-    const label = found === undefined ? "Cannot be placed here" : gapLabel(found.gap, key, recommendation(answer, original !== null));
+    const label = found === undefined ? "Cannot be placed here" : gapLabel(found.gap, key, recommendation(answer, original !== null, today));
     const decided = landed.plannedStart === null ? null : verdict(answer, original, landed.spot, landed.plannedStart);
     const note = decided?.kind === "CHANGES_PROMISE" ? ", changes the promised window"
       : decided?.kind === "KEEPS_PROMISE" && decided.samePlace ? ", where it is now" : "";
@@ -937,7 +926,7 @@ export default function ScheduleView({
     const shiftStart = technician?.days[date]?.shiftStartMin ?? timelineStart;
     const ends = new Map(appointments.map(item => [item.id, minuteOfDay(item.plannedEnd, timezone)]));
     const chosenKey = placement.chosen === null ? null : spotKey(placement.chosen.spot);
-    const best = recommendation(answer, placement.preview.original !== null);
+    const best = recommendation(answer, placement.preview.original !== null, today);
     const gaps: GapMarker[] = (day?.gaps ?? []).map(gap => {
       const spot = gapSpot(day ?? { technicianId, serviceDate: date, holdsAsGiven: false, qualified: false, gaps: [] }, gap);
       const key = spotKey(spot);
@@ -971,57 +960,39 @@ export default function ScheduleView({
   /** What the drag label says about the place under the pointer: the technician, the start and how it compares. */
   const hoverText = hover === null ? "" : ` to ${hover.who}, ${hover.detail}`;
 
-  function goToWeek(nextMonday: string) {
-    router.push(`/work-orders/schedule?metroId=${encodeURIComponent(metroId)}&week=${nextMonday}`);
-  }
-
-  // The day a click asked for. Navigation is asynchronous, so a second click before the page arrives counts from
-  // the first click's day rather than from the one still on screen; quick clicks add up instead of repeating.
-  const targetDate = useRef(date);
-  useEffect(() => { targetDate.current = date; }, [date]);
-
+  /** Opens another day in the same view, for a place picked on a day that is not on screen. */
   function goToDay(nextDate: string) {
-    targetDate.current = nextDate;
-    router.push(`/work-orders/schedule?metroId=${encodeURIComponent(metroId)}&date=${nextDate}`);
+    router.push(scheduleHref({ metroId, view: compact ? "dual" : "day", date: nextDate }));
   }
+
+  /** Statuses and colors, under the grid as the design has them. */
+  const legend = (
+    <div className={styles.legend} aria-label="Schedule legend" data-schedule-legend>
+      <span className={styles.legendGroup}>
+        <b>Work order status</b>
+        {(["SCHEDULED", "COMPLETED"] as const).map(status => <span key={status}><StatusIcon status={status} size={14} />{STATUS_LABEL[status]}</span>)}
+      </span>
+      <span className={styles.legendGroup}>
+        <b>Color = reason code</b>
+        {serviceLegend.length === 0
+          ? <span><i className={styles.scheduledSwatch} />Scheduled visit</span>
+          : serviceLegend.map(item => <span key={item.code}>
+            <i className={styles.serviceSwatch} style={{ background: item.color.tint, borderColor: item.color.border, borderLeftColor: item.color.color }} />
+            {item.name}
+          </span>)}
+      </span>
+      <span className={styles.legendGroup}>
+        <b>Shading</b>
+        <span><i className={styles.openSwatch} />Open shift time</span>
+        <span><i className={styles.driveSwatch} />Drive</span>
+        <span><i className={styles.absenceSwatch} />Time off</span>
+        <span><i className={styles.closedSwatch} />Off shift</span>
+      </span>
+    </div>
+  );
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.toolbar}>
-        {view === "day" ? <>
-          <h2 className={styles.title}>Daily schedule</h2>
-          <div className={styles.dateNav}>
-            <button className={styles.navButton} type="button" aria-label="Previous day" title="Previous day"
-              onClick={() => goToDay(addCalendarDays(targetDate.current, -1))}>&lsaquo;</button>
-            <span className={styles.dateLabel} data-schedule-date={date}>
-              {localDate(date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-            </span>
-            <button className={styles.navButton} type="button" aria-label="Next day" title="Next day"
-              onClick={() => goToDay(addCalendarDays(targetDate.current, 1))}>&rsaquo;</button>
-          </div>
-          <button className={styles.button} type="button" onClick={() => goToDay(todayInTz(timezone))}>
-            Today
-          </button>
-          <label>
-            <span className={styles.srOnly}>Go to date</span>
-            <input className={styles.select} type="date" value={date}
-              onChange={(event) => { if (DATE_KEY.test(event.target.value)) goToDay(event.target.value); }} />
-          </label>
-        </> : <>
-          <h2 className={styles.title}>Weekly schedule</h2>
-          <span className={styles.subtle}>Week of {formatWeekLabel(monday)}</span>
-          <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, -7))}>
-            Previous
-          </button>
-          <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, 7))}>
-            Next
-          </button>
-          <button className={styles.button} type="button" onClick={() => goToWeek(mondayOfToday(timezone))}>
-            This week
-          </button>
-        </>}
-      </div>
-
       {check !== null && <MoveCheckBanner check={check} onDismiss={() => { inFlight.current?.abort(); setCheck(null); }} />}
       {updated && <p className={styles.subtle} role="status" data-schedule-updated="true">The schedule was updated.</p>}
       {saved !== null && <div className={`${styles.moveBanner} ${styles.moveFeasible}`} role="status" data-placement-saved="true">
@@ -1030,18 +1001,19 @@ export default function ScheduleView({
           {saved.undoing ? "Undoing..." : "Undo"}</button>}
         <button className={styles.button} type="button" onClick={() => setSaved(null)}>Dismiss</button>
       </div>}
+      {technicians.length > 0 && <DriveNotice drive={drive} technicians={technicians} />}
 
       <div className={styles.scheduleBody}>
       <PlacementPanel jobs={shownJobs} waitingCount={jobs.length} startFolded={compact} services={services} placement={placement} technicians={technicians} timezone={timezone}
-        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace); }}
+        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace(today)); }}
         onPressJob={(job, event) => press({ kind: "job", job }, event)} clickSuppressed={clickSuppressed}
-        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace); router.refresh(); }}
+        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace(today)); router.refresh(); }}
         onChoose={(spot, plannedStart) => {
           choose(spot, plannedStart);
-          // A fit on another day of the week opens that day in the day view.
-          if (view === "day" && spot.serviceDate !== date) goToDay(spot.serviceDate);
+          // A fit on another day of the week opens that day.
+          if (spot.serviceDate !== date) goToDay(spot.serviceDate);
         }}
-        onAcknowledge={acknowledge} onSave={save} onCancel={cancelPlacement}
+        onAcknowledge={acknowledge} onAcknowledgeSameDay={acknowledgeSameDay} onSave={save} onCancel={cancelPlacement}
         onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null}
         placingJob={placement?.subject.kind === "job" ? jobs.find(job => job.id === placement.subject.id) ?? null : null}
         onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); refreshPlacement(); }} />
@@ -1050,89 +1022,9 @@ export default function ScheduleView({
         <div className={styles.empty}>No active technicians are configured.</div>
       ) : (
         <>
-          <details className={styles.key}>
-          <summary>Key</summary>
-          <div className={styles.legend} aria-label="Schedule legend">
-            {(["SCHEDULED", "COMPLETED"] as const).map(status => <span key={status}><StatusIcon status={status} size={14} />{STATUS_LABEL[status]}</span>)}
-            <span>
-              <i className={styles.openSwatch} />Unbooked shift time
-            </span>
-            {serviceLegend.length === 0
-              ? <span><i className={styles.scheduledSwatch} />Scheduled visit</span>
-              : serviceLegend.map(item => <span key={item.name}>
-                <i className={styles.serviceSwatch} style={{ background: item.color.tint, borderColor: item.color.border, borderLeftColor: item.color.color }} />
-                {item.name}
-              </span>)}
-            {view === "day" && <span><i className={styles.driveSwatch} />Drive, the lighter end of each visit</span>}
-            <span>
-              <i className={styles.closedSwatch} />Off shift or no service
-            </span>
-            <span><i className={styles.absenceSwatch} />Approved time off splits the working shift</span>
-          </div>
-          </details>
-          {view === "day" && <DriveNotice drive={drive} technicians={technicians} />}
-          {view === "day" ? (
-            <DayGrid date={date} technicians={visibleTechnicians} byCell={drawnByCell} absences={absences} timelineStart={timelineStart}
-              timelineEnd={timelineEnd} timezone={timezone} onSelect={openAppointment} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} previewMinutes={previewMinutes} />
-          ) : (
-          <div className={styles.grid} aria-label="Weekly technician schedule" data-schedule-view="week">
-            <div className={styles.corner}>Technician</div>
-            {days.map((day) => (
-              <div className={`${styles.dayHeader} ${technicians.every(technician => !scheduleDay(technician, day).member || !scheduleDay(technician, day).available) ? styles.closedDayHeader : ""}`} key={day}>
-                <span className={styles.dayName}>{DAY_FORMAT.format(localDate(day))}</span>
-                <span className={styles.dayDate}>{DATE_FORMAT.format(localDate(day))}</span>
-                {technicians.every(technician => !scheduleDay(technician, day).member || !scheduleDay(technician, day).available) && <span className={styles.dayStatus}>Off</span>}
-              </div>
-            ))}
-            {visibleTechnicians.flatMap((technician) =>
-              [
-                <div
-                  className={styles.techHeader}
-                  data-tech-header={technician.id}
-                  style={{ height: timelineHours.length * TIMELINE_HOUR_HEIGHT_PX, borderLeftColor: technician.color }}
-                  key={`${technician.id}-header`}
-                >
-                  <div className={styles.techIdentity}>
-                    <span className={styles.techName}>{technician.name}</span>
-                    <span className={styles.techShift}>
-                      Hours shown by day
-                    </span>
-                  </div>
-                  {timelineHours.map((hour, index) => (
-                    <span
-                      className={styles.timeLabel}
-                      style={{ top: index * TIMELINE_HOUR_HEIGHT_PX + TIMELINE_HOUR_HEIGHT_PX / 2 }}
-                      key={hour}
-                    >
-                      {formatMinuteOfDay(hour)}
-                    </span>
-                  ))}
-                </div>,
-                ...days.map((day) => {
-                  const entries = drawnByCell.get(`${technician.id}:${day}`) ?? [];
-                  return (
-                    <TimelineCell
-                      key={`${technician.id}:${day}`}
-                      day={day}
-                      technician={technician}
-                      entries={entries}
-                      absences={absences.filter((absence) => absence.technicianId === technician.id && absence.date === day)}
-                      timelineStart={timelineStart}
-                      timelineEnd={timelineEnd}
-                      timezone={timezone}
-                      onSelect={openAppointment}
-                      drag={cardDrag}
-                      dropState={dropState(technician.id, day)}
-                      overlay={overlay(technician.id, day)}
-                      retimed={retimed}
-                    />
-                  );
-                }),
-              ]
-            )}
-          </div>
-          )}
-          <div className={styles.agenda} aria-label={view === "day" ? "Daily schedule agenda" : "Weekly schedule agenda"}>
+          <DayGrid date={date} technicians={visibleTechnicians} byCell={drawnByCell} absences={absences} timelineStart={timelineStart}
+            timelineEnd={timelineEnd} timezone={timezone} onSelect={openAppointment} drag={cardDrag} dropState={dropState} overlay={overlay} drive={drive} visitDrives={shownDrives} retimed={retimed} previewMinutes={previewMinutes} />
+          <div className={styles.agenda} aria-label="Daily schedule agenda">
             {shown.map((day) => {
               const entries = visibleTechnicians.flatMap(
                 (technician) => agendaByCell.get(`${technician.id}:${day}`) ?? []
@@ -1164,6 +1056,7 @@ export default function ScheduleView({
       )}
       </div>
       </div>
+      {technicians.length > 0 && legend}
       {selected && (
         <AppointmentPanel
           appointment={appointments.find(item => item.id === selected.id) ?? selected}
@@ -1226,17 +1119,4 @@ function MoveCheckBanner({ check, onDismiss }: { check: MoveCheck; onDismiss: ()
       <button className={styles.button} type="button" onClick={onDismiss}>Dismiss</button>
     </div>
   );
-}
-
-function mondayOfToday(timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 1);
-  const value = new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
-  value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
-  return value.toISOString().slice(0, 10);
 }
