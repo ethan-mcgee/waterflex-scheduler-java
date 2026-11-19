@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useAbortOnUnmount } from "@/app/portal/useAbortOnUnmount";
+import { todayInTz } from "@/lib/date";
 import styles from "./calendar.module.css";
 import type { MoveCheckResult } from "@/lib/contracts";
 import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveCheck";
@@ -327,9 +328,12 @@ function gapLabel(gap: InsertionGap, key: string, best: Fit | null): string {
   return best === null ? addedDriveText(gap) : relativeToBest(gap.addedBufferedMinutes, best);
 }
 
-/** A selected job opens on the recommended place, so the common case is select, then Save. */
-const recommendedPlace: DropResolver = preview => {
-  const fit = recommendation(preview.answer, preview.original !== null);
+/**
+ * A selected job opens on the recommended place, so the common case is select, then Save. Today's route is already out,
+ * so a place on `today` is recommended only when no later day fits.
+ */
+const recommendedPlace = (today: string): DropResolver => preview => {
+  const fit = recommendation(preview.answer, preview.original !== null, today);
   return fit === null ? null : { spot: fit.spot, plannedStart: fit.firstStart.plannedStart };
 };
 
@@ -694,17 +698,19 @@ export default function ScheduleView({
       .catch((error: unknown) => setSaved(current => current === null || current.undoId !== undoId ? current
         : { ...current, undoing: false, error: error instanceof Error ? error.message : "The save could not be undone. Try again." }));
   };
-  const { placement, start: startPlacement, prefetch, settle, refresh: refreshPlacement, choose, drop, acknowledge, cancel: cancelPlacement, save } =
-    usePlacement(metroId, monday, shown, onSaved);
+  const { placement, start: startPlacement, prefetch, settle, refresh: refreshPlacement, choose, drop, acknowledge, acknowledgeSameDay, cancel: cancelPlacement,
+    save } = usePlacement(metroId, monday, shown, onSaved);
   const opened = useRef(false);
+  // The metro's today: its places rank after every later day's, and saving one there needs the dispatcher's word.
+  const today = todayInTz(timezone);
 
   // A "Place on calendar" link opens the page with that job being placed.
   useEffect(() => {
     if (opened.current || placeJobId === null) return;
     opened.current = true;
     const job = jobs.find(item => item.id === placeJobId);
-    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace);
-  }, [jobs, placeJobId, startPlacement]);
+    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace(today));
+  }, [jobs, placeJobId, startPlacement, today]);
 
   const subjectOf = useCallback((item: DragItem): PlacementSubject => item.kind === "job"
     ? { kind: "job", id: item.job.id, label: `${item.job.customerName}, ${item.job.serviceName}` }
@@ -806,7 +812,7 @@ export default function ScheduleView({
     const landed = landing(answer, over);
     const found = findGap(answer, landed.spot);
     const key = spotKey(landed.spot);
-    const label = found === undefined ? "Cannot be placed here" : gapLabel(found.gap, key, recommendation(answer, original !== null));
+    const label = found === undefined ? "Cannot be placed here" : gapLabel(found.gap, key, recommendation(answer, original !== null, today));
     const decided = landed.plannedStart === null ? null : verdict(answer, original, landed.spot, landed.plannedStart);
     const note = decided?.kind === "CHANGES_PROMISE" ? ", changes the promised window"
       : decided?.kind === "KEEPS_PROMISE" && decided.samePlace ? ", where it is now" : "";
@@ -920,7 +926,7 @@ export default function ScheduleView({
     const shiftStart = technician?.days[date]?.shiftStartMin ?? timelineStart;
     const ends = new Map(appointments.map(item => [item.id, minuteOfDay(item.plannedEnd, timezone)]));
     const chosenKey = placement.chosen === null ? null : spotKey(placement.chosen.spot);
-    const best = recommendation(answer, placement.preview.original !== null);
+    const best = recommendation(answer, placement.preview.original !== null, today);
     const gaps: GapMarker[] = (day?.gaps ?? []).map(gap => {
       const spot = gapSpot(day ?? { technicianId, serviceDate: date, holdsAsGiven: false, qualified: false, gaps: [] }, gap);
       const key = spotKey(spot);
@@ -999,15 +1005,15 @@ export default function ScheduleView({
 
       <div className={styles.scheduleBody}>
       <PlacementPanel jobs={shownJobs} waitingCount={jobs.length} startFolded={compact} services={services} placement={placement} technicians={technicians} timezone={timezone}
-        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace); }}
+        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace(today)); }}
         onPressJob={(job, event) => press({ kind: "job", job }, event)} clickSuppressed={clickSuppressed}
-        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace); router.refresh(); }}
+        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace(today)); router.refresh(); }}
         onChoose={(spot, plannedStart) => {
           choose(spot, plannedStart);
           // A fit on another day of the week opens that day.
           if (spot.serviceDate !== date) goToDay(spot.serviceDate);
         }}
-        onAcknowledge={acknowledge} onSave={save} onCancel={cancelPlacement}
+        onAcknowledge={acknowledge} onAcknowledgeSameDay={acknowledgeSameDay} onSave={save} onCancel={cancelPlacement}
         onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null}
         placingJob={placement?.subject.kind === "job" ? jobs.find(job => job.id === placement.subject.id) ?? null : null}
         onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); refreshPlacement(); }} />

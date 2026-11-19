@@ -377,8 +377,12 @@ const original = z.object({ appointmentId: text, technicianId: text, serviceDate
 /** The scheduler's answer for the week, and for a move, where the appointment is now. */
 export const placementPreview = z.object({ answer: routeInsertions, original: original.nullable(),
   job: z.object({ id: text, durationMinutes: z.int().min(1).max(720) }).strict() }).strict();
-/** Saving a start at a spot. `acknowledged` is the dispatcher's acknowledgement of a changed promise. */
-export const placementSaveRequest = z.object({ metroId: text, ...placementSubject, spot, plannedStart: instant, acknowledged: z.boolean() }).strict()
+/**
+ * Saving a start at a spot. `acknowledged` is the dispatcher's acknowledgement of a changed promise; `sameDayAcknowledged`
+ * that they will contact the technician, which a save onto today needs.
+ */
+export const placementSaveRequest = z.object({ metroId: text, ...placementSubject, spot, plannedStart: instant, acknowledged: z.boolean(),
+  sameDayAcknowledged: z.boolean().optional() }).strict()
   .refine(oneSubject, "Name a job or an appointment, not both");
 const placementKind = z.enum(["NEW", "KEEPS_PROMISE", "CHANGES_PROMISE"]);
 /** `undoId` names the record of what the save replaced, for undoing it. */

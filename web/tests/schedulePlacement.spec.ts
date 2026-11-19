@@ -3,6 +3,7 @@ import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { placementPreview, placementPreviewRequest, placementSaveRequest, type PlacementPreview } from "../lib/contracts";
+import { addCalendarDays, todayInTz } from "../lib/date";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -192,8 +193,45 @@ test.describe("placing and moving on the schedule", () => {
 
     await panel(page).getByRole("button", { name: "Save" }).click();
     await expect(page.locator("[data-placement-saved]")).toContainText("is on the calendar");
-    expect(placementSaveRequest.parse(sent.saves[0])).toEqual({ metroId: fixture.metroId, jobId: fixture.job, acknowledged: false,
+    expect(placementSaveRequest.parse(sent.saves[0])).toEqual({ metroId: fixture.metroId, jobId: fixture.job, acknowledged: false, sameDayAcknowledged: false,
       spot: { technicianId: fixture.first, serviceDate: DATE, afterAppointmentId: fixture.north, beforeAppointmentId: fixture.south }, plannedStart: utc(17) });
+  });
+
+  test("a place on today ranks after later days, warns that the route is out, and Save waits for the dispatcher's word", async ({ page }) => {
+    const today = todayInTz("America/Chicago"), tomorrow = addCalendarDays(today, 1);
+    const on = (date: string, hour: number) => `${date}T${String(hour).padStart(2, "0")}:00:00.000Z`;
+    const startOn = (date: string, hour: number) => ({ plannedStart: on(date, hour), window: { start: on(date, hour), end: on(date, hour + 2) }, timed: totals(30, 9000) });
+    const free = (date: string, added: number, hour: number) => ({ technicianId: fixture.second, serviceDate: date, holdsAsGiven: true, qualified: true,
+      asGiven: totals(0, 0), gaps: [gap(undefined, undefined, added, [startOn(date, hour)], false)] });
+    // Today's place is the cheaper one; it still comes after tomorrow's, which is what a click opens on.
+    const preview = placementPreview.parse({ original: null, job: { id: fixture.job, durationMinutes: 60 }, answer: { routingIdentity: "omaha",
+      skippedTechnicianDays: [], technicianDays: [free(today, 5, 21), free(tomorrow, 20, 15)] } });
+    const sent = await mockPlacement(page, preview, { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-today" } });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${today}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+
+    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toHaveAttribute("data-option-best", "true");
+    await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+    await expect(options.nth(0)).toContainText("+20 min");
+    await expect(panel(page).locator("[data-same-day-warning]")).toHaveCount(0);
+
+    await options.nth(1).click();
+    const warning = panel(page).locator("[data-same-day-warning]");
+    await expect(warning).toContainText("This is today. The route is already out: contact the technician before saving.");
+    const save = panel(page).getByRole("button", { name: "Save" });
+    await expect(save).toBeDisabled();
+    await warning.getByRole("checkbox").check();
+    await expect(save).toBeEnabled();
+    // Choosing another place takes the word back: it was given for today's place only.
+    await options.nth(0).click();
+    await options.nth(1).click();
+    await expect(warning.getByRole("checkbox")).not.toBeChecked();
+    await warning.getByRole("checkbox").check();
+    await save.click();
+    await expect(page.locator("[data-placement-saved]")).toContainText("is on the calendar");
+    expect(placementSaveRequest.parse(sent.saves[0])).toMatchObject({ jobId: fixture.job, sameDayAcknowledged: true, spot: { serviceDate: today } });
   });
 
   test("a Place on calendar link opens on its answer: the request it starts as the page mounts is not cancelled", async ({ page }) => {

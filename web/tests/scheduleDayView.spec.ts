@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
-import { addCalendarDays } from "../lib/date";
+import { addCalendarDays, todayInTz } from "../lib/date";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -83,9 +83,10 @@ test.describe("the daily schedule", () => {
     expect(west.x).toBeGreaterThan(east.x + east.width - 1);
     await expect(card(page, fixture.later)).toHaveCount(0);
 
-    // With no date at all, the page still opens on a day, not a week.
+    // With no date at all, the page opens on today, the day a CSR on the phone checks first.
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}`);
     await expect(dayGrid(page)).toBeVisible();
+    await expect(page.locator(`[data-schedule-date="${todayInTz("America/Chicago")}"]`)).toBeVisible();
   });
 
   test("pages forward and back a day at a time, across the end of the week", async ({ page }) => {

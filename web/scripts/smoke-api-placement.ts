@@ -139,7 +139,7 @@ async function main() {
 
     // Saving the job on b creates its appointment with the promised window, and closes its follow-up.
     const placed = await startAt({ jobId: job }, "b", () => true);
-    const saved = await savePlacement(clientId, METRO, { jobId: job }, placed.spot, placed.start.plannedStart, false, []);
+    const saved = await savePlacement(clientId, METRO, { jobId: job }, placed.spot, placed.start.plannedStart, false, false, []);
     assert.deepEqual({ ...saved, undoId: undefined }, { saved: true, appointmentId: job, kind: "NEW", undoId: undefined });
     assert.ok(saved.undoId.length > 0, "A save names its undo record");
     const created = await prisma.appointment.findUniqueOrThrow({ where: { id: job }, include: { job: true } });
@@ -148,13 +148,13 @@ async function main() {
     assert.equal(created.plannedStart.toISOString(), new Date(placed.start.plannedStart).toISOString());
     assert.equal(created.job.status, "SCHEDULED");
     assert.equal(created.job.manualFollowUpStatus, "RESOLVED");
-    await assert.rejects(savePlacement(clientId, METRO, { jobId: job }, placed.spot, placed.start.plannedStart, false, []),
+    await assert.rejects(savePlacement(clientId, METRO, { jobId: job }, placed.spot, placed.start.plannedStart, false, false, []),
       refusedWith(409, /not waiting/), "A placed job cannot be placed again");
 
     // Moving x to b inside its window keeps the promise: both days are rewritten, nothing is recorded.
     const kept = await startAt({ appointmentId: x }, "b", start => start.keepsWindow === true);
     assert.equal(kept.preview.original?.technicianId, id("a"));
-    const keptSave = await savePlacement(clientId, METRO, { appointmentId: x }, kept.spot, kept.start.plannedStart, false, []);
+    const keptSave = await savePlacement(clientId, METRO, { appointmentId: x }, kept.spot, kept.start.plannedStart, false, false, []);
     assert.equal(keptSave.kind, "KEEPS_PROMISE");
     const movedKept = await prisma.appointment.findUniqueOrThrow({ where: { id: x } });
     assert.equal(movedKept.technicianId, id("b"));
@@ -163,10 +163,10 @@ async function main() {
 
     // Moving it to another window needs the acknowledgement, then records the change with the move.
     const changed = await startAt({ appointmentId: x }, "a", start => start.keepsWindow === false);
-    await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, changed.spot, changed.start.plannedStart, false, []),
+    await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, changed.spot, changed.start.plannedStart, false, false, []),
       refusedWith(400, /Acknowledge the policy violation/));
     assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: x } })).technicianId, id("b"), "A refused save writes nothing");
-    const changedSave = await savePlacement(clientId, METRO, { appointmentId: x }, changed.spot, changed.start.plannedStart, true, []);
+    const changedSave = await savePlacement(clientId, METRO, { appointmentId: x }, changed.spot, changed.start.plannedStart, true, false, []);
     assert.equal(changedSave.kind, "CHANGES_PROMISE");
     const movedChanged = await prisma.appointment.findUniqueOrThrow({ where: { id: x } });
     assert.equal(movedChanged.technicianId, id("a"));
@@ -192,7 +192,7 @@ async function main() {
     // A start the fresh answer does not offer is refused, and another client's appointment is not found.
     const nowhere: Spot = { technicianId: id("a"), serviceDate: DATE };
     const odd = localMinute(DATE, 487, false, ZONE).toISOString();
-    await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, nowhere, odd, true, []), refusedWith(409, /no longer fits/));
+    await assert.rejects(savePlacement(clientId, METRO, { appointmentId: x }, nowhere, odd, true, false, []), refusedWith(409, /no longer fits/));
     assert.equal(findGap(preview.answer, nowhere), undefined);
     await assert.rejects(previewPlacement(otherClientId, METRO, { appointmentId: x }, [DATE], [DATE], true, []), refusedWith(404, /Appointment not found/));
     console.log("Placement smoke passed: preview, save, kept and changed promises, undo, refusals");

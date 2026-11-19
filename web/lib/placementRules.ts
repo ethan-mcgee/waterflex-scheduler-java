@@ -51,9 +51,10 @@ export interface Fit { spot: Spot; key: string; gap: InsertionGap; addedBuffered
 
 /**
  * Every gap with at least one start, cheapest added drive first. Ties go to the earlier date, then the earlier first
- * start, then the technician, so the order never depends on the answer's order.
+ * start, then the technician, so the order never depends on the answer's order. Gaps on `sameDay` (today, whose route
+ * is already out) come after every other day's, so today is recommended only when nothing later fits.
  */
-export function rankedFits(answer: RouteInsertions): Fit[] {
+export function rankedFits(answer: RouteInsertions, sameDay?: string): Fit[] {
   const fits: Fit[] = [];
   for (const day of answer.technicianDays) {
     for (const gap of day.gaps) {
@@ -64,17 +65,19 @@ export function rankedFits(answer: RouteInsertions): Fit[] {
       fits.push({ spot, key: spotKey(spot), gap, addedBufferedMinutes: gap.addedBufferedMinutes, firstStart });
     }
   }
-  return fits.sort((a, b) => a.addedBufferedMinutes - b.addedBufferedMinutes || a.spot.serviceDate.localeCompare(b.spot.serviceDate)
+  const today = (fit: Fit) => Number(fit.spot.serviceDate === sameDay);
+  return fits.sort((a, b) => today(a) - today(b) || a.addedBufferedMinutes - b.addedBufferedMinutes || a.spot.serviceDate.localeCompare(b.spot.serviceDate)
     || Date.parse(a.firstStart.plannedStart) - Date.parse(b.firstStart.plannedStart) || a.spot.technicianId.localeCompare(b.spot.technicianId));
 }
 
 /**
  * The place to recommend: the best fit, starting at its first start. A move recommends only places that keep the
  * customer's promised day and window, from the first start that keeps it, because a changed promise breaks the
- * dealership's policy; with no such place it recommends nothing. Null when nothing fits.
+ * dealership's policy; with no such place it recommends nothing. Null when nothing fits. Today (`sameDay`) is recommended
+ * only when no later day fits.
  */
-export function recommendation(answer: RouteInsertions, moving: boolean): Fit | null {
-  for (const fit of rankedFits(answer)) {
+export function recommendation(answer: RouteInsertions, moving: boolean, sameDay?: string): Fit | null {
+  for (const fit of rankedFits(answer, sameDay)) {
     if (!moving) return fit;
     const keeping = fit.gap.starts.find(start => start.keepsWindow === true);
     if (keeping !== undefined) return { ...fit, firstStart: keeping };
@@ -93,9 +96,10 @@ export interface PlaceOption {
  * The best `count` options to offer, least added drive first, and the first is always the recommendation. A new job
  * gets distinct arrival windows, the choice a customer makes. A move gets distinct places that keep the promised window,
  * since its window is fixed; only when no place keeps it are window-changing places offered. Ties go to the earlier
- * date, then the earlier start, then the technician, so the order never depends on the answer's order.
+ * date, then the earlier start, then the technician, so the order never depends on the answer's order. Options on
+ * `sameDay` (today) come after every other day's.
  */
-export function bestOptions(answer: RouteInsertions, original: Original | null, count = 4): PlaceOption[] {
+export function bestOptions(answer: RouteInsertions, original: Original | null, count = 4, sameDay?: string): PlaceOption[] {
   const moving = original !== null;
   const candidates: PlaceOption[] = [];
   for (const day of answer.technicianDays) {
@@ -109,9 +113,10 @@ export function bestOptions(answer: RouteInsertions, original: Original | null, 
   }
   const keeping = candidates.filter(option => option.start.keepsWindow === true);
   const pool = moving && keeping.length > 0 ? keeping : candidates;
-  const best = recommendation(answer, moving);
+  const best = recommendation(answer, moving, sameDay);
   const isBest = (option: PlaceOption) => best !== null && option.key === best.key && option.start.plannedStart === best.firstStart.plannedStart;
-  pool.sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || a.addedBufferedMinutes - b.addedBufferedMinutes
+  const today = (option: PlaceOption) => Number(option.spot.serviceDate === sameDay);
+  pool.sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || today(a) - today(b) || a.addedBufferedMinutes - b.addedBufferedMinutes
     || a.spot.serviceDate.localeCompare(b.spot.serviceDate) || Date.parse(a.start.plannedStart) - Date.parse(b.start.plannedStart)
     || a.spot.technicianId.localeCompare(b.spot.technicianId));
   const seen = new Set<string>(), options: PlaceOption[] = [];

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { CalendarDays, Columns2, Map as MapIcon, MapPinOff } from "lucide-react";
 import { date as dateContract } from "@/lib/contracts";
 import { activeClient } from "@/lib/activeClient";
-import { tomorrowInTz } from "@/lib/date";
+import { todayInTz } from "@/lib/date";
 import { clientMetros, loadWorkOrdersDay } from "@/lib/workOrdersDay";
 import { EmptyState, PageHeader, SegmentedToggle, type ToggleItem } from "@/app/portal/ui";
 import { loadCalendar } from "./loadCalendar";
@@ -46,8 +46,8 @@ export default async function WorkOrdersSchedulePage({ searchParams: query }: {
   }
 
   const view = viewOf(searchParams.view);
-  // The calendar opens on the next day by default: the day dispatchers plan, since today's routes are already out.
-  const date = validDate(searchParams.date) ? searchParams.date : validDate(searchParams.week) ? searchParams.week : tomorrowInTz(metro.timezone);
+  // The calendar opens on today, the day a CSR on the phone checks first; placing on it warns that the route is out.
+  const date = validDate(searchParams.date) ? searchParams.date : validDate(searchParams.week) ? searchParams.week : todayInTz(metro.timezone);
 
   const [calendar, day] = await Promise.all([
     view === "map" ? null : loadCalendar(clientId, metro, date),

@@ -17,6 +17,8 @@ export type PlacementState = {
   monday: string;
   chosen: Chosen | null;
   acknowledged: boolean;
+  /** The dispatcher's word that they will contact the technician, which a place on today needs before Save. */
+  sameDayAcknowledged: boolean;
 } & (
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -119,7 +121,7 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
   const start = useCallback((subject: PlacementSubject, then?: DropResolver) => {
     if (placing(subject)) return;
     pendingDrop.current = then ?? null;
-    setStored({ subject, monday, chosen: null, acknowledged: false, status: "loading" });
+    setStored({ subject, monday, chosen: null, acknowledged: false, sameDayAcknowledged: false, status: "loading" });
     request(subject, monday, shownDates);
   }, [monday, placing, request, shownDates]);
 
@@ -188,11 +190,11 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
   }, [fillSubject, identity, missingKey, monday, request, send, shownDates]);
 
   const placement = useMemo((): PlacementState | null => stored === null ? null
-    : stored.monday !== monday ? { subject: stored.subject, monday, chosen: stored.chosen, acknowledged: false, status: "loading" } : stored,
+    : stored.monday !== monday ? { subject: stored.subject, monday, chosen: stored.chosen, acknowledged: false, sameDayAcknowledged: false, status: "loading" } : stored,
   [monday, stored]);
 
   const choose = useCallback((spot: Spot, plannedStart: string | null) => {
-    setStored(current => current === null ? current : { ...current, chosen: { spot, plannedStart }, acknowledged: false,
+    setStored(current => current === null ? current : { ...current, chosen: { spot, plannedStart }, acknowledged: false, sameDayAcknowledged: false,
       ...(current.status === "ready" ? { saveError: null, notice: null } : {}) });
   }, []);
 
@@ -218,14 +220,14 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
           const found = chosen === null ? undefined : findGap(preview.answer, chosen.spot);
           const holds = chosen !== null && found !== undefined && (chosen.plannedStart === null || findStart(found.gap, chosen.plannedStart) !== undefined);
           return { ...current, preview, timedDates: [...shownDates], timingError: null, chosen: holds ? chosen : null,
-            acknowledged: holds && current.acknowledged, saveError: null,
+            acknowledged: holds && current.acknowledged, sameDayAcknowledged: holds && current.sameDayAcknowledged, saveError: null,
             notice: chosen !== null && !holds ? "The schedule changed and that place is gone. Pick again." : "The schedule changed. These places are up to date." };
         });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setStored(current => current === null || current.subject.id !== subject.id ? current
-          : { subject: current.subject, monday: current.monday, chosen: null, acknowledged: false, status: "error",
+          : { subject: current.subject, monday: current.monday, chosen: null, acknowledged: false, sameDayAcknowledged: false, status: "error",
             message: error instanceof Error ? error.message : "The places could not be found. Try again." });
       });
   }, [monday, send, shownDates, stored]);
@@ -244,6 +246,10 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
     setStored(current => current === null ? current : { ...current, acknowledged });
   }, []);
 
+  const acknowledgeSameDay = useCallback((sameDayAcknowledged: boolean) => {
+    setStored(current => current === null ? current : { ...current, sameDayAcknowledged });
+  }, []);
+
   const abortAll = useCallback(() => {
     inFlight.current?.abort();
     filling.current?.controller.abort();
@@ -255,9 +261,10 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
 
   const save = useCallback(() => {
     if (placement === null || placement.status !== "ready" || placement.chosen === null || placement.chosen.plannedStart === null) return;
-    const { subject, chosen, acknowledged } = placement;
+    const { subject, chosen, acknowledged, sameDayAcknowledged } = placement;
     setStored({ ...placement, saving: true, saveError: null });
-    postJson("/api/schedule/placement/save", { metroId, ...subjectBody(subject), spot: chosen.spot, plannedStart: chosen.plannedStart, acknowledged },
+    postJson("/api/schedule/placement/save", { metroId, ...subjectBody(subject), spot: chosen.spot, plannedStart: chosen.plannedStart, acknowledged,
+      sameDayAcknowledged },
       placementSaved)
       .then(saved => { setStored(null); savedHandler.current(saved, subject); })
       .catch((error: unknown) => setStored(current => current === null || current.status !== "ready" ? current
@@ -266,5 +273,5 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
 
   useAbortOnUnmount(abortAll);
 
-  return { placement, start, prefetch, settle, refresh, choose, drop, acknowledge, cancel, save };
+  return { placement, start, prefetch, settle, refresh, choose, drop, acknowledge, acknowledgeSameDay, cancel, save };
 }

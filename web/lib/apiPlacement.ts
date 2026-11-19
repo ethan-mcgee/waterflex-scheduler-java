@@ -7,8 +7,9 @@ import { insertIntoRoutes } from "./schedulerApi";
 import type { RouteInsertions } from "./insertionContract";
 import type { PlacementPreview, PlacementSaved, PlacementUndone } from "./contracts";
 import type { Spot } from "./placementRules";
-import { insertionCalls, joined, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload, type PlacementPlan,
-  type PriorVisit, type Subject } from "./apiPlacementCore";
+import { todayInTz } from "./date";
+import { checkWhen, insertionCalls, joined, placeableDates, placementPlan, placementUndoPayload, placementWrite, PlacementRefused, undoPayload,
+  withoutPast, type PlacementPlan, type PriorVisit, type Subject } from "./apiPlacementCore";
 
 /**
  * Placing a job or moving an appointment on the schedule: one preview call for the week, answered by the scheduler's
@@ -75,14 +76,26 @@ async function insertions(clientId: string, plan: PlacementPlan, sent: readonly 
 export async function previewPlacement(clientId: string, metroId: string, input: SubjectInput, week: readonly string[],
   timedDates: readonly string[], withRest: boolean, phases: Phases): Promise<PlacementPreview> {
   const { subject, serviceDate } = await timed(phases, "subject", () => subjectFor(clientId, input));
-  const sent = withRest ? week : week.filter(day => timedDates.includes(day));
+  // Only today and later are asked: a day that is over is never offered.
+  const today = todayInTz(await metroTimezone(clientId, metroId));
+  const open = placeableDates(week, today);
+  const sent = withRest ? open : open.filter(day => timedDates.includes(day));
+  if (sent.length === 0) throw new PlacementRefused(422, withRest ? "Every day of this week is over. Go to today or a later week to place it."
+    : "That day is over, so nothing can be placed on it.");
   // A moved appointment's day in this week is loaded even when it is not sent, because the plan takes the appointment
   // out of that day. One booked in another week is refused, as before.
   const own = serviceDate !== null && week.includes(serviceDate) ? [serviceDate] : [];
   const facts = await timed(phases, "facts", () => loadSnapshotFacts(clientId, metroId, [...new Set([...sent, ...own])]));
   const plan = placementPlan(facts, subject);
   const answer = await timed(phases, "scheduler", () => insertions(clientId, plan, sent, timedDates));
-  return { answer, original: plan.original, job: { id: plan.job.id, durationMinutes: plan.job.durationMinutes } };
+  return { answer: withoutPast(answer, today, new Date()), original: plan.original, job: { id: plan.job.id, durationMinutes: plan.job.durationMinutes } };
+}
+
+/** The metro's time zone, for its own today; a metro of another client reads as not found. */
+async function metroTimezone(clientId: string, metroId: string): Promise<string> {
+  const metro = await prisma.metro.findFirst({ where: { id: metroId, depots: { some: { dealership: { clientId } } } }, select: { timezone: true } });
+  if (metro === null) throw new PlacementRefused(404, "Metro not found");
+  return metro.timezone;
 }
 
 /**
@@ -93,10 +106,13 @@ export async function previewPlacement(clientId: string, metroId: string, input:
  * so it can be undone while the days stay as the save left them.
  */
 export async function savePlacement(clientId: string, metroId: string, input: SubjectInput, spot: Spot, plannedStart: string,
-  acknowledged: boolean, phases: Phases): Promise<PlacementSaved> {
+  acknowledged: boolean, sameDayAcknowledged: boolean, phases: Phases): Promise<PlacementSaved> {
   const { subject, serviceDate } = await timed(phases, "subject", () => subjectFor(clientId, input));
   const dates = [...new Set([spot.serviceDate, ...(serviceDate === null ? [] : [serviceDate])])];
   const facts = await timed(phases, "facts", () => loadSnapshotFacts(clientId, metroId, dates));
+  // Checked before the scheduler is asked: nothing is saved on a day that is over, or today without the acknowledgement.
+  const now = new Date();
+  checkWhen(spot, plannedStart, todayInTz(facts.metro.timezone, now), now, sameDayAcknowledged);
   const full = placementPlan(facts, subject);
   const technicians = [spot.technicianId, ...(full.original === null ? [] : [full.original.technicianId])];
   const plan = { ...full, facts: onlyTechnicians(full.facts, technicians) };
