@@ -78,9 +78,9 @@ test.describe("the work orders section", () => {
   });
 
   test("the placeholder sections show no rows and keep their filters disabled", async ({ page }) => {
-    await page.goto("/work-orders/recurring");
-    await expect(page.getByRole("main").getByRole("status")).toContainText("Recurring is not built yet");
-    for (const label of ["Work order type", "Technician", "Branch", "City / ZIP", "Outreach status"]) await expect(page.getByLabel(label, { exact: true })).toBeDisabled();
+    await page.goto("/work-orders/archive");
+    await expect(page.getByRole("main").getByRole("status")).toContainText("Archive is not built yet");
+    for (const label of ["Technician", "Work order type", "Date from", "Date to"]) await expect(page.getByLabel(label, { exact: true })).toBeDisabled();
     await expect(page.locator("table")).toHaveCount(0);
   });
 
