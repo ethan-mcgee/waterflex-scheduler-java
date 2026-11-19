@@ -12,6 +12,7 @@ import { moveCheckStart, recordMoveCheck, requestMoveCheck } from "@/lib/moveChe
 import { useAppointmentDrag, type DropCell } from "./useAppointmentDrag";
 import { postJson, usePlacement, type DropResolver, type PlacementSubject } from "./usePlacement";
 import { useScheduleVersion } from "./useScheduleVersion";
+import { useJobOffers, type JobOffer } from "./useJobOffers";
 import PlacementPanel, { addedDriveText, currentVerdict } from "./PlacementPanel";
 import { findGap, gapSpot, previewTimes, recommendation, relativeToBest, spotAt, spotKey, verdict, type Fit, type Spot } from "@/lib/placementRules";
 import type { InsertionGap } from "@/lib/insertionContract";
@@ -673,8 +674,13 @@ export default function ScheduleView({
   const [saved, setSaved] = useState<{ message: string; undoId: string | null; undone: string; undoing: boolean; error: string | null } | null>(null);
   /** When this page last changed the schedule itself, so its own change is not announced as someone else's. */
   const ownChange = useRef(Number.NEGATIVE_INFINITY);
+  /** The booking service's recommended times for the waiting job being placed; booking one opens its day. */
+  const { offers: jobOffers, now: offersNow, open: openOffers, search: searchOffers, book: bookOffer, release: releaseOffers } =
+    useJobOffers();
   const onSaved = (result: PlacementSaved, subject: PlacementSubject) => {
     const { undoId } = result;
+    // Placed by hand: the times the booking service held for it are given back.
+    if (subject.kind === "job") releaseOffers();
     setSaved({ undoId, undoing: false, error: null,
       message: result.kind === "NEW" ? `Saved: ${subject.label} is on the calendar.` : result.kind === "CHANGES_PROMISE"
         ? `Saved: ${subject.label} moved, and the changed promise was recorded. Let the customer know.` : `Saved: ${subject.label} moved.`,
@@ -704,13 +710,35 @@ export default function ScheduleView({
   // The metro's today: its places rank after every later day's, and saving one there needs the dispatcher's word.
   const today = todayInTz(timezone);
 
+  /** Starts placing a waiting job: its places by hand, and the booking service's recommended times beside them. */
+  const placeJob = (subject: Extract<PlacementSubject, { kind: "job" }>) => {
+    setSaved(null);
+    startPlacement(subject, recommendedPlace(today));
+    openOffers(subject.id);
+  };
+
+  /** A recommended time was booked: the placement closes, and the calendar opens the booked day with the visit on it. */
+  const afterBooking = ({ jobId, offer }: { jobId: string; offer: JobOffer }) => {
+    const job = jobs.find(item => item.id === jobId);
+    const label = job === undefined ? "The work order" : `${job.customerName}, ${job.serviceName}`;
+    cancelPlacement();
+    const day = localDate(offer.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    setSaved({ message: `Booked: ${label}, ${day}, ${formatTime(offer.windowStart, timezone)} to ${formatTime(offer.windowEnd, timezone)}.`,
+      undoId: null, undone: "", undoing: false, error: null });
+    if (offer.date !== date) goToDay(offer.date);
+    else router.refresh();
+  };
+
   // A "Place on calendar" link opens the page with that job being placed.
   useEffect(() => {
     if (opened.current || placeJobId === null) return;
     opened.current = true;
     const job = jobs.find(item => item.id === placeJobId);
-    if (job?.located) startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace(today));
-  }, [jobs, placeJobId, startPlacement, today]);
+    if (job?.located) {
+      startPlacement({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` }, recommendedPlace(today));
+      openOffers(job.id);
+    }
+  }, [jobs, openOffers, placeJobId, startPlacement, today]);
 
   const subjectOf = useCallback((item: DragItem): PlacementSubject => item.kind === "job"
     ? { kind: "job", id: item.job.id, label: `${item.job.customerName}, ${item.job.serviceName}` }
@@ -746,7 +774,12 @@ export default function ScheduleView({
 
   const { drag, press, clickSuppressed } = useAppointmentDrag<DragItem>({
     canDrop,
-    onStart: item => { setSaved(null); startPlacement(subjectOf(item)); },
+    onStart: item => {
+      setSaved(null);
+      startPlacement(subjectOf(item));
+      if (item.kind === "job") openOffers(item.job.id);
+      else releaseOffers();
+    },
     // The preview is asked as the card is pressed; the click or drag the press becomes takes it over.
     onPress: item => prefetch(subjectOf(item)),
     onSettle: settle,
@@ -954,6 +987,7 @@ export default function ScheduleView({
    */
   const openAppointment = (appointment: ScheduleAppointment) => {
     setSaved(null);
+    releaseOffers();
     startPlacement({ kind: "appointment", id: appointment.id, label: `${appointment.customerName}, ${appointment.serviceName}` });
   };
 
@@ -1005,18 +1039,19 @@ export default function ScheduleView({
 
       <div className={styles.scheduleBody}>
       <PlacementPanel jobs={shownJobs} waitingCount={jobs.length} startFolded={compact} services={services} placement={placement} technicians={technicians} timezone={timezone}
-        onPlaceJob={subject => { setSaved(null); startPlacement(subject, recommendedPlace(today)); }}
+        onPlaceJob={subject => { if (subject.kind === "job") placeJob(subject); }}
         onPressJob={(job, event) => press({ kind: "job", job }, event)} clickSuppressed={clickSuppressed}
-        onCreated={(jobId, label) => { setSaved(null); startPlacement({ kind: "job", id: jobId, label }, recommendedPlace(today)); router.refresh(); }}
+        onCreated={(jobId, label) => { placeJob({ kind: "job", id: jobId, label }); router.refresh(); }}
         onChoose={(spot, plannedStart) => {
           choose(spot, plannedStart);
           // A fit on another day of the week opens that day.
           if (spot.serviceDate !== date) goToDay(spot.serviceDate);
         }}
-        onAcknowledge={acknowledge} onAcknowledgeSameDay={acknowledgeSameDay} onSave={save} onCancel={cancelPlacement}
+        onAcknowledge={acknowledge} onAcknowledgeSameDay={acknowledgeSameDay} onSave={save} onCancel={() => { releaseOffers(); cancelPlacement(); }}
         onDetails={subjectItem?.kind === "appointment" ? () => { if (subjectItem.kind === "appointment") setSelected(subjectItem.appointment); } : null}
         placingJob={placement?.subject.kind === "job" ? jobs.find(job => job.id === placement.subject.id) ?? null : null}
-        onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); refreshPlacement(); }} />
+        onWorkOrderSaved={() => { ownChange.current = performance.now(); router.refresh(); refreshPlacement(); }}
+        offers={jobOffers} offersNow={offersNow} onBookOffer={offerId => { void bookOffer(offerId).then(booked => { if (booked === null) return; ownChange.current = performance.now(); afterBooking(booked); }); }} onSearchOffers={searchOffers} />
       <div className={styles.scheduleMain}>
       {technicians.length === 0 ? (
         <div className={styles.empty}>No active technicians are configured.</div>

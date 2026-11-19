@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { errorMessage } from "@/lib/contracts";
 import { todayInTz } from "@/lib/date";
@@ -10,6 +10,7 @@ import { workOrderLabel } from "@/lib/workOrdersDayCore";
 import styles from "./calendar.module.css";
 import WorkOrderPanel from "./WorkOrderPanel";
 import type { PlacementState, PlacementSubject } from "./usePlacement";
+import type { JobOffers } from "./useJobOffers";
 import type { ScheduleJob, ScheduleService, ScheduleTechnician } from "./types";
 
 const METERS_PER_MILE = 1609.344;
@@ -187,9 +188,57 @@ function OptionRow({ option, moving, best, pick, on, name, timezone, onChoose }:
   );
 }
 
-/** The place being chosen: the best options to offer, the chosen one's details, and Save. */
-function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails }: {
+/** "4:59", the time a held offer has left. */
+function heldFor(expiresAt: string, now: number): string {
+  const seconds = Math.max(0, Math.floor((Date.parse(expiresAt) - now) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/**
+ * The booking service's recommended times for a waiting job: the same search the booking page runs, under the dealer's
+ * solver settings and from tomorrow on, each time held for a few minutes. Booking one writes the appointment; the
+ * by-hand places below stay open the whole time.
+ */
+function RecommendedTimes({ offers, now, timezone, onBook, onSearch }: {
+  offers: JobOffers; now: number; timezone: string; onBook: (offerId: string) => void; onSearch: () => void;
+}) {
+  const again = (busy: boolean) => <button className={styles.textButton} type="button" disabled={busy} onClick={onSearch}>Search again</button>;
+  const body = (() => {
+    if (offers.status === "searching") return <>
+      <p role="status" className={styles.subtle}>Searching the booking service...</p>
+      <ul className={styles.offerList} aria-hidden="true">{[0, 1].map(index => <li key={index} className={styles.optionSkeleton} />)}</ul>
+    </>;
+    if (offers.status === "failed") return <><p role="status" className={styles.subtle}>{offers.message}</p>{again(false)}</>;
+    const busy = offers.booking !== null;
+    return <>
+      {offers.offers.length === 0
+        ? <p role="status" className={styles.subtle}>{offers.message ?? "The booking service found no time. Place it yourself below, or search again."}</p>
+        : <ul className={styles.offerList} aria-label="Recommended times">
+          {offers.offers.map(item => {
+            const left = Date.parse(item.expiresAt) - now;
+            return <li key={item.offerId} className={styles.offerRow} data-offer={item.offerId}>
+              <strong>{windowText({ start: item.windowStart, end: item.windowEnd }, timezone)}</strong>
+              <small>{formatDate(item.date)}, {left > 0 ? `held for ${heldFor(item.expiresAt, now)}` : "hold expired"}</small>
+              <button className={styles.button} type="button" disabled={busy || left <= 0} onClick={() => onBook(item.offerId)}>
+                {offers.booking === item.offerId ? "Booking..." : left <= 0 ? "Expired" : "Book"}
+              </button>
+            </li>;
+          })}
+        </ul>}
+      {offers.error !== null && <p className={styles.deleteError} role="alert">{offers.error}</p>}
+      {again(busy)}
+    </>;
+  })();
+  return <section className={styles.recommended} data-recommended-times={offers.status} aria-busy={offers.status === "searching"}>
+    <h3 className={styles.optionsTitle}>Recommended times</h3>
+    {body}
+  </section>;
+}
+
+/** The place being chosen: the best options to offer, the chosen one's details, and Save. */function PlacementCard({ placement, technicians, timezone, recommended, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails }: {
   placement: PlacementState; technicians: ScheduleTechnician[]; timezone: string;
+  /** A waiting job's recommended times from the booking service, shown above the places to choose by hand. */
+  recommended: ReactNode;
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onAcknowledgeSameDay: (value: boolean) => void;
   onSave: () => void; onCancel: () => void;
   onDetails: (() => void) | null;
@@ -207,14 +256,14 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
       </div>
     </div>
   );
-  const title = <h3 className={styles.optionsTitle}>{moving ? "Best places" : "Best times to offer"}</h3>;
+  const title = <h3 className={styles.optionsTitle}>{moving ? "Best places" : "Or place it yourself"}</h3>;
   if (placement.status === "loading") return (
-    <section className={styles.placementCard} aria-busy="true">{header}{title}
+    <section className={styles.placementCard} aria-busy="true">{header}{recommended}{title}
       <p role="status" className={styles.subtle}>Finding the best times this week...</p>
       <ul className={styles.optionList} aria-hidden="true">{[0, 1, 2, 3].map(index => <li key={index} className={styles.optionSkeleton} />)}</ul>
     </section>
   );
-  if (placement.status === "error") return <section className={styles.placementCard}>{header}<p role="alert">{placement.message}</p></section>;
+  if (placement.status === "error") return <section className={styles.placementCard}>{header}{recommended}{title}<p role="alert">{placement.message}</p></section>;
   const { preview, chosen } = placement;
   const decided = currentVerdict(placement);
   // Today's route is already out: its places come after every later day's, and saving one needs the dispatcher's word.
@@ -244,10 +293,11 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
       {placement.notice !== null && <p className={styles.subtle} role="status" data-placement-notice="true">{placement.notice}</p>}
       {placement.timingError !== null && <p className={styles.subtle} role="status">
         This day&apos;s visits show their booked times: {placement.timingError}</p>}
+      {recommended}
       {title}
       {options.length === 0 && extra === null
         ? <p className={styles.subtle}>Nothing fits this week without breaking an arrival window, a shift or the paid limit. Try another week.</p>
-        : <ul className={styles.optionList} aria-label="Recommended times">
+        : <ul className={styles.optionList} aria-label="Places to choose">
           {extra !== null && row(extra, false, true)}
           {options.map((option, index) => row(option, index === 0, false))}
         </ul>}
@@ -301,7 +351,8 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
  * of which can be dragged onto a route. It folds to a narrow strip while nothing is being placed.
  */
 export default function PlacementPanel({ jobs, waitingCount, startFolded, services, placement, technicians, timezone, onPlaceJob, onPressJob,
-  clickSuppressed, onCreated, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved }: {
+  clickSuppressed, onCreated, onChoose, onAcknowledge, onAcknowledgeSameDay, onSave, onCancel, onDetails, placingJob, onWorkOrderSaved,
+  offers, offersNow, onBookOffer, onSearchOffers }: {
   /** The waiting jobs the filters show, and how many are waiting in all. */
   jobs: ScheduleJob[]; waitingCount: number;
   /** Folded when the page opens, where the calendar has little room (beside the map). */
@@ -316,6 +367,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
   /** The waiting job being placed, whose work order can be edited here, codes and time included. */
   placingJob: ScheduleJob | null;
   onWorkOrderSaved: () => void;
+  /** The booking service's recommended times for the job being placed, the clock their holds count down on, and its actions. */
+  offers: JobOffers | null; offersNow: number; onBookOffer: (offerId: string) => void; onSearchOffers: (jobId: string) => void;
 }) {
   const [folded, setFolded] = useState(startFolded);
   // Something being placed always keeps the column open, so its places and Save stay in reach.
@@ -332,6 +385,8 @@ export default function PlacementPanel({ jobs, waitingCount, startFolded, servic
       </div>
       {open && <>
         {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
+          recommended={placement.subject.kind === "job" && offers !== null && offers.jobId === placement.subject.id
+            ? <RecommendedTimes offers={offers} now={offersNow} timezone={timezone} onBook={onBookOffer} onSearch={() => onSearchOffers(offers.jobId)} /> : null}
           onChoose={onChoose} onAcknowledge={onAcknowledge} onAcknowledgeSameDay={onAcknowledgeSameDay} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
         {placingJob !== null && <WorkOrderPanel key={placingJob.id} jobId={placingJob.id} workOrder={placingJob.workOrder} codeOptions={services}
           onSaved={onWorkOrderSaved} />}

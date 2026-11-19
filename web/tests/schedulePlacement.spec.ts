@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
-import { placementPreview, placementPreviewRequest, placementSaveRequest, type PlacementPreview } from "../lib/contracts";
+import { placementPreview, placementPreviewRequest, placementSaveRequest, selectRequest, type PlacementPreview } from "../lib/contracts";
 import { addCalendarDays, todayInTz } from "../lib/date";
 
 const prisma = createPrismaClient();
@@ -102,9 +102,31 @@ function movePreview(fixture: Fixture): PlacementPreview {
     ] } });
 }
 
-/** Answers the preview with `preview` and the save with `saved`, keeping every body sent to either. */
-async function mockPlacement(page: Page, preview: PlacementPreview, saved: { status: number; body: unknown }) {
-  const previews: unknown[] = [], saves: unknown[] = [];
+/** A booking search that found nothing, the booking service's answer unless a test gives offers. */
+const NOTHING_FOUND = { status: 200, body: { jobId: "set-by-test", offers: [],
+  search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 40, retryable: false } } };
+
+/**
+ * Answers the preview with `preview`, the save with `saved` and the booking search with `offers`, keeping every body
+ * sent to each. Booking an offer answers as the portal does; releasing held times answers success.
+ */
+async function mockPlacement(page: Page, preview: PlacementPreview, saved: { status: number; body: unknown },
+  offers: { status: number; body: unknown } = NOTHING_FOUND) {
+  const previews: unknown[] = [], saves: unknown[] = [], searches: unknown[] = [], books: unknown[] = [], releases: unknown[] = [];
+  await page.route("**/api/book/refresh", async route => {
+    searches.push(route.request().postDataJSON());
+    await route.fulfill({ status: offers.status, contentType: "application/json", body: JSON.stringify(offers.body) });
+  });
+  await page.route("**/api/book/select", async route => {
+    const body = selectRequest.parse(route.request().postDataJSON());
+    books.push(body);
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ appointmentId: body.jobId,
+      windowStart: utc(15), windowEnd: utc(17), holdId: "hold-1", expiresAt: new Date(Date.now() + 300_000).toISOString() }) });
+  });
+  await page.route("**/api/book/release", async route => {
+    releases.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+  });
   await page.route("**/api/schedule/placement", async route => {
     previews.push(route.request().postDataJSON());
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(preview) });
@@ -113,7 +135,7 @@ async function mockPlacement(page: Page, preview: PlacementPreview, saved: { sta
     saves.push(route.request().postDataJSON());
     await route.fulfill({ status: saved.status, contentType: "application/json", body: JSON.stringify(saved.body) });
   });
-  return { previews, saves };
+  return { previews, saves, searches, books, releases };
 }
 
 const grid = (page: Page) => page.locator('[data-schedule-view="day"]');
@@ -156,7 +178,7 @@ test.describe("placing and moving on the schedule", () => {
     await expect(marker(page, fixture.second, undefined, undefined)).toHaveText("+24 min vs best");
     await expect(marker(page, fixture.first, fixture.south, undefined)).toHaveText("+6 min vs best");
     // The four best arrival windows to offer, the recommendation first, each with its added driving.
-    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    const options = panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button");
     await expect(options).toHaveCount(4);
     await expect(options.nth(0)).toContainText("11:00 AM to 1:00 PM");
     await expect(options.nth(0)).toContainText("Mon, Oct 5, Place First Tech, from 11:30 AM");
@@ -210,7 +232,7 @@ test.describe("placing and moving on the schedule", () => {
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${today}`);
     await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
 
-    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    const options = panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button");
     await expect(options).toHaveCount(2);
     await expect(options.nth(0)).toHaveAttribute("data-option-best", "true");
     await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
@@ -234,13 +256,89 @@ test.describe("placing and moving on the schedule", () => {
     expect(placementSaveRequest.parse(sent.saves[0])).toMatchObject({ jobId: fixture.job, sameDayAcknowledged: true, spot: { serviceDate: today } });
   });
 
+  test("a waiting job opens with the booking service's recommended times beside the places by hand; booking one opens its day", async ({ page }) => {
+    const next = addCalendarDays(DATE, 1), held = new Date(Date.now() + 300_000).toISOString();
+    const at = (hour: number) => `${next}T${String(hour).padStart(2, "0")}:00:00.000Z`;
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: {} }, { status: 200, body: { jobId: fixture.job,
+      offers: [{ offerId: "offer-1", date: next, windowStart: at(15), windowEnd: at(17), expiresAt: held },
+        { offerId: "offer-2", date: next, windowStart: at(19), windowEnd: at(21), expiresAt: held }],
+      search: { outcome: "AVAILABLE", prescribedSearchCompleted: true, elapsedMs: 120, retryable: false } } });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+
+    // Both answers are asked for at once: the booking search under the dealer's settings, and every place by hand.
+    const recommended = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("listitem");
+    await expect(recommended).toHaveCount(2);
+    await expect(recommended.nth(0)).toContainText("10:00 AM to 12:00 PM");
+    await expect(recommended.nth(0)).toContainText("Tue, Oct 6, held for 4:");
+    await expect(panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button")).toHaveCount(4);
+    expect(sent.searches).toEqual([{ jobId: fixture.job }]);
+    expect(sent.previews).toHaveLength(1);
+
+    await recommended.nth(1).getByRole("button", { name: "Book" }).click();
+    await expect(page.locator("[data-placement-saved]")).toContainText("Booked: Place Waiting, Softener install, Tue, Oct 6, 2:00 PM to 4:00 PM.");
+    await expect(page.locator(`[data-schedule-date="${next}"]`)).toBeVisible();
+    await expect(panel(page).getByRole("heading", { name: "Place Waiting, Softener install" })).toHaveCount(0);
+    expect(sent.books).toEqual([{ jobId: fixture.job, offerId: "offer-2" }]);
+    // Booking used its hold; nothing is released and nothing was saved by hand.
+    expect(sent.releases).toHaveLength(0);
+    expect(sent.saves).toHaveLength(0);
+  });
+
+  test("the held times are given back when the card is cancelled, and when the job is placed by hand", async ({ page }) => {
+    const next = addCalendarDays(DATE, 1), held = new Date(Date.now() + 300_000).toISOString();
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-2" } },
+      { status: 200, body: { jobId: fixture.job, offers: [{ offerId: "offer-1", date: next, windowStart: `${next}T15:00:00.000Z`, windowEnd: `${next}T17:00:00.000Z`,
+        expiresAt: held }], search: { outcome: "AVAILABLE", prescribedSearchCompleted: true, elapsedMs: 120, retryable: false } } });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    const recommended = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("listitem");
+
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await expect(recommended).toHaveCount(1);
+    await panel(page).getByRole("button", { name: "Cancel" }).click();
+    await expect.poll(() => sent.releases).toEqual([{ jobId: fixture.job, offerId: "offer-1" }]);
+
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await expect(recommended).toHaveCount(1);
+    expect(sent.searches).toHaveLength(2);
+    await panel(page).getByRole("button", { name: "Save" }).click();
+    await expect(page.locator("[data-placement-saved]")).toContainText("is on the calendar");
+    await expect.poll(() => sent.releases).toHaveLength(2);
+    expect(sent.books).toHaveLength(0);
+  });
+
+  test("a booking search that finds nothing says so, and the job is still placed by hand", async ({ page }) => {
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-3" } });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    await expect(panel(page).locator('[data-recommended-times="ready"]'))
+      .toContainText("The booking service found no time within the dealer's booking horizon. Place it yourself below.");
+    await expect(panel(page).getByRole("list", { name: "Recommended times" })).toHaveCount(0);
+    await panel(page).getByRole("button", { name: "Save" }).click();
+    await expect(page.locator("[data-placement-saved]")).toContainText("is on the calendar");
+    // Nothing was held, so nothing is given back.
+    expect(sent.releases).toHaveLength(0);
+  });
+
+  test("a booking search that fails says why and can be run again", async ({ page }) => {
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: {} },
+      { status: 503, body: { error: "Online booking is not connected for this client." } });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
+    const section = panel(page).locator('[data-recommended-times="failed"]');
+    await expect(section).toContainText("Online booking is not connected for this client.");
+    await expect(panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button")).toHaveCount(4);
+    await section.getByRole("button", { name: "Search again" }).click();
+    await expect.poll(() => sent.searches).toHaveLength(2);
+  });
+
   test("a Place on calendar link opens on its answer: the request it starts as the page mounts is not cancelled", async ({ page }) => {
     // The dev server runs React's Strict Mode, which rehearses an unmount straight after mounting. The placement this
     // link starts is asked in a mount effect, so a cleanup that cancelled requests on that rehearsal left it loading.
     const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: {} });
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}&placeJob=${fixture.job}`);
     await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
-    await expect(panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button")).toHaveCount(4);
+    await expect(panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button")).toHaveCount(4);
     expect(sent.previews).toHaveLength(1);
   });
 
@@ -251,7 +349,7 @@ test.describe("placing and moving on the schedule", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(panel(page)).toContainText("Promised Mon, Oct 5, 1:00 PM to 3:00 PM");
     // Places that keep the promised window, one start each: the second route first, then where it is now.
-    const options = panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button");
+    const options = panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button");
     await expect(options).toHaveCount(2);
     await expect(options.nth(0)).toContainText("Place Second Tech, 1:00 PM");
     await expect(options.nth(0)).toContainText("+9 min");
@@ -296,7 +394,7 @@ test.describe("placing and moving on the schedule", () => {
     await expect(panel(page)).toContainText("Moving");
     await expect(panel(page)).toContainText("Finding the best times this week");
     release();
-    await expect(panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button")).toHaveCount(2);
+    await expect(panel(page).getByRole("list", { name: "Places to choose" }).getByRole("button")).toHaveCount(2);
     expect(previews).toHaveLength(1);
   });
 

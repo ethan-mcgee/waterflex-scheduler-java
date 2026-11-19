@@ -74,6 +74,8 @@ async function main() {
   await setUp();
   try {
     const first = await job("first", 43.748, 7.438);
+    // A job that waited on a follow-up call: booking it resolves the follow-up in the same write.
+    await prisma.job.update({ where: { id: first }, data: { manualFollowUpStatus: "CONTACTED" } });
     const offers = await searchApiOffers(clientId, first);
     assert.equal(offers.search.outcome, "AVAILABLE", JSON.stringify(offers.search));
     assert.ok(offers.offers.length >= 1 && offers.offers.length <= 2, "No more offers than the client's limit");
@@ -85,6 +87,7 @@ async function main() {
     assert.equal(appointment.technicianId, id("tech"));
     assert.equal(appointment.windowStart.toISOString(), chosen.windowStart, "The promised window is the offer's window");
     assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: first } })).status, "SCHEDULED");
+    assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: first } })).manualFollowUpStatus, "RESOLVED", "Booking resolves the job's follow-up");
     assert.ok((await prisma.portalApiOfferSet.findFirstOrThrow({ where: { jobId: first, receiptId: { not: null } } })).endedAt);
     assert.deepEqual(await bookApiOffer(clientId, first, chosen.offerId), booked, "Booking the same offer again returns the same booking");
 
@@ -111,7 +114,8 @@ async function main() {
       assert.equal(await prisma.appointment.count({ where: { jobId: third } }), 0);
     }
 
-    // A receipt whose technician-day changed after its snapshot writes nothing.
+    // A receipt whose technician-day changed after its snapshot writes nothing, the follow-up's resolution included.
+    await prisma.job.update({ where: { id: third }, data: { manualFollowUpStatus: "PENDING" } });
     const snapshot = await buildClientSnapshot(clientId, METRO, [chosen.date]);
     const listed = snapshot.technicianDays.find(day => day.technicianId === id("tech"));
     assert.ok(listed);
@@ -123,6 +127,7 @@ async function main() {
         plannedStart: appointment.plannedStart.toISOString(), plannedEnd: appointment.plannedEnd.toISOString() }] }), StaleReceipt);
     assert.equal(await prisma.appointment.count({ where: { jobId: third } }), 0, "A stale receipt writes nothing");
     assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: third } })).status, "PENDING");
+    assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: third } })).manualFollowUpStatus, "PENDING", "A stale receipt leaves the follow-up open");
 
     const otherJob = await prisma.job.findFirst({ where: { id: first, customer: { clientId: otherClientId } } });
     assert.equal(otherJob, null);

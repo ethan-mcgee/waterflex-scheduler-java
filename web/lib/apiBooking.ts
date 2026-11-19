@@ -98,11 +98,16 @@ export async function searchApiOffers(clientId: string, jobId: string, onlyDate?
 
 export { StaleReceipt } from "./apiReceipt";
 
-/** Writes a confirmed booking with a compare-and-set on every technician-day the receipt lists; any difference writes nothing. */
+/**
+ * Writes a confirmed booking with a compare-and-set on every technician-day the receipt lists; any difference writes
+ * nothing. A follow-up still open on the job is resolved in the same write, as a placement by hand resolves it.
+ */
 export async function writeBookingReceipt(clientId: string, jobId: string, offer: { serviceDate: string; windowStart: Date; windowEnd: Date },
   receipt: CommitReceipt): Promise<void> {
   const days = checkReceipt(receipt, jobId, offer.serviceDate);
-  await writeReceipt(clientId, { receipt, complete: days, create: { jobId, windowStart: offer.windowStart, windowEnd: offer.windowEnd } });
+  await writeReceipt(clientId, { receipt, complete: days, create: { jobId, windowStart: offer.windowStart, windowEnd: offer.windowEnd } }, {
+    record: async tx => { await tx.job.updateMany({ where: { id: jobId, manualFollowUpStatus: { in: ["PENDING", "CONTACTED"] } }, data: { manualFollowUpStatus: "RESOLVED" } }); },
+  });
 }
 
 /** Selects an offer, confirms its hold against a fresh snapshot of its date and writes the booking. */
