@@ -153,3 +153,67 @@ export function parseReasonCodes(text: string): { codes: ReasonCodeRow[]; proble
   }
   return { codes, problems };
 }
+
+/** A customer's recurring service, as the series import reads it. Codes are WaterFlex reason codes, first one first. */
+export interface RecurringSeriesRow {
+  accountNumber: string;
+  reasonCodes: string[];
+  workOrderType: string | null;
+  intervalUnit: "WEEK" | "MONTH";
+  intervalCount: number;
+  startDate: string;
+  lastVisitDate: string | null;
+}
+
+/** "2026-11-04" or "11/4/2026" as "2026-11-04"; null for anything else, including dates that do not exist. */
+export function readDate(value: string): string | null {
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value), us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+  const parts = iso ? [iso[1], iso[2], iso[3]] : us ? [us[3], us[1], us[2]] : null;
+  if (parts === null) return null;
+  const [year, month, day] = parts.map(Number);
+  if (year === undefined || month === undefined || day === undefined) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Reads recurring series: `account_number`, `reason_code` (or `complaint_1_c`), optionally `reason_code_2` and
+ * `reason_code_3` (or `complaint_2_c`, `complaint_3_c`), `work_order_type`, `every` with `unit` (weeks or months),
+ * `start_date` (the first due date) and optionally `last_visit_date`. Rows that cannot be read are reported and
+ * skipped; one account and first code may appear once.
+ */
+export function parseRecurringSeries(text: string): { series: RecurringSeriesRow[]; problems: ImportProblem[] } {
+  const table = readCsv(text);
+  const missing: string[] = [];
+  const column = (names: readonly string[], required = true) => locate(table.header, names, required, missing);
+  const at = { account: column(["account_number"]), first: column(["reason_code", "complaint_1_c"]),
+    second: column(["reason_code_2", "complaint_2_c"], false), third: column(["reason_code_3", "complaint_3_c"], false),
+    type: column(["work_order_type"], false), every: column(["every", "interval"]), unit: column(["unit", "interval_unit"]),
+    start: column(["start_date"]), last: column(["last_visit_date", "last_visit"], false) };
+  refuseMissing(missing);
+  const series: RecurringSeriesRow[] = [], problems: ImportProblem[] = [], seen = new Set<string>();
+  for (const { line, values } of table.rows) {
+    const accountNumber = cell(values, at.account), first = cell(values, at.first);
+    if (accountNumber === null || first === null) { problems.push({ line, message: "A series needs its account number and reason code" }); continue; }
+    const reasonCodes = [first, cell(values, at.second), cell(values, at.third)].filter((code): code is string => code !== null);
+    if (new Set(reasonCodes).size !== reasonCodes.length) { problems.push({ line, message: `Account ${accountNumber} names a reason code twice` }); continue; }
+    const key = `${accountNumber}|${first}`;
+    if (seen.has(key)) { problems.push({ line, message: `Account ${accountNumber} has more than one ${first} series; the first row is kept` }); continue; }
+    const unitText = cell(values, at.unit)?.toLowerCase() ?? "";
+    const intervalUnit = /^weeks?$/.test(unitText) ? "WEEK" : /^months?$/.test(unitText) ? "MONTH" : null;
+    const intervalCount = Number(cell(values, at.every) ?? Number.NaN);
+    const limit = intervalUnit === "WEEK" ? 52 : 24;
+    if (intervalUnit === null || !Number.isSafeInteger(intervalCount) || intervalCount < 1 || intervalCount > limit) {
+      problems.push({ line, message: `Account ${accountNumber} needs an interval of 1 to 52 weeks or 1 to 24 months` }); continue;
+    }
+    const startText = cell(values, at.start), lastText = cell(values, at.last);
+    const startDate = startText === null ? null : readDate(startText);
+    const lastVisitDate = lastText === null ? null : readDate(lastText);
+    if (startDate === null) { problems.push({ line, message: `Account ${accountNumber} needs a start date` }); continue; }
+    if (lastText !== null && lastVisitDate === null) { problems.push({ line, message: `Account ${accountNumber} has a last visit date that cannot be read` }); continue; }
+    seen.add(key);
+    series.push({ accountNumber, reasonCodes, workOrderType: cell(values, at.type), intervalUnit, intervalCount, startDate, lastVisitDate });
+  }
+  return { series, problems };
+}

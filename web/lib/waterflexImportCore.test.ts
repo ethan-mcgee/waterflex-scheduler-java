@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseAccounts, parseReasonCodes, readCsv } from "./waterflexImportCore";
+import { parseAccounts, parseReasonCodes, parseRecurringSeries, readCsv, readDate } from "./waterflexImportCore";
 
 test("CSV fields may be quoted, hold commas, quotes and line breaks, and blank lines are skipped", () => {
   const table = readCsv('﻿A,B\r\n"1, 2","say ""hi"""\r\n\r\n"two\nlines",x\n');
@@ -54,4 +54,32 @@ test("reason codes need a code, a label and whole minutes; a buffer may be a fra
     { code: "PRES", name: "Low pressure", estDurationMin: 20, bufferPct: 0.15 },
   ]);
   assert.deepEqual(parsed.problems.map(problem => problem.line), [5, 6, 7, 8]);
+});
+
+test("recurring series are read with their codes, interval and dates, and unreadable rows are reported", () => {
+  const { series, problems } = parseRecurringSeries([
+    "account_number,complaint_1_c,complaint_2_c,work_order_type,every,unit,start_date,last_visit_date",
+    "100482,FILTER,SALT,Maintenance,3,months,2026-01-05,9/15/2026",
+    "100483,FILTER,,,6,Weeks,1/5/2026,",
+    "100484,FILTER,FILTER,,3,months,2026-01-05,",
+    "100485,FILTER,,,0,months,2026-01-05,",
+    "100486,FILTER,,,3,years,2026-01-05,",
+    "100487,FILTER,,,3,months,2026-02-30,",
+    "100488,FILTER,,,3,months,2026-01-05,yesterday",
+    "100482,FILTER,,,1,month,2026-01-05,",
+  ].join("\n"));
+  assert.deepEqual(series, [
+    { accountNumber: "100482", reasonCodes: ["FILTER", "SALT"], workOrderType: "Maintenance", intervalUnit: "MONTH", intervalCount: 3, startDate: "2026-01-05", lastVisitDate: "2026-09-15" },
+    { accountNumber: "100483", reasonCodes: ["FILTER"], workOrderType: null, intervalUnit: "WEEK", intervalCount: 6, startDate: "2026-01-05", lastVisitDate: null },
+  ]);
+  assert.deepEqual(problems.map(problem => problem.line), [4, 5, 6, 7, 8, 9]);
+  assert.throws(() => parseRecurringSeries("account_number,reason_code\n1,A"), /every/);
+});
+
+test("dates are read as ISO or US dates and refused when the day does not exist", () => {
+  assert.equal(readDate("2026-11-04"), "2026-11-04");
+  assert.equal(readDate("11/4/2026"), "2026-11-04");
+  assert.equal(readDate("2026-02-29"), null);
+  assert.equal(readDate("2028-02-29"), "2028-02-29");
+  assert.equal(readDate("Nov 4"), null);
 });

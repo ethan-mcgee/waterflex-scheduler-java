@@ -49,6 +49,7 @@ model Depot {
   dealership       Dealership                  @relation(fields: [dealershipId], references: [id])
   endpointPolicies DepotEndpointPolicy[]
   assignments      TechnicianDepotAssignment[]
+  reservations     Reservation[]
 
   @@index([dealershipId])
   @@map("depot")
@@ -85,6 +86,7 @@ model Client {
   overnightRuns     PortalOvernightRun[]
   bookingTestRuns   BookingTestRun[]
   accounts          Account[]
+  recurringSeries   RecurringSeries[]
 
   @@map("client")
 }
@@ -179,6 +181,7 @@ model Technician {
   availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests      TimeOffRequest[]
   depotAssignments     TechnicianDepotAssignment[]
+  reservations         Reservation[]
 
   @@index([active])
   @@index([clientId], map: "technician_client")
@@ -239,9 +242,11 @@ model ServiceCatalog {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  jobs           Job[]
-  qualifications TechnicianQualification[]
-  jobReasonCodes JobReasonCode[]
+  jobs                 Job[]
+  qualifications       TechnicianQualification[]
+  jobReasonCodes       JobReasonCode[]
+  recurringSeries      RecurringSeries[]
+  recurringReasonCodes RecurringReasonCode[]
 
   @@map("service_catalog")
 }
@@ -328,6 +333,7 @@ model Job {
   apiOfferSets         PortalApiOfferSet[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
+  reservation          Reservation?
 
   @@map("job")
 }
@@ -349,26 +355,102 @@ model JobReasonCode {
 // WaterFlex's account export (scripts/import-accounts.ts) until the portal can ask WaterFlex itself; lib/accountLookup.ts
 // is the only reader. An account without coordinates can be booked only as a follow-up.
 model Account {
-  id            String    @id @default(cuid())
-  clientId      String
-  client        Client    @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  accountNumber String
-  name          String?
-  phone         String?
-  email         String?
-  line1         String
-  line2         String?
-  city          String
-  state         String
-  postalCode    String
-  lat           Float?
-  lng           Float?
-  source        String // WATERFLEX_IMPORT
-  importedAt    DateTime  @db.Timestamptz(6)
-  customer      Customer?
+  id              String            @id @default(cuid())
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  accountNumber   String
+  name            String?
+  phone           String?
+  email           String?
+  line1           String
+  line2           String?
+  city            String
+  state           String
+  postalCode      String
+  lat             Float?
+  lng             Float?
+  source          String // WATERFLEX_IMPORT
+  importedAt      DateTime          @db.Timestamptz(6)
+  customer        Customer?
+  recurringSeries RecurringSeries[]
 
   @@unique([clientId, accountNumber])
   @@map("account")
+}
+
+enum RecurrenceUnit {
+  WEEK
+  MONTH
+}
+
+enum ReservationStatus {
+  RESERVED // a planning mark in a technician's free time; the scheduler does not know it yet
+  BOOKED // its work order was taken in (jobId)
+  RELEASED // given back; the series is due again
+}
+
+// A customer's recurring service, such as a filter change every 3 months. Its next due date is worked out (the last
+// visit plus the interval, or the start date before any visit), never stored. Its first reason code is serviceId and
+// its second and third are in reasonCodes, as on a job.
+model RecurringSeries {
+  id            String                @id @default(cuid())
+  clientId      String
+  client        Client                @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  accountId     String
+  account       Account               @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  serviceId     String
+  service       ServiceCatalog        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  reasonCodes   RecurringReasonCode[]
+  workOrderType String?
+  intervalUnit  RecurrenceUnit
+  intervalCount Int // 1 to 52 weeks, or 1 to 24 months
+  startDate     DateTime              @db.Date
+  lastVisitDate DateTime?             @db.Date
+  active        Boolean               @default(true)
+  createdAt     DateTime              @default(now()) @db.Timestamptz(6)
+  reservations  Reservation[]
+
+  @@unique([accountId, serviceId])
+  @@index([clientId], map: "recurring_series_client")
+  @@map("recurring_series")
+}
+
+// A series' second and third reason codes.
+model RecurringReasonCode {
+  seriesId     String
+  series       RecurringSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  position     Int // 2 or 3
+  reasonCodeId String
+  reasonCode   ServiceCatalog  @relation(fields: [reasonCodeId], references: [id], onDelete: Restrict)
+
+  @@id([seriesId, position])
+  @@unique([seriesId, reasonCodeId])
+  @@map("recurring_reason_code")
+}
+
+// Time held in a technician's day for a series that is due: a planning mark on the recurring demand page, not sent to
+// the scheduler. startMin and endMin are local minutes of serviceDate, like shifts. A series has at most one live
+// (not released) reservation per due date.
+model Reservation {
+  id           String            @id @default(cuid())
+  seriesId     String
+  series       RecurringSeries   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  dueDate      DateTime          @db.Date
+  depotId      String
+  depot        Depot             @relation(fields: [depotId], references: [id], onDelete: Restrict)
+  technicianId String
+  technician   Technician        @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  serviceDate  DateTime          @db.Date
+  startMin     Int
+  endMin       Int
+  status       ReservationStatus @default(RESERVED)
+  jobId        String?           @unique
+  job          Job?              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([depotId, serviceDate], map: "reservation_depot_day")
+  @@index([technicianId, serviceDate], map: "reservation_technician_day")
+  @@map("reservation")
 }
 
 model Appointment {
