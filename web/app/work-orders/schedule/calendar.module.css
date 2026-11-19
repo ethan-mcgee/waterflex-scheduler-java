@@ -1336,3 +1336,55 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* A waiting job's recommended times from the booking service, above the places to choose by hand. */
+.recommended {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.recommended .optionsTitle {
+  margin-top: 0.5rem;
+}
+
+.offerList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--wo-primary-soft);
+  border-left: 3px solid var(--wo-primary);
+  border-radius: 8px;
+  background: var(--wo-primary-wash);
+}
+
+.offerRow strong {
+  font-size: 0.9rem;
+}
+
+.offerRow small {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.offerRow button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.recommended .textButton {
+  justify-self: start;
+}
