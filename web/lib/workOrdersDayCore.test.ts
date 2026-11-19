@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  calendarHours, cardMatches, clockLabel, durationLabel, hasFilters, hourLabel, initials, minuteOfDay, NO_FILTERS, pastelOf, placeLine, routeOf,
+  cardMatches, clockLabel, durationLabel, hasFilters, hourLabel, initials, itemMatches, minuteOfDay, NO_FILTERS, pastelOf, placeLine, routeOf,
   TYPE_PASTELS, typePastels, waitingMatches, workOrderStatus, type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician,
 } from "./workOrdersDayCore";
 
@@ -61,13 +61,6 @@ test("local minutes follow the metro's time zone, including across daylight savi
   assert.equal(minuteOfDay("2026-10-07T05:00:00.000Z", "America/Chicago"), 0);
 });
 
-test("the calendar spans every shift and visit, and shows 8 AM to 5 PM on an empty day", () => {
-  assert.deepEqual(calendarHours([], []), { start: 8, end: 17 });
-  assert.deepEqual(calendarHours([technician({ startMin: 480, endMin: 1020 })], []), { start: 8, end: 17 });
-  assert.deepEqual(calendarHours([technician({ startMin: 480, endMin: 1020 })], [card({ startMin: 450, endMin: 1090 })]), { start: 7, end: 19 });
-  assert.deepEqual(calendarHours([technician(null)], [card({ startMin: 600, endMin: 645 })]), { start: 10, end: 11 });
-});
-
 test("filters match type and status exactly and the place as typed text", () => {
   assert.equal(hasFilters(NO_FILTERS), false);
   assert.equal(hasFilters({ ...NO_FILTERS, place: "  " }), false);
@@ -84,6 +77,14 @@ test("waiting work orders have no status, so a status filter hides them", () => 
   assert.equal(waitingMatches(waiting, NO_FILTERS), true);
   assert.equal(waitingMatches(waiting, { ...NO_FILTERS, status: "SCHEDULED" }), false);
   assert.equal(waitingMatches(waiting, { ...NO_FILTERS, type: "REPAIR", place: "bellevue" }), true);
+});
+
+test("a calendar visit with no status shown never matches a status filter, but still matches type and place", () => {
+  const visit = { typeCode: "SOFTENER", status: null, place: "Omaha, NE 68102" };
+  assert.equal(itemMatches(visit, NO_FILTERS), true);
+  assert.equal(itemMatches(visit, { ...NO_FILTERS, status: "SCHEDULED" }), false);
+  assert.equal(itemMatches(visit, { ...NO_FILTERS, type: "SOFTENER", place: " 68102 " }), true);
+  assert.equal(itemMatches({ ...visit, status: "COMPLETED" }, { ...NO_FILTERS, status: "COMPLETED", place: "lincoln" }), false);
 });
 
 test("a route lists one technician's stops in order and spans first start to last end", () => {

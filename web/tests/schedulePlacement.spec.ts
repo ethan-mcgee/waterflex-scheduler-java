@@ -142,7 +142,7 @@ test.describe("placing and moving on the schedule", () => {
 
   test("a waiting job is placed from one preview: every gap shows its drive, and the chosen start is saved", async ({ page }) => {
     const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(panel(page).locator(`[data-job-id="${fixture.unlocated}"]`)).toBeDisabled();
     await expect(panel(page).locator(`[data-job-id="${fixture.unlocated}"]`)).toContainText("Needs its pin confirmed");
     await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
@@ -196,9 +196,19 @@ test.describe("placing and moving on the schedule", () => {
       spot: { technicianId: fixture.first, serviceDate: DATE, afterAppointmentId: fixture.north, beforeAppointmentId: fixture.south }, plannedStart: utc(17) });
   });
 
+  test("a Place on calendar link opens on its answer: the request it starts as the page mounts is not cancelled", async ({ page }) => {
+    // The dev server runs React's Strict Mode, which rehearses an unmount straight after mounting. The placement this
+    // link starts is asked in a mount effect, so a cleanup that cancelled requests on that rehearsal left it loading.
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: {} });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}&placeJob=${fixture.job}`);
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
+    await expect(panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button")).toHaveCount(4);
+    expect(sent.previews).toHaveLength(1);
+  });
+
   test("clicking a visit asks once for every place it could go and lists the best ones, moving nothing until one is picked", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(panel(page)).toContainText("Promised Mon, Oct 5, 1:00 PM to 3:00 PM");
@@ -236,7 +246,7 @@ test.describe("placing and moving on the schedule", () => {
       await held;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(movePreview(fixture)) });
     });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const box = await grid(page).locator(`[data-appointment-id="${fixture.south}"]`).boundingBox();
     if (box === null) throw new Error("The visit is not on screen");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -266,7 +276,7 @@ test.describe("placing and moving on the schedule", () => {
       previews.push(body);
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body.withRestOfWeek ? week : nextDay) });
     });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toBeVisible();
     expect(previews).toEqual([expect.objectContaining({ timedDates: [DATE], withRestOfWeek: true })]);
@@ -286,7 +296,7 @@ test.describe("placing and moving on the schedule", () => {
 
   test("dragging a visit to another technician inside its window compares it with where it was, and saves without acknowledgement", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
     await expect(panel(page).locator("[data-placement-state]")).toHaveAttribute("data-placement-state", "KEEPS_PROMISE");
     await expect(panel(page).locator("[data-placement-comparison]")).toHaveAttribute("data-placement-comparison", "NEW");
@@ -301,7 +311,7 @@ test.describe("placing and moving on the schedule", () => {
 
   test("while dragging, the place a drop would land is drawn under the pointer, worked out without asking again", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const pointAt = async (technicianId: string, localMinute: number) => {
       const target = await cell(page, technicianId).boundingBox();
       if (target === null) throw new Error("The timeline is not on screen");
@@ -345,7 +355,7 @@ test.describe("placing and moving on the schedule", () => {
       body: JSON.stringify({ serviceDate: DATE, skipped: [], technicians: [
         { technicianId: fixture.first, departure: "DEPOT", returnTo: "HOME", segments: [{ appointmentIds: [fixture.north, fixture.south], legs: [leg(17), leg(12), leg(15)] }] },
         { technicianId: fixture.second, departure: "DEPOT", returnTo: "DEPOT", segments: [] }] }) }));
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const northAfter = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"] [data-drive="after"]`);
     await expect(northAfter).toHaveAttribute("title", "12 min to next stop");
 
@@ -396,7 +406,7 @@ test.describe("placing and moving on the schedule", () => {
           { ...start(17, 0, totals(66, 16000), 17), stops: [stop(fixture.north, 0, [15, 15], [16, 0]), stop(fixture.job, 1, [17, 0], [18, 0]), stop(fixture.south, 2, [18, 30], [19, 15])] }] }] },
     ] } });
     const sent = await mockPlacement(page, timed, { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
     await expect(south).toContainText("1:15 PM - 2:00 PM");
 
@@ -420,7 +430,7 @@ test.describe("placing and moving on the schedule", () => {
 
   test("a move to another arrival window is a policy violation that saves only once acknowledged", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "CHANGES_PROMISE", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 15 * 60 + 30);
     const violation = panel(page).getByRole("alert").filter({ hasText: "Dealership policy violation" });
     await expect(violation).toContainText("from Mon, Oct 5, 1:00 PM to 3:00 PM to Mon, Oct 5, 3:00 PM to 5:00 PM");
@@ -435,7 +445,7 @@ test.describe("placing and moving on the schedule", () => {
 
   test("a save the schedule overtook is explained, and the visit stays where it was", async ({ page }) => {
     await mockPlacement(page, movePreview(fixture), { status: 409, body: { error: "That place no longer fits. The schedule changed since the preview; preview it again." } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
     await panel(page).getByRole("button", { name: "Save" }).click();
     await expect(panel(page).getByRole("alert")).toContainText("That place no longer fits.");
@@ -449,7 +459,7 @@ test.describe("placing and moving on the schedule", () => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: fixture.job }) });
     });
     const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.job, kind: "NEW", undoId: "undo-1" } });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await panel(page).getByRole("button", { name: "New job" }).click();
     const form = panel(page).getByRole("form", { name: "New job" });
     for (const [label, value] of [["First name", "Fresh"], ["Last name", "Customer"], ["Email", "fresh@example.invalid"], ["Phone", "4025550111"],
@@ -471,7 +481,7 @@ test.describe("placing and moving on the schedule", () => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ serviceDate: DATE, skipped: [], technicians: [
         { technicianId: fixture.first, departure: "DEPOT", returnTo: "HOME", segments: [{ appointmentIds: [fixture.north, fixture.south], legs: [leg(17), leg(12), leg(15)] }] }] }) });
     });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     const north = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.north}"]`);
     const south = cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`);
     await expect(north.locator('[data-drive="before"]')).toHaveAttribute("title", "17 min from depot");
@@ -491,7 +501,7 @@ test.describe("placing and moving on the schedule", () => {
   test("drive times that cannot be loaded are said, and visits are drawn without them", async ({ page }) => {
     await page.route(url => url.pathname === "/api/schedule/drive", route =>
       route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Scheduling is not connected for this client." }) }));
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(page.locator("[data-drive-unavailable]")).toContainText("Drive times are unavailable: Scheduling is not connected for this client.");
     await expect(grid(page).locator(`[data-appointment-id="${fixture.north}"]`)).toBeVisible();
     await expect(grid(page).locator("[data-drive]")).toHaveCount(0);
@@ -553,7 +563,7 @@ test.describe("following the schedule and undoing a save", () => {
       await route.fulfill({ status: 200, contentType: "application/json",
         body: JSON.stringify({ saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: record.id }) });
     });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await dragTo(page, grid(page).locator(`[data-appointment-id="${fixture.south}"]`), fixture.second, 13 * 60 + 5);
     await panel(page).getByRole("button", { name: "Save" }).click();
     await expect(page.locator("[data-placement-saved]")).toContainText("moved");
@@ -586,7 +596,7 @@ test.describe("following the schedule and undoing a save", () => {
   });
 
   test("a change made elsewhere appears without a reload, and says so", async ({ page }) => {
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await expect(cell(page, fixture.first).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible();
     await prisma.appointment.update({ where: { id: fixture.south }, data: { technicianId: fixture.second, sequence: 0 } });
     await returnUntil(page, () => expect(cell(page, fixture.second).locator(`[data-appointment-id="${fixture.south}"]`)).toBeVisible({ timeout: 1000 }));
@@ -603,7 +613,7 @@ test.describe("following the schedule and undoing a save", () => {
       previews.push(route.request().postDataJSON());
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(previews.length === 1 ? week : changed) });
     });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
     await panel(page).locator(`[data-job-id="${fixture.job}"]`).click();
     await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
 

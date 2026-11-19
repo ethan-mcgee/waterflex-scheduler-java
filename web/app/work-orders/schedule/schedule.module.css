@@ -1,4 +1,4 @@
-/* The schedule panel: day stepper, technician picker, the calendar, the map and their legends. */
+/* The schedule panel: technician picker, the map's day stepper, the map and the dual layout. The calendar has calendar.module.css. */
 
 .board {
   padding: 18px 16px 14px;
@@ -85,220 +85,6 @@
   color: var(--wo-primary);
   font-weight: 600;
   cursor: pointer;
-}
-
-/* Calendar */
-
-.calendarScroll {
-  overflow-x: auto;
-}
-
-.calendar {
-  position: relative;
-  display: grid;
-  grid-template-rows: 34px auto;
-  min-width: min-content;
-}
-
-.corner {
-  border-bottom: 1px solid var(--wo-line);
-}
-
-.columnHead {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-right: 1px solid var(--wo-surface);
-  background: var(--wo-column-head);
-  color: var(--wo-ink);
-  font-size: 15px;
-  white-space: nowrap;
-}
-
-.columnHead small {
-  color: var(--wo-ink-soft);
-}
-
-.unassignedHead {
-  background: var(--wo-column-head-unassigned);
-}
-
-.folded {
-  overflow: hidden;
-  visibility: hidden;
-  padding: 0;
-}
-
-.gutter {
-  position: relative;
-  border-right: 1px solid var(--wo-line-soft);
-}
-
-.gutter span {
-  position: absolute;
-  right: 6px;
-  margin-top: 6px;
-  color: var(--wo-ink-soft);
-  font-size: 20px;
-  line-height: 1;
-}
-
-.gutter sup {
-  margin-left: 2px;
-  font-size: 12px;
-  vertical-align: top;
-}
-
-.unassigned {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-  padding: 4px;
-  border-right: 1px solid var(--wo-line);
-  background: var(--wo-surface-muted);
-}
-
-.column {
-  position: relative;
-  border-right: 1px solid var(--wo-line-soft);
-  background-image: linear-gradient(to bottom, var(--wo-grid-line) 1px, transparent 1px);
-}
-
-.offShift {
-  position: absolute;
-  right: 0;
-  left: 0;
-  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.025) 0 6px, transparent 6px 12px);
-  pointer-events: none;
-}
-
-/* The fold button sits on the line between Unassigned and the first technician, in the header row above the cards. */
-.foldButton {
-  position: absolute;
-  top: -28px;
-  left: -11px;
-  z-index: 3;
-  display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--wo-line);
-  border-radius: 50%;
-  background: var(--wo-surface);
-  color: var(--wo-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  cursor: pointer;
-}
-
-.card,
-.waitingCard {
-  overflow: hidden;
-  padding: 4px 8px;
-  color: var(--wo-ink);
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.card {
-  position: absolute;
-  right: 0;
-  left: 0;
-  z-index: 1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
-}
-
-.waitingCard {
-  flex: 0 0 auto;
-  border-radius: 2px;
-}
-
-.cardLine {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.cardPin {
-  flex: 0 0 auto;
-  color: var(--wo-ink-soft);
-}
-
-.cardPlace {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardType {
-  overflow: hidden;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardMeta {
-  overflow: hidden;
-  color: var(--wo-ink-soft);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.nowLine {
-  position: absolute;
-  right: 0;
-  left: 48px;
-  z-index: 2;
-  height: 0;
-  border-top: 1px solid var(--wo-now);
-  pointer-events: none;
-}
-
-.nowLine::before {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--wo-now);
-  content: "";
-}
-
-/* Legend */
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 22px;
-  margin-top: 14px;
-  padding: 10px 48px 4px;
-  border-top: 1px solid var(--wo-line-soft);
-  color: var(--wo-ink);
-  font-size: 13px;
-}
-
-.legendItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legendNote {
-  color: var(--wo-ink-soft);
-}
-
-.swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
 }
 
 /* Map */
@@ -556,6 +342,38 @@ div.routeHead {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 14px;
+  align-items: start;
+}
+
+/* The day calendar keeps its full width and scrolls sideways inside its half. */
+.dualCalendar {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* Metros, when the client has more than one */
+
+.metros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -8px 0 14px;
+}
+
+.metros a {
+  padding: 5px 13px;
+  border: 1px solid var(--wo-line);
+  border-radius: var(--wo-radius-pill);
+  background: var(--wo-surface);
+  color: var(--wo-ink-soft);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.metros a[aria-current="page"] {
+  border-color: var(--wo-primary);
+  background: var(--wo-primary-wash);
+  color: var(--wo-primary);
 }
 
 @media (max-width: 1100px) {

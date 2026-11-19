@@ -93,7 +93,7 @@ test.describe("checking a move on the weekly schedule", () => {
   test.beforeEach(async ({ page }) => {
     fixture = await seed();
     await page.setViewportSize({ width: 1500, height: 1500 });
-    await page.goto(`/schedule?metroId=${fixture.metroId}&week=${DATE}`);
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&week=${DATE}`);
     await expect(card(page, fixture.north)).toBeVisible();
   });
   test.afterEach(async () => { await fixture.cleanup(); });

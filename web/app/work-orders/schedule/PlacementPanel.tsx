@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { errorMessage } from "@/lib/contracts";
 import { bestOptions, findGap, findStart, spotKey, verdict, type PlaceOption, type Spot, type Verdict } from "@/lib/placementRules";
 import type { InsertionGap, InsertionStart } from "@/lib/insertionContract";
-import styles from "./schedule.module.css";
+import styles from "./calendar.module.css";
 import type { PlacementState, PlacementSubject } from "./usePlacement";
 import type { ScheduleJob, ScheduleService, ScheduleTechnician } from "./types";
 
@@ -35,16 +36,18 @@ function legText(gap: InsertionGap): string | null {
 }
 
 /** The jobs waiting for the calendar: each can be dragged onto a route or placed from the best fits. */
-function JobList({ jobs, active, onPlace, onPress, clickSuppressed }: {
-  jobs: ScheduleJob[]; active: string | null; onPlace: (job: ScheduleJob) => void;
+function JobList({ jobs, waitingCount, active, onPlace, onPress, clickSuppressed }: {
+  jobs: ScheduleJob[]; waitingCount: number; active: string | null; onPlace: (job: ScheduleJob) => void;
   onPress: (job: ScheduleJob, event: ReactPointerEvent) => void; clickSuppressed: () => boolean;
 }) {
-  if (jobs.length === 0) return <p className={styles.subtle}>No jobs are waiting to be scheduled.</p>;
+  if (jobs.length === 0) return <p className={styles.subtle}>
+    {waitingCount === 0 ? "No jobs are waiting to be scheduled." : "No waiting jobs match these filters."}
+  </p>;
   return (
     <ul className={styles.jobList} aria-label="Unscheduled jobs">
       {jobs.map(job => (
         <li key={job.id}>
-          <button type="button" className={`${styles.jobCard} ${active === job.id ? styles.jobCardActive : ""}`} data-job-id={job.id}
+          <button type="button" className={`${styles.jobCard} ${active === job.id ? styles.jobCardActive : ""}`} data-job-id={job.id} data-waiting-order={job.id}
             style={{ borderLeftColor: job.serviceColor.color }} disabled={!job.located} onPointerDown={job.located ? event => onPress(job, event) : undefined}
             onClick={() => { if (!clickSuppressed()) onPlace(job); }}>
             <span className={styles.cardCustomer}>{job.customerName}</span>
@@ -279,26 +282,46 @@ function PlacementCard({ placement, technicians, timezone, onChoose, onAcknowled
   );
 }
 
-/** The placement side panel: jobs waiting for the calendar, a new-job form, and the place being chosen. */
-export default function PlacementPanel({ jobs, services, placement, technicians, timezone, onPlaceJob, onPressJob, clickSuppressed,
-  onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
-  jobs: ScheduleJob[]; services: ScheduleService[]; placement: PlacementState | null; technicians: ScheduleTechnician[]; timezone: string;
+/**
+ * The calendar's Unassigned column: the place being chosen, a new-job form, and the jobs waiting for the calendar, each
+ * of which can be dragged onto a route. It folds to a narrow strip while nothing is being placed.
+ */
+export default function PlacementPanel({ jobs, waitingCount, startFolded, services, placement, technicians, timezone, onPlaceJob, onPressJob,
+  clickSuppressed, onCreated, onChoose, onAcknowledge, onSave, onCancel, onDetails }: {
+  /** The waiting jobs the filters show, and how many are waiting in all. */
+  jobs: ScheduleJob[]; waitingCount: number;
+  /** Folded when the page opens, where the calendar has little room (beside the map). */
+  startFolded: boolean;
+  services: ScheduleService[]; placement: PlacementState | null; technicians: ScheduleTechnician[]; timezone: string;
   onPlaceJob: (subject: PlacementSubject) => void; onPressJob: (job: ScheduleJob, event: ReactPointerEvent) => void; clickSuppressed: () => boolean;
   onCreated: (jobId: string, label: string) => void;
   onChoose: (spot: Spot, plannedStart: string | null) => void; onAcknowledge: (value: boolean) => void; onSave: () => void; onCancel: () => void;
   /** Opens the moved appointment's details; null while a job is being placed. */
   onDetails: (() => void) | null;
 }) {
+  const [folded, setFolded] = useState(startFolded);
+  // Something being placed always keeps the column open, so its places and Save stay in reach.
+  const open = !folded || placement !== null;
   return (
-    <aside className={styles.placementPanel} aria-label="Place a job">
-      {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
-        onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
-      <section>
-        <h2>Unscheduled jobs</h2>
-        <NewJobForm services={services} onCreated={onCreated} />
-        <JobList jobs={jobs} active={placement?.subject.kind === "job" ? placement.subject.id : null} clickSuppressed={clickSuppressed}
-          onPress={onPressJob} onPlace={job => onPlaceJob({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` })} />
-      </section>
+    <aside className={`${styles.placementPanel} ${open ? "" : styles.placementFolded}`} aria-label="Place a job">
+      <div className={styles.unassignedHead}>
+        <h2>Unassigned <span className={styles.unassignedCount}>{waitingCount}</span></h2>
+        {placement === null && <button type="button" className={styles.foldButton} aria-expanded={open}
+          aria-label={open ? "Collapse unassigned" : "Expand unassigned"} title={open ? "Collapse unassigned" : "Expand unassigned"}
+          onClick={() => setFolded(!folded)}>
+          {open ? <ChevronsLeft size={18} aria-hidden /> : <ChevronsRight size={18} aria-hidden />}
+        </button>}
+      </div>
+      {open && <>
+        {placement !== null && <PlacementCard placement={placement} technicians={technicians} timezone={timezone}
+          onChoose={onChoose} onAcknowledge={onAcknowledge} onSave={onSave} onCancel={onCancel} onDetails={onDetails} />}
+        <section data-unassigned-column>
+          <NewJobForm services={services} onCreated={onCreated} />
+          <JobList jobs={jobs} waitingCount={waitingCount} active={placement?.subject.kind === "job" ? placement.subject.id : null}
+            clickSuppressed={clickSuppressed} onPress={onPressJob}
+            onPlace={job => onPlaceJob({ kind: "job", id: job.id, label: `${job.customerName}, ${job.serviceName}` })} />
+        </section>
+      </>}
     </aside>
   );
 }
