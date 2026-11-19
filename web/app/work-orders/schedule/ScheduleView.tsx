@@ -4,6 +4,7 @@ import Link from "next/link";
 import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useAbortOnUnmount } from "@/app/portal/useAbortOnUnmount";
 import styles from "./calendar.module.css";
 import { addCalendarDays, todayInTz, weekDates } from "@/lib/date";
 import type { MoveCheckResult } from "@/lib/contracts";
@@ -773,7 +774,7 @@ export default function ScheduleView({
     return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
   }, [check]);
 
-  useEffect(() => () => inFlight.current?.abort(), []);
+  useAbortOnUnmount(useCallback(() => inFlight.current?.abort(), []));
 
   // Another dispatcher, a booking or the overnight run changed the schedule: the page reloads its visits and asks the
   // open placement's places again. A drag or a save in progress is left alone; the next check finds the change again.

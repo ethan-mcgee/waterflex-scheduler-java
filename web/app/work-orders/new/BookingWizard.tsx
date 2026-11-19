@@ -2,7 +2,8 @@
 
 import { offersResponse, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { appointmentSearchMessage, bookingApiStart, recordBookingApiDuration } from "@/lib/appointmentSearch";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAbortOnUnmount } from "@/app/portal/useAbortOnUnmount";
 import { PageHeader } from "@/app/portal/ui";
 import styles from "./booking.module.css";
 import AddressPinMap, { type PinCandidate, type ServiceArea } from "./AddressPinMap";
@@ -88,7 +89,7 @@ function formatCountdown(seconds: number): string {
 
 export default function BookingWizard({ services }: { services: ServiceOption[] }) {
   const activeRequest = useRef<AbortController | null>(null);
-  useEffect(() => () => activeRequest.current?.abort(), []);
+  useAbortOnUnmount(useCallback(() => activeRequest.current?.abort(), []));
   function requestSignal() {
     activeRequest.current?.abort();
     activeRequest.current = new AbortController();

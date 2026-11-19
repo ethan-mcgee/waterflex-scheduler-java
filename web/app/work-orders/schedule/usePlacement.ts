@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAbortOnUnmount } from "@/app/portal/useAbortOnUnmount";
 import type { z } from "zod";
 import { errorMessage, placementPreview, placementSaved, type PlacementPreview, type PlacementSaved } from "@/lib/contracts";
 import { findGap, findStart, withTimedDays, type Spot } from "@/lib/placementRules";
@@ -263,7 +264,7 @@ export function usePlacement(metroId: string, monday: string, shown: readonly st
         : { ...current, saving: false, saveError: error instanceof Error ? error.message : "The placement could not be saved. Try again." }));
   }, [metroId, placement]);
 
-  useEffect(() => abortAll, [abortAll]);
+  useAbortOnUnmount(abortAll);
 
   return { placement, start, prefetch, settle, refresh, choose, drop, acknowledge, cancel, save };
 }

@@ -196,6 +196,16 @@ test.describe("placing and moving on the schedule", () => {
       spot: { technicianId: fixture.first, serviceDate: DATE, afterAppointmentId: fixture.north, beforeAppointmentId: fixture.south }, plannedStart: utc(17) });
   });
 
+  test("a Place on calendar link opens on its answer: the request it starts as the page mounts is not cancelled", async ({ page }) => {
+    // The dev server runs React's Strict Mode, which rehearses an unmount straight after mounting. The placement this
+    // link starts is asked in a mount effect, so a cleanup that cancelled requests on that rehearsal left it loading.
+    const sent = await mockPlacement(page, jobPreview(fixture), { status: 200, body: {} });
+    await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}&placeJob=${fixture.job}`);
+    await expect(panel(page).getByRole("radio", { name: "11:30 AM" })).toBeChecked();
+    await expect(panel(page).getByRole("list", { name: "Recommended times" }).getByRole("button")).toHaveCount(4);
+    expect(sent.previews).toHaveLength(1);
+  });
+
   test("clicking a visit asks once for every place it could go and lists the best ones, moving nothing until one is picked", async ({ page }) => {
     const sent = await mockPlacement(page, movePreview(fixture), { status: 200, body: { saved: true, appointmentId: fixture.south, kind: "KEEPS_PROMISE", undoId: "undo-1" } });
     await page.goto(`/work-orders/schedule?metroId=${fixture.metroId}&date=${DATE}`);
