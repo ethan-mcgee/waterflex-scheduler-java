@@ -234,6 +234,8 @@ export const waterflexAccount = z.object({ id: text, accountNumber: text, name: 
 export const accountSearchResponse = z.object({ accounts: z.array(waterflexAccount) }).strict();
 /** Either kind of work order. The account form is strict, so a typed address is never read as an account. */
 export const workOrderRequest = z.union([accountBookingRequest, bookingRequest]);
+/** A work order taken in on the schedule: waiting to be placed, or, with `followUp`, waiting on a call to locate it. */
+export const newWorkOrderResponse = z.object({ jobId: text, followUp: z.boolean() }).strict();
 export const bookingAddress = z.object({ line1: text, city: text, state: text, postalCode: text });
 export const locationBounds = z.object({ south: finite.min(-90).max(90), north: finite.min(-90).max(90),
   west: finite.min(-180).max(180), east: finite.min(-180).max(180) }).refine(b => b.south <= b.north && b.west <= b.east);

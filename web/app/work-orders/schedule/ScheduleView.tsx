@@ -22,6 +22,7 @@ import { placementUndone, type PlacementPreview, type PlacementSaved } from "@/l
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician } from "./types";
 import { hasFilters, itemMatches, workOrderLabel, type CardFilters } from "@/lib/workOrdersDayCore";
 import WorkOrderPanel from "./WorkOrderPanel";
+import NewWorkOrderDrawer from "./NewWorkOrderDrawer";
 import { scheduleHref } from "./scheduleHref";
 import { STATUS_LABEL, StatusIcon } from "@/app/portal/ui";
 
@@ -596,6 +597,8 @@ export default function ScheduleView({
   services,
   serviceLegend,
   placeJobId,
+  startNew,
+  accountsAvailable,
   version,
   filters,
   hiddenTechnicianIds,
@@ -617,6 +620,10 @@ export default function ScheduleView({
   serviceLegend: ScheduleServiceLegend[];
   /** A job to start placing when the page opens, from a "Place on calendar" link. */
   placeJobId: string | null;
+  /** Opens the new work order form when the page opens, from a `?new=1` link. */
+  startNew: boolean;
+  /** Whether the client has WaterFlex accounts to find a customer by. */
+  accountsAvailable: boolean;
   /** The schedule's version when this page was rendered; a different one from the portal means it changed since. */
   version: string;
   /** The page's filters. They hide visits and waiting jobs from view; places are still worked out from every visit. */
@@ -628,6 +635,15 @@ export default function ScheduleView({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
+  const [creating, setCreating] = useState(startNew);
+  /** Closes the new work order form; a `?new=1` link that opened it is dropped, so a reload does not open it again. */
+  const closeNew = () => {
+    setCreating(false);
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("new")) return;
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url);
+  };
   // The day on screen. The time axis covers only its shifts; placement times this day's stops first.
   const shown = useMemo(() => [date], [date]);
   const visibleTechnicians = technicians.filter(technician => !hiddenTechnicianIds.has(technician.id));
@@ -1041,7 +1057,7 @@ export default function ScheduleView({
       <PlacementPanel jobs={shownJobs} waitingCount={jobs.length} startFolded={compact} services={services} placement={placement} technicians={technicians} timezone={timezone}
         onPlaceJob={subject => { if (subject.kind === "job") placeJob(subject); }}
         onPressJob={(job, event) => press({ kind: "job", job }, event)} clickSuppressed={clickSuppressed}
-        onCreated={(jobId, label) => { placeJob({ kind: "job", id: jobId, label }); router.refresh(); }}
+        onNewWorkOrder={() => { setSelected(null); setCreating(true); }}
         onChoose={(spot, plannedStart) => {
           choose(spot, plannedStart);
           // A fit on another day of the week opens that day.
@@ -1092,6 +1108,16 @@ export default function ScheduleView({
       </div>
       </div>
       {technicians.length > 0 && legend}
+      {creating && <NewWorkOrderDrawer services={services} accountsAvailable={accountsAvailable} onClose={closeNew}
+        onCreated={({ jobId, label, followUp }) => {
+          closeNew();
+          ownChange.current = performance.now();
+          router.refresh();
+          // Located, it is placed at once: recommended times and every place by hand. A follow-up waits on its call.
+          if (!followUp) { placeJob({ kind: "job", id: jobId, label }); return; }
+          setSaved({ message: `Sent to follow-up: ${label} waits in Unassigned and on the Follow-up page until it is located.`,
+            undoId: null, undone: "", undoing: false, error: null });
+        }} />}
       {selected && (
         <AppointmentPanel
           appointment={appointments.find(item => item.id === selected.id) ?? selected}

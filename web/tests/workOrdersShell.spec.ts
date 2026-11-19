@@ -75,6 +75,8 @@ test.describe("the work orders section", () => {
       await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
       await expect(sections.getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
     }
+    // A new work order is made on the schedule, so the menu has no page for it.
+    await expect(sections.getByRole("link", { name: "New work order" })).toHaveCount(0);
   });
 
   test("the placeholder sections show no rows and keep their filters disabled", async ({ page }) => {
@@ -237,7 +239,7 @@ test.describe("the work orders section", () => {
 });
 
 test("every page opens in the one portal frame, under its own section, with no classic sidebar", async ({ page }) => {
-  for (const [path, section, link] of [["/", "work-orders", null], ["/work-orders/schedule", "work-orders", "Schedule"], ["/work-orders/new", "work-orders", "New work order"],
+  for (const [path, section, link] of [["/", "work-orders", null], ["/work-orders/schedule", "work-orders", "Schedule"],
     ["/work-orders/follow-up", "work-orders", "Follow-up"], ["/dispatch", "dispatch", "Optimize routes"], ["/technicians", "technicians", "Roster"],
     ["/technicians/time-off", "technicians", "Time off"], ["/branches", "branches", "Dealerships and depots"], ["/settings/solver", "settings", "Solver settings"]] as const) {
     await page.goto(path);
@@ -254,7 +256,7 @@ test("every page opens in the one portal frame, under its own section, with no c
 });
 
 test("the pages' old addresses lead to their places in the portal, keeping the query", async ({ page }) => {
-  for (const [from, to] of [["/book", /\/work-orders\/new$/], ["/dispatch/follow-up", /\/work-orders\/follow-up$/],
+  for (const [from, to] of [["/book", /\/work-orders\/schedule\?new=1$/], ["/work-orders/new", /\/work-orders\/schedule\?new=1$/], ["/dispatch/follow-up", /\/work-orders\/follow-up$/],
     ["/time-off?status=ready", /\/technicians\/time-off\?status=ready$/], ["/dealerships", /\/branches$/], ["/settings", /\/settings\/solver$/],
     ["/schedule?week=2026-10-07&placeJob=job-1", /\/work-orders\/schedule\?week=2026-10-07&placeJob=job-1$/]] as const) {
     await page.goto(from);

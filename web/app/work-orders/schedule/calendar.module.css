@@ -259,7 +259,8 @@
   display: flex;
   justify-content: flex-end;
   background: rgb(15 23 42 / 35%);
-  z-index: 10;
+  /* Above the portal's sticky top bar (20), as the technician modal is (40), so a drawer's title and close button show. */
+  z-index: 40;
 }
 
 .panel {
@@ -269,6 +270,11 @@
   padding: 1.5rem;
   background: var(--surface);
   box-shadow: -8px 0 24px rgb(15 23 42 / 15%);
+}
+
+/* The new work order form, whose pin map needs more room than a visit's details. */
+.panelWide {
+  width: min(620px, 100%);
 }
 
 .panelHeader {
@@ -570,17 +576,6 @@
 .jobCardActive,
 .jobCard:hover:not(:disabled) {
   border-color: var(--brand);
-}
-
-.newJobForm {
-  display: grid;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-}
-
-.newJobForm label {
-  display: grid;
-  gap: 0.15rem;
 }
 
 .startChips {

@@ -1,23 +1,4 @@
-/* New work order: the booking steps, drawn as white panels with outlined fields and pill buttons. */
-
-.wrap {
-  max-width: 600px;
-  padding-bottom: 32px;
-}
-
-/* The confirmation and follow-up cards keep their own heading inside the card. */
-.title {
-  margin: 0 0 6px;
-  font-size: 28px;
-  font-weight: 400;
-}
-
-.card {
-  background: var(--surface);
-  border-radius: 12px;
-  box-shadow: var(--panel-shadow);
-  padding: 22px 24px;
-}
+/* The new work order form on the schedule: outlined fields, the customer switch, account results and reason codes. */
 
 .field {
   margin-bottom: 16px;
@@ -117,73 +98,6 @@
   background: var(--danger-wash);
   color: var(--danger);
   font-size: 14px;
-}
-
-.slotGrid {
-  display: grid;
-  gap: 12px;
-}
-
-.slotCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-}
-
-.slotCardExpired {
-  opacity: 0.45;
-}
-
-.slotDay {
-  font-weight: 600;
-}
-
-.slotWindow {
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
-.slotCountdown {
-  margin-top: 4px;
-  color: var(--warning);
-  font-size: 12px;
-}
-
-.selectButton {
-  min-height: 36px;
-  padding: 0 18px;
-  border: 1px solid var(--brand);
-  border-radius: 999px;
-  background: var(--brand);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.selectButton:disabled {
-  border-color: var(--line-strong);
-  background: var(--line-strong);
-  cursor: not-allowed;
-}
-
-.confirmBox {
-  padding: 32px 16px;
-  text-align: center;
-}
-
-.checkmark {
-  margin-bottom: 8px;
-  font-size: 48px;
-}
-
-.skeleton {
-  padding: 32px;
-  color: var(--muted);
-  text-align: center;
 }
 
 /* The form's fields sit in one fieldset so a submit in progress disables them together. */

@@ -29,7 +29,7 @@ function viewOf(view: string | undefined): ScheduleViewName {
 }
 
 export default async function WorkOrdersSchedulePage({ searchParams: query }: {
-  searchParams: Promise<{ view?: string; date?: string; week?: string; metroId?: string; placeJob?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; week?: string; metroId?: string; placeJob?: string; new?: string }>;
 }) {
   const searchParams = await query;
   const clientId = (await activeClient()).id;
@@ -62,6 +62,7 @@ export default async function WorkOrdersSchedulePage({ searchParams: query }: {
         aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
     </nav>}
     <ScheduleWorkspace key={`${metro.id}|${view}`} view={view} day={day} metroId={metro.id} timezone={metro.timezone} date={date}
-      calendar={calendar === null ? null : { ...calendar, metroId: metro.id, timezone: metro.timezone, date, placeJobId: searchParams.placeJob ?? null }} />
+      calendar={calendar === null ? null : { ...calendar, metroId: metro.id, timezone: metro.timezone, date, placeJobId: searchParams.placeJob ?? null,
+        startNew: searchParams.new === "1" }} />
   </>;
 }

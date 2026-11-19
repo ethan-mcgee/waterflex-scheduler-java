@@ -17,6 +17,8 @@ export interface CalendarData {
   absences: ScheduleAbsence[];
   jobs: ScheduleJob[];
   services: ScheduleService[];
+  /** Whether the client has WaterFlex accounts, so the new work order form can find a customer by one. */
+  accountsAvailable: boolean;
   serviceLegend: ScheduleServiceLegend[];
   version: string;
 }
@@ -60,12 +62,13 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
 
   // Jobs waiting to be placed, newest first, and the services a new job can be for.
   // Every service, retired ones too, is given its color from the whole catalog, so a service's color never shifts.
-  const [pendingJobs, services, catalog] = await Promise.all([
+  const [pendingJobs, services, catalog, accountCount] = await Promise.all([
     prisma.job.findMany({ where: { status: "PENDING", appointment: null, customer: { clientId } }, orderBy: { createdAt: "desc" }, take: 50,
       include: { customer: { select: { firstName: true, lastName: true } }, ...WORK_ORDER_INCLUDE,
         address: { select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true } } } }),
-    prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { code: true, name: true, estDurationMin: true, bufferPct: true } }),
+    prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { code: true, name: true, estDurationMin: true, bufferPct: true } }),
     prisma.serviceCatalog.findMany({ select: { code: true } }),
+    prisma.account.count({ where: { clientId } }),
   ]);
   const colors = serviceColors(catalog.map(item => item.code));
   const jobs: ScheduleJob[] = pendingJobs.map(job => ({ id: job.id, customerName: `${job.customer.firstName} ${job.customer.lastName}`,
@@ -120,5 +123,5 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
       shiftStartMin: technician.shiftStartMin, shiftEndMin: technician.shiftEndMin, days };
   });
 
-  return { monday, technicians: calendarTechnicians, appointments: scheduleAppointments, absences, jobs, services, serviceLegend, version };
+  return { monday, technicians: calendarTechnicians, appointments: scheduleAppointments, absences, jobs, services, accountsAvailable: accountCount > 0, serviceLegend, version };
 }

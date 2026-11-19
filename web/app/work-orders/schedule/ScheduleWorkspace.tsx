@@ -22,6 +22,8 @@ export interface CalendarProps extends CalendarData {
   timezone: string;
   date: string;
   placeJobId: string | null;
+  /** Open the new work order form on arrival (`?new=1`). */
+  startNew: boolean;
 }
 
 /**
@@ -78,7 +80,7 @@ export default function ScheduleWorkspace({ view, calendar, day, metroId, timezo
   const calendarView = calendar === null ? null : <ScheduleView metroId={calendar.metroId}
     monday={calendar.monday} date={calendar.date} timezone={calendar.timezone}
     technicians={calendar.technicians} appointments={calendar.appointments} absences={calendar.absences} jobs={calendar.jobs}
-    services={calendar.services} serviceLegend={calendar.serviceLegend} placeJobId={calendar.placeJobId} version={calendar.version}
+    services={calendar.services} serviceLegend={calendar.serviceLegend} placeJobId={calendar.placeJobId} startNew={calendar.startNew} accountsAvailable={calendar.accountsAvailable} version={calendar.version}
     filters={filters} hiddenTechnicianIds={hidden} compact={view === "dual"} />;
   const nothingMatches = filtered && cards.length === 0 && waiting.length === 0 && day !== null && (day.cards.length > 0 || day.waiting.length > 0);
   const mapView = day === null ? null : nothingMatches
