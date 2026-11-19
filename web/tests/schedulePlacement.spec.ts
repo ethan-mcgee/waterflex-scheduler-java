@@ -464,7 +464,7 @@ test.describe("placing and moving on the schedule", () => {
     const form = panel(page).getByRole("form", { name: "New job" });
     for (const [label, value] of [["First name", "Fresh"], ["Last name", "Customer"], ["Email", "fresh@example.invalid"], ["Phone", "4025550111"],
       ["Street", "2 Elm St"], ["City", "Omaha"], ["State", "NE"], ["ZIP", "68102"]] as const) await form.getByLabel(label).fill(value);
-    await form.getByLabel("Service").selectOption({ label: "Softener install" });
+    await form.getByLabel("Reason code").selectOption({ label: "Softener install" });
     await form.getByRole("button", { name: "Create and place" }).click();
     await expect(panel(page).getByRole("heading", { name: "Fresh Customer, Softener install" })).toBeVisible();
     await expect(marker(page, fixture.first, fixture.north, fixture.south)).toHaveText("Best, +6 min drive");

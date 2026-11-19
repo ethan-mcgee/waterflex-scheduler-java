@@ -30,12 +30,13 @@ async function seed(): Promise<Fixture> {
   const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Wo", lastName: "Customer", email: "wo@example.invalid", phone: "4025550100" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "1 Work Order St", city: "Omaha", state: "NE", postalCode: "68102",
     lat: 41.27, lng: -95.9, geocodePrecision: "ROOFTOP", pinConfirmedAt: new Date("2026-09-01T00:00:00Z") } });
-  const bookedJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: softener.id, durationMin: 45, status: "SCHEDULED" } });
+  const bookedJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: softener.id, durationMin: 45, status: "SCHEDULED", workOrderType: "Maintenance" } });
   const visit = await prisma.appointment.create({ data: { jobId: bookedJob.id, technicianId: first.id, serviceDate: new Date(`${DATE}T00:00:00Z`),
     windowStart: at(15), windowEnd: at(17), plannedStart: at(15, 15), plannedEnd: at(16), sequence: 0 } });
   const waitingAddress = await prisma.address.create({ data: { customerId: customer.id, line1: "9 Waiting Ave", city: "Bellevue", state: "NE", postalCode: "68005",
     lat: 41.15, lng: -95.92, geocodePrecision: "ROOFTOP" } });
-  const waitingJob = await prisma.job.create({ data: { customerId: customer.id, addressId: waitingAddress.id, serviceId: repair.id, durationMin: 60, status: "PENDING" } });
+  const waitingJob = await prisma.job.create({ data: { customerId: customer.id, addressId: waitingAddress.id, serviceId: repair.id, durationMin: 60, status: "PENDING", workOrderType: "Repair",
+    reasonCodes: { create: { position: 2, reasonCodeId: softener.id } } } });
   return { metroId: metro.id, first: first.id, second: second.id, visit: visit.id, waitingJob: waitingJob.id, cleanup: async () => {
     await prisma.appointment.delete({ where: { id: visit.id } });
     await prisma.job.deleteMany({ where: { id: { in: [bookedJob.id, waitingJob.id] } } });
@@ -95,10 +96,10 @@ test.describe("the work orders section", () => {
     await expect(visit).toContainText("Wo Customer");
     await expect(visit).toHaveAttribute("title", "Wo Customer, Wo softener service");
     await expect(visit.getByRole("img", { name: "Scheduled" })).toBeVisible();
-    await expect(unassigned(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`)).toContainText("Wo repair call");
+    await expect(unassigned(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`)).toContainText("Wo repair call +1 more, 60 min");
     await expect(unassigned(page)).toContainText("Unassigned 1");
 
-    await expect(page.getByLabel("Reason code", { exact: true })).toBeDisabled();
+    await expect(page.getByLabel("Reason code", { exact: true })).toBeEnabled();
     await expect(page.getByLabel("Branch", { exact: true })).toBeDisabled();
   });
 
@@ -108,8 +109,17 @@ test.describe("the work orders section", () => {
     const waiting = unassigned(page).locator(`[data-waiting-order="${fixture.waitingJob}"]`);
     await expect(visit).toBeVisible();
 
-    await page.getByLabel("Work order type").selectOption({ label: "Wo repair call" });
+    await page.getByLabel("Work order type").selectOption({ label: "Repair" });
     await expect(visit).toHaveCount(0);
+    await expect(waiting).toBeVisible();
+
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.getByLabel("Reason code", { exact: true }).selectOption({ label: "Wo repair call" });
+    await expect(visit).toHaveCount(0);
+    await expect(waiting).toBeVisible();
+    // A work order matches on any of its reason codes: the waiting one's second code is the visit's first.
+    await page.getByLabel("Reason code", { exact: true }).selectOption({ label: "Wo softener service" });
+    await expect(visit).toBeVisible();
     await expect(waiting).toBeVisible();
 
     await page.getByRole("button", { name: "Clear filters" }).click();

@@ -1,4 +1,4 @@
-import { Prisma, type Job, type ServiceCatalog } from "@prisma/client";
+import { Prisma, type Job } from "@prisma/client";
 import type { z } from "zod";
 import type { accountBookingRequest, bookingRequest, workOrderRequest } from "./contracts";
 import { prisma } from "./prisma";
@@ -8,6 +8,7 @@ import { ownsJob } from "./clientScope";
 import { bookingFingerprint } from "./bookingIdentity";
 import { findAccount, type WaterFlexAccount } from "./accountLookup";
 import { allotTime, suggestedMinutes } from "./reasonCodesCore";
+import { activeReasonCodes } from "./reasonCodes";
 
 /**
  * Taking in a work order: the customer, the address and a PENDING job, under the request's retry key. Shared by the
@@ -33,19 +34,6 @@ const refuse = (status: number, error: string, code?: string): Refusal => ({ ref
 export function geocoderRefusal(error: unknown): { status: number; body: { status: string; error: string } } | null {
   if (!(error instanceof GeocoderError)) return null;
   return { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503, body: { status: "LOOKUP_FAILED", error: error.message } };
-}
-
-/** The request's codes from the catalog, in the order given, or the refusal when one is unknown or retired. */
-async function reasonCodes(input: WorkOrderInput): Promise<ServiceCatalog[] | Refusal> {
-  const codes = [input.serviceCode, ...(input.extraReasonCodes ?? [])];
-  const rows = await prisma.serviceCatalog.findMany({ where: { code: { in: codes } } });
-  const ordered: ServiceCatalog[] = [];
-  for (const code of codes) {
-    const row = rows.find(item => item.code === code);
-    if (row === undefined || !row.active) return refuse(400, `Reason code ${code} is not currently available.`);
-    ordered.push(row);
-  }
-  return ordered;
 }
 
 /** Where a typed address is: the geocoder's rooftop match or the caller's confirmed pin, inside the service area. */
@@ -93,8 +81,9 @@ export async function intakeJob(clientId: string, input: WorkOrderInput): Promis
   if (job && job.status !== "PENDING") return refuse(409, "This booking request has already been completed.");
   if (job) return { job };
 
-  const codes = await reasonCodes(input);
-  if (!Array.isArray(codes)) return codes;
+  const found = await activeReasonCodes([input.serviceCode, ...(input.extraReasonCodes ?? [])]);
+  if ("error" in found) return refuse(400, found.error);
+  const { codes } = found;
   const [first, ...extra] = codes;
   if (first === undefined) return refuse(400, "A work order needs a reason code.");
   const allotted = allotTime(suggestedMinutes(codes), input.durationMin);

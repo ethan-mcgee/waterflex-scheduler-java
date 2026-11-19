@@ -2,18 +2,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   cardMatches, clockLabel, durationLabel, hasFilters, hourLabel, initials, itemMatches, minuteOfDay, NO_FILTERS, pastelOf, placeLine, routeOf,
-  TYPE_PASTELS, typePastels, waitingMatches, workOrderStatus, type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician,
+  TYPE_PASTELS, typePastels, waitingMatches, workOrderStatus, type WaitingWorkOrder, type WorkOrderCard, type WorkOrderFields, type WorkOrderTechnician,
 } from "./workOrdersDayCore";
 
 const card = (overrides: Partial<WorkOrderCard>): WorkOrderCard => ({
-  appointmentId: "a1", jobId: "j1", technicianId: "t1", status: "SCHEDULED", jobStatus: "SCHEDULED", typeCode: "FILTER_SWAP", typeName: "Filter swap",
+  appointmentId: "a1", jobId: "j1", technicianId: "t1", status: "SCHEDULED", jobStatus: "SCHEDULED", typeCode: "FILTER_SWAP", typeName: "Filter swap", workOrder: fields("FILTER_SWAP", "Maintenance"),
   customerName: "Ana Ruiz", street: "1 Main St", place: "Omaha, NE 68102", startMin: 540, endMin: 600,
   windowStart: "2026-10-07T14:00:00.000Z", windowEnd: "2026-10-07T16:00:00.000Z", plannedStart: "2026-10-07T14:00:00.000Z", plannedEnd: "2026-10-07T15:00:00.000Z",
   sequence: 0, durationMin: 60, lat: 41.2, lng: -95.9, geocodePrecision: "ROOFTOP", pinConfirmedAt: null, ...overrides,
 });
 const technician = (shift: WorkOrderTechnician["shift"]): WorkOrderTechnician =>
   ({ id: "t1", name: "Alex Rivera", color: "#dc2626", initials: "AR", homeLat: 41.3, homeLng: -95.9, shift, usualShift: { startMin: 480, endMin: 1020 } });
-const waiting: WaitingWorkOrder = { jobId: "j9", typeCode: "REPAIR", typeName: "Repair", customerName: "Bo Li", place: "Bellevue, NE 68005", durationMin: 45, located: true };
+/** Work order fields for a test item: its codes (the first being its type code) and its work order type. */
+function fields(first: string, workOrderType: string | null, ...extra: string[]): WorkOrderFields {
+  return { reasonCodes: [first, ...extra].map(code => ({ code, name: code })), workOrderType, purchaseOrder: null, technicianMessage: null,
+    customerRequest: null, callFirst: null, durationMin: 45, suggestedDurationMin: null, durationOverridden: false };
+}
+const waiting: WaitingWorkOrder = { jobId: "j9", typeCode: "REPAIR", typeName: "Repair", workOrder: fields("REPAIR", "Repair", "SALT"), customerName: "Bo Li", place: "Bellevue, NE 68005", durationMin: 45, located: true };
 
 test("types get the design's pastels in code order, whatever order they load in", () => {
   const pastels = typePastels(["REPAIR", "FILTER_SWAP"]);
@@ -65,7 +70,11 @@ test("filters match type and status exactly and the place as typed text", () => 
   assert.equal(hasFilters(NO_FILTERS), false);
   assert.equal(hasFilters({ ...NO_FILTERS, place: "  " }), false);
   assert.equal(cardMatches(card({}), NO_FILTERS), true);
-  assert.equal(cardMatches(card({}), { ...NO_FILTERS, type: "REPAIR" }), false);
+  assert.equal(cardMatches(card({}), { ...NO_FILTERS, type: "Repair" }), false);
+  assert.equal(cardMatches(card({}), { ...NO_FILTERS, type: "Maintenance" }), true);
+  assert.equal(cardMatches(card({}), { ...NO_FILTERS, reason: "REPAIR" }), false);
+  assert.equal(cardMatches(card({}), { ...NO_FILTERS, reason: "FILTER_SWAP" }), true);
+  assert.equal(hasFilters({ ...NO_FILTERS, reason: "FILTER_SWAP" }), true);
   assert.equal(cardMatches(card({}), { ...NO_FILTERS, status: "COMPLETED" }), false);
   assert.equal(cardMatches(card({ status: null }), { ...NO_FILTERS, status: "SCHEDULED" }), false);
   assert.equal(cardMatches(card({}), { ...NO_FILTERS, place: "68102" }), true);
@@ -76,14 +85,18 @@ test("filters match type and status exactly and the place as typed text", () => 
 test("waiting work orders have no status, so a status filter hides them", () => {
   assert.equal(waitingMatches(waiting, NO_FILTERS), true);
   assert.equal(waitingMatches(waiting, { ...NO_FILTERS, status: "SCHEDULED" }), false);
-  assert.equal(waitingMatches(waiting, { ...NO_FILTERS, type: "REPAIR", place: "bellevue" }), true);
+  assert.equal(waitingMatches(waiting, { ...NO_FILTERS, type: "Repair", place: "bellevue" }), true);
+  // Any of the work order's reason codes matches, not only the first.
+  assert.equal(waitingMatches(waiting, { ...NO_FILTERS, reason: "SALT" }), true);
 });
 
 test("a calendar visit with no status shown never matches a status filter, but still matches type and place", () => {
-  const visit = { typeCode: "SOFTENER", status: null, place: "Omaha, NE 68102" };
+  const visit = { workOrder: { workOrderType: null, reasonCodes: [{ code: "SOFTENER", name: "Softener" }] }, status: null, place: "Omaha, NE 68102" };
+  // A work order without a type never matches a type filter.
+  assert.equal(itemMatches(visit, { ...NO_FILTERS, type: "Repair" }), false);
   assert.equal(itemMatches(visit, NO_FILTERS), true);
   assert.equal(itemMatches(visit, { ...NO_FILTERS, status: "SCHEDULED" }), false);
-  assert.equal(itemMatches(visit, { ...NO_FILTERS, type: "SOFTENER", place: " 68102 " }), true);
+  assert.equal(itemMatches(visit, { ...NO_FILTERS, reason: "SOFTENER", place: " 68102 " }), true);
   assert.equal(itemMatches({ ...visit, status: "COMPLETED" }, { ...NO_FILTERS, status: "COMPLETED", place: "lincoln" }), false);
 });
 

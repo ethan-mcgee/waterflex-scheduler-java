@@ -53,9 +53,12 @@ export default function ScheduleWorkspace({ view, calendar, day, previousHref, n
   const technicians = calendar?.technicians ?? day?.technicians ?? [];
   const shownTechnicians = technicians.filter(tech => !hidden.has(tech.id));
   const hiddenTechnicians = technicians.filter(tech => hidden.has(tech.id));
-  // The calendar's types are the services on screen this week; the map's are the day's.
-  const types = calendar !== null ? calendar.serviceLegend.map(item => ({ code: item.code, name: item.name }))
-    : (day?.types ?? []).map(type => ({ code: type.code, name: type.name }));
+  // The filters offer what is on screen: the calendar week's work orders, or the map day's.
+  const onScreen = calendar !== null ? [...calendar.appointments, ...calendar.jobs] : [...(day?.cards ?? []), ...(day?.waiting ?? [])];
+  const typeOptions = [...new Set(onScreen.flatMap(item => item.workOrder.workOrderType ?? []))].sort((a, b) => a.localeCompare(b))
+    .map(type => ({ value: type, label: type }));
+  const reasonNames = new Map(onScreen.flatMap(item => item.workOrder.reasonCodes.map(code => [code.code, code.name] as const)));
+  const reasonOptions = [...reasonNames.entries()].sort(([, a], [, b]) => a.localeCompare(b)).map(([code, name]) => ({ value: code, label: name }));
 
   const mapTechnicians = useMemo(() => (day?.technicians ?? []).filter(tech => !hidden.has(tech.id)), [day, hidden]);
   const cards = useMemo(() => (day?.cards ?? []).filter(card => cardMatches(card, filters)), [day, filters]);
@@ -91,11 +94,11 @@ export default function ScheduleWorkspace({ view, calendar, day, previousHref, n
 
   return <>
     <FilterBar canClear={filtered} onClear={() => setFilters(NO_FILTERS)}>
-      <SelectField label="Work order type" value={filters.type} onChange={type => set({ type })}
-        options={types.map(type => ({ value: type.code, label: type.name }))} />
+      <SelectField label="Work order type" value={filters.type} onChange={type => set({ type })} options={typeOptions}
+        disabled={typeOptions.length === 0 && filters.type === ""} hint={typeOptions.length === 0 ? "No work order on screen has a type." : undefined} />
       <SelectField label="Status" value={filters.status} onChange={status => set({ status })}
         options={STATUSES.map(status => ({ value: status, label: STATUS_LABEL[status] }))} />
-      <SelectField label="Reason code" value="" options={[]} disabled hint={NOT_YET} />
+      <SelectField label="Reason code" value={filters.reason} onChange={reason => set({ reason })} options={reasonOptions} />
       <SelectField label="Branch" value="" options={[]} disabled hint={NOT_YET} />
       <TextField label="City / ZIP" value={filters.place} onChange={place => set({ place })} />
     </FilterBar>

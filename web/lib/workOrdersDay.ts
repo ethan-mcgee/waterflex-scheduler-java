@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { resolveWeeklyDay, validateVersions } from "./technicianAvailability";
+import { WORK_ORDER_INCLUDE, workOrderFields } from "./workOrderFields";
 import {
   initials, minuteOfDay, pastelOf, placeLine, typePastels, workOrderStatus,
   type WaitingWorkOrder, type WorkOrderCard, type WorkOrderTechnician, type WorkOrdersDay,
@@ -51,12 +52,12 @@ export async function loadWorkOrdersDay(clientId: string, metro: { id: string; n
   const [appointments, pendingJobs, catalog] = await Promise.all([
     prisma.appointment.findMany({
       where: { technicianId: { in: members.map(tech => tech.id) }, serviceDate: { gte: dayStart, lt: dayEnd }, cancelledAt: null },
-      include: { job: { include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { code: true, name: true } }, address: true } } },
+      include: { job: { include: { customer: { select: { firstName: true, lastName: true } }, ...WORK_ORDER_INCLUDE, address: true } } },
       orderBy: [{ technicianId: "asc" }, { sequence: "asc" }, { plannedStart: "asc" }],
     }),
     // The same waiting jobs as the classic schedule's list: the client's pending jobs with no visit, newest first.
     prisma.job.findMany({ where: { status: "PENDING", appointment: null, customer: { clientId } }, orderBy: { createdAt: "desc" }, take: 50,
-      include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { code: true, name: true } },
+      include: { customer: { select: { firstName: true, lastName: true } }, ...WORK_ORDER_INCLUDE,
         address: { select: { city: true, state: true, postalCode: true, lat: true, lng: true } } } }),
     prisma.serviceCatalog.findMany({ select: { code: true } }),
   ]);
@@ -68,7 +69,7 @@ export async function loadWorkOrdersDay(clientId: string, metro: { id: string; n
     return {
       appointmentId: appointment.id, jobId: job.id, technicianId: appointment.technicianId,
       status: workOrderStatus(job.status), jobStatus: job.status,
-      typeCode: job.service.code, typeName: job.service.name,
+      typeCode: job.service.code, typeName: job.service.name, workOrder: workOrderFields(job),
       customerName: `${job.customer.firstName} ${job.customer.lastName}`,
       street: [job.address.line1, job.address.line2].filter(Boolean).join(", "),
       place: placeLine(job.address.city, job.address.state, job.address.postalCode),
@@ -81,7 +82,7 @@ export async function loadWorkOrdersDay(clientId: string, metro: { id: string; n
   });
 
   const waiting: WaitingWorkOrder[] = pendingJobs.map(job => ({
-    jobId: job.id, typeCode: job.service.code, typeName: job.service.name, customerName: `${job.customer.firstName} ${job.customer.lastName}`,
+    jobId: job.id, typeCode: job.service.code, typeName: job.service.name, workOrder: workOrderFields(job), customerName: `${job.customer.firstName} ${job.customer.lastName}`,
     place: placeLine(job.address.city, job.address.state, job.address.postalCode), durationMin: job.durationMin,
     located: job.address.lat !== null && job.address.lng !== null,
   }));

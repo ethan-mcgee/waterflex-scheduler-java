@@ -4,6 +4,7 @@ import { addCalendarDays, mondayOfWeek, weekDates } from "@/lib/date";
 import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
 import { colorOf, serviceColors } from "@/lib/serviceColors";
 import { placeLine, workOrderStatus } from "@/lib/workOrdersDayCore";
+import { WORK_ORDER_INCLUDE, workOrderFields } from "@/lib/workOrderFields";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleJob, ScheduleService, ScheduleServiceLegend, ScheduleTechnician } from "./types";
 
 export interface CalendarMetro { id: string; name: string; timezone: string }
@@ -45,7 +46,7 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
   const technicianIds = metroTechnicians.map(technician => technician.id);
   const appointments = await prisma.appointment.findMany({
     where: { technicianId: { in: technicianIds }, serviceDate: { gte: weekStart, lt: weekEnd }, cancelledAt: null },
-    include: { technician: { select: { name: true } }, job: { include: { customer: true, service: true, address: true } } },
+    include: { technician: { select: { name: true } }, job: { include: { customer: true, address: true, ...WORK_ORDER_INCLUDE } } },
     orderBy: [{ technicianId: "asc" }, { serviceDate: "asc" }, { plannedStart: "asc" }, { sequence: "asc" }],
   });
   const absenceIntervals = await prisma.timeOffInterval.findMany({
@@ -61,14 +62,15 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
   // Every service, retired ones too, is given its color from the whole catalog, so a service's color never shifts.
   const [pendingJobs, services, catalog] = await Promise.all([
     prisma.job.findMany({ where: { status: "PENDING", appointment: null, customer: { clientId } }, orderBy: { createdAt: "desc" }, take: 50,
-      include: { customer: { select: { firstName: true, lastName: true } }, service: { select: { code: true, name: true } },
+      include: { customer: { select: { firstName: true, lastName: true } }, ...WORK_ORDER_INCLUDE,
         address: { select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true } } } }),
-    prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { code: true, name: true } }),
+    prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { code: true, name: true, estDurationMin: true, bufferPct: true } }),
     prisma.serviceCatalog.findMany({ select: { code: true } }),
   ]);
   const colors = serviceColors(catalog.map(item => item.code));
   const jobs: ScheduleJob[] = pendingJobs.map(job => ({ id: job.id, customerName: `${job.customer.firstName} ${job.customer.lastName}`,
     serviceCode: job.service.code, serviceName: job.service.name, serviceColor: colorOf(colors, job.service.code), durationMin: job.durationMin,
+    workOrder: workOrderFields(job),
     addressLine: `${job.address.line1}, ${job.address.city}, ${job.address.state}`, place: placeLine(job.address.city, job.address.state, job.address.postalCode),
     located: job.address.lat !== null && job.address.lng !== null, followUp: job.manualFollowUpStatus }));
 
@@ -78,6 +80,7 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
     const address = appointment.job.address;
     return {
       id: appointment.id,
+      jobId: appointment.jobId,
       technicianId: appointment.technicianId,
       technicianName: appointment.technician.name,
       date: appointment.serviceDate.toISOString().slice(0, 10),
@@ -86,6 +89,7 @@ export async function loadCalendar(clientId: string, metro: CalendarMetro, date:
       serviceName: appointment.job.service.name,
       serviceColor: colorOf(colors, appointment.job.service.code),
       status: workOrderStatus(appointment.job.status),
+      workOrder: workOrderFields(appointment.job),
       addressLine: [address.line1, address.line2, address.city, address.state, address.postalCode].filter(Boolean).join(", "),
       place: placeLine(address.city, address.state, address.postalCode),
       windowStart: appointment.windowStart.toISOString(),

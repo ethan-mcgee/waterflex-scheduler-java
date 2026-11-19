@@ -196,6 +196,18 @@ export const bookingRequest = z.object({ ...contact, line1: text, line2: z.strin
 /** A work order for a WaterFlex account, at the account's address and the coordinates WaterFlex has for it. */
 export const accountBookingRequest = z.object({ ...contact, accountNumber: text, followUp: z.boolean().optional(), ...workOrderDetails }).strict()
   .refine(distinctCodes, "A reason code can be given once");
+/**
+ * Editing a work order. The details can change on any work order; `timing` (its reason codes and the time allotted, or
+ * null to follow the codes' suggestion) only while it waits for the calendar, since a booked visit's day was planned
+ * with them.
+ */
+export const workOrderUpdate = z.object({
+  workOrderType: text.max(80).nullable(), purchaseOrder: text.max(80).nullable(), technicianMessage: text.max(1000).nullable(),
+  customerRequest: text.max(1000).nullable(), callFirst: z.boolean().nullable(),
+  timing: z.object({ reasonCodes: z.array(text).min(1).max(MAX_REASON_CODES), durationMin: z.int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN).nullable() }).strict()
+    .refine(value => new Set(value.reasonCodes).size === value.reasonCodes.length, "A reason code can be given once").optional(),
+}).strict();
+export const workOrderSaved = z.object({ saved: z.literal(true) }).strict();
 /** A WaterFlex account as the New work order page shows it (lib/accountLookup.ts). */
 export const waterflexAccount = z.object({ id: text, accountNumber: text, name: text.nullable(), phone: text.nullable(), email: text.nullable(),
   line1: text, line2: text.nullable(), city: text, state: text, postalCode: text, location: point.nullable(), importedAt: instant }).strict();
