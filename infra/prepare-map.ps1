@@ -4,7 +4,9 @@
 param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9._-]+$')][string]$Version,
     [ValidatePattern('^[a-z0-9][a-z0-9-]{0,59}$')][string]$Region = 'omaha',
-    [ValidatePattern('^(-?\d+(\.\d+)?,-?\d+(\.\d+)?,\d+(\.\d+)?)?$')][string]$CoverageCircle = ''
+    [ValidatePattern('^(-?\d+(\.\d+)?,-?\d+(\.\d+)?,\d+(\.\d+)?)?$')][string]$CoverageCircle = '',
+    # Threads for the contraction hierarchy preparation; Planetiler already uses every core Docker gives it.
+    [ValidateRange(1, 64)][int]$ChThreads = 4
 )
 $ErrorActionPreference = 'Continue' # Native stderr is progress output in Windows PowerShell; check every exit code.
 if ($Version -in @('.', '..')) { throw 'Invalid version' }
@@ -39,7 +41,7 @@ docker compose --profile map-import run --rm -e ROUTING_OSM_FILE="/maps/versions
 if ($LASTEXITCODE -ne 0) { throw 'GraphHopper import failed' }
 # The contraction hierarchy graph for the same map, prepared beside the flexible one (graph-ch-car-v1) so a version
 # always carries both; routing-service serves it with ROUTING_CH_ENABLED=true.
-docker compose --profile map-import run --rm -e ROUTING_OSM_FILE="/maps/versions/$Version/omaha.osm.pbf" -e ROUTING_GRAPH_DIR="/maps/versions/$Version/graph" -e ROUTING_MAP_VERSION=$Version -e ROUTING_CH_ENABLED=true -e ROUTING_CH_PREPARATION_THREADS=4 routing-prepare
+docker compose --profile map-import run --rm -e ROUTING_OSM_FILE="/maps/versions/$Version/omaha.osm.pbf" -e ROUTING_GRAPH_DIR="/maps/versions/$Version/graph" -e ROUTING_MAP_VERSION=$Version -e ROUTING_CH_ENABLED=true -e ROUTING_CH_PREPARATION_THREADS=$ChThreads routing-prepare
 if ($LASTEXITCODE -ne 0) { throw 'GraphHopper CH preparation failed' }
 docker compose --profile map-import run --rm map-import finalize $Version
 if ($LASTEXITCODE -ne 0) { throw 'Map artifact manifest failed' }
