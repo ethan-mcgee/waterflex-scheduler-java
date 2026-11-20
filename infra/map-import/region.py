@@ -10,7 +10,7 @@ import re
 import sys
 from pathlib import Path
 
-GEOFABRIK = 'https://download.geofabrik.de/north-america/us/{source}-latest.osm.pbf'
+GEOFABRIK = 'https://download.geofabrik.de/north-america/us/{source}/{source}-latest.osm.pbf'
 DEFAULT_REGION = 'omaha'
 NAME = re.compile(r'^[a-z0-9][a-z0-9-]{0,59}$')
 SOURCE = re.compile(r'^[a-z][a-z-]{0,39}$')

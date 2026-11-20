@@ -86,5 +86,20 @@ class RegionSpecTest(unittest.TestCase):
             self.assertNotEqual(0, subprocess.run([sys.executable, script, "decode", broken, str(output)], capture_output=True).returncode)
 
 
+class GeofabrikUrlTest(unittest.TestCase):
+    """Geofabrik serves each US state from its own folder; the flat us/<state>-latest URL answers 404 since 2026-11."""
+
+    def test_region_names_the_state_folder(self):
+        self.assertEqual("https://download.geofabrik.de/north-america/us/california/california-latest.osm.pbf",
+                         region.GEOFABRIK.format(source="california"))
+
+    def test_prepare_downloads_and_records_the_same_url_as_the_region(self):
+        script = (MAP_IMPORT / "prepare.sh").read_text(encoding="utf-8")
+        self.assertIn('source="' + region.GEOFABRIK.format(source="${state}") + '"', script)
+        self.assertIn("'url': f'" + region.GEOFABRIK.format(source="{state}") + "'", script)
+        self.assertNotIn("/north-america/us/${state}-latest", script)
+        self.assertNotIn("/north-america/us/{state}-latest", script)
+
+
 if __name__ == "__main__":
     unittest.main()

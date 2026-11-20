@@ -66,7 +66,8 @@ python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); b=c["bounds"]; asse
 sources="$(python3 /usr/local/bin/region-map.py sources "$target/region.json")"
 clip="$(python3 /usr/local/bin/region-map.py clip "$target/region.json")"
 for state in $sources; do
-  source="https://download.geofabrik.de/north-america/us/${state}-latest.osm.pbf"
+  # Geofabrik serves each US state from its own folder (us/<state>/), since November 2026.
+  source="https://download.geofabrik.de/north-america/us/${state}/${state}-latest.osm.pbf"
   if [ ! -f "$target/${state}.osm.pbf" ]; then
     curl --fail --location --retry 3 --silent --show-error "$source" --output "$target/${state}.osm.pbf.part"
     mv "$target/${state}.osm.pbf.part" "$target/${state}.osm.pbf"
@@ -137,7 +138,7 @@ manifest = {'version': sys.argv[2], 'preparedAt': datetime.datetime.now(datetime
             'region': region, 'coverage': coverage, 'mergedSha256': checksum(target / 'omaha.osm.pbf'), 'sources': {}}
 for state in region['sources']:
     manifest['sources'][state] = {
-        'url': f'https://download.geofabrik.de/north-america/us/{state}-latest.osm.pbf',
+        'url': f'https://download.geofabrik.de/north-america/us/{state}/{state}-latest.osm.pbf',
         'sourceTimestamp': subprocess.check_output(['osmium', 'fileinfo', '-e', '-g', 'data.timestamp.last', str(target / f'{state}.osm.pbf')], text=True).strip(),
         'sha256': checksum(target / f'{state}.osm.pbf'),
     }
