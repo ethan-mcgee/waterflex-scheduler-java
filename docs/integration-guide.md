@@ -363,6 +363,22 @@ The scheduler never changes your records. For changes that move existing work, c
 - **Time off and shift edits:** request a repair (section 5) for days with appointments; otherwise just send the new facts in later snapshots.
 - **Maps:** `POST /api/v1/routes/geometry` returns each day's road legs as GeoJSON positions (`[lng, lat]`) for your dispatch maps; nothing is stored.
 
+### Drive times on a dispatch schedule
+
+A dispatch schedule that already lists each technician's visits in order needs one call to show the drive between them: `POST /api/v1/routes/geometry` with the day's snapshot. It routes the visits in the order you send (`sequence`), optimizes nothing and stores nothing. It is a sensible first integration: it needs a token, a snapshot builder and nothing else from section 4 or 5. It takes one of the replica's background calculation slots, so calls queue one behind another; a `429 BUSY` means the queue was full, and the same call is sent again after `Retry-After` (section 7).
+
+```json
+{ "serviceDate": "2026-10-12", "snapshot": { "...": "one metro day as your schedule shows it" } }
+```
+
+- **Legs and stops:** each route lists its `stops` in sequence order and its `legs` by `segment`, then `legIndex`. A segment is the stretch between the technician's start and end, split by approved absences. A segment with n stops has n + 1 legs: from the start to the first stop, between each pair of stops, and from the last stop to the end. A technician-day with no stops has no legs.
+- **Seconds and meters:** each leg carries the road `seconds` and `meters`. Ignore `coordinates` if your schedule draws no map.
+- **Minutes the schedule allows:** the scheduler plans each leg as its road seconds raised by your `travelBufferPct`, rounded up to a whole minute, plus `travelBufferMinutes`: `ceil(seconds * (1 + travelBufferPct) / 60) + travelBufferMinutes`, worked in exact decimals. Show these minutes, not the raw seconds, so your schedule matches what booking and daily proposals will plan later.
+- **Days not drawn:** a technician-day whose locations cannot be resolved is listed in `skippedTechnicianDays` and has no route. Show its visits without drive times and say why; never show zero.
+- **When to call:** after each change to a day's order, and when the dispatcher opens a day. One call covers every technician of the metro day.
+
+The portal in this repository does this in `web/lib/apiScheduleDrive.ts` and `web/lib/apiScheduleDriveCore.ts`, which checks the answer against the snapshot and refuses one that does not match.
+
 ### Placing or moving an appointment by hand
 
 `POST /api/v1/routes/insertions` (since 1.12.0) answers, for one job, every place it could go in the routes you send. Use it behind a scheduling calendar: send it once when the dispatcher picks a job, then work out every hover and drag from the answer without calling again. Nothing is stored.
