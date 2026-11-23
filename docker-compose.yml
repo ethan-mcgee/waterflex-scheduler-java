@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663
+    image: postgres:19-alpine@sha256:8b0ff4cdf221f0c53d7fcda681d3b461be725c492cd881c5ec9c0ad25023f188
     environment:
       POSTGRES_USER: waterflex
       POSTGRES_PASSWORD: waterflex
@@ -13,7 +13,7 @@ services:
       retries: 10
   # The scheduler's own database (tenants, tokens, thin store, route cache), apart from the portal's, as on the VM.
   scheduler-db:
-    image: postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663
+    image: postgres:19-alpine@sha256:8b0ff4cdf221f0c53d7fcda681d3b461be725c492cd881c5ec9c0ad25023f188
     environment:
       POSTGRES_USER: scheduler_owner
       POSTGRES_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
