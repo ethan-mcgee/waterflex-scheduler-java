@@ -44,6 +44,7 @@ The runner needs:
 - An SSH key for the VM user, since stage changes run without a password prompt.
 - `$env:SCHEDULER_STUDY_TOKEN` holding a token of a dedicated tenant (`loadtest`); it is never read from a file.
 - The workstation awake and on the VM's network for the whole run; the runner keeps Windows from sleeping.
+- SSH to the VM only. The workstation's VPN passes SSH but not HTTPS, so by default (`-ApiPath Tunnel`) the runner calls the API through its SSH tunnel at `https://127.0.0.1:18443`, a name the VM's certificate holds. The summary states the path; client-side times include it and the server's own times do not. `-ApiPath Direct` calls `-Url` as given.
 
 Run the same command again with the same `-Run` to resume: a cell with a `cell.json` is done and skipped.
 

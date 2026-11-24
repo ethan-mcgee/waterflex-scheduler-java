@@ -17,6 +17,9 @@ param(
     [string]$Run = 'experiments/runs/vm-performance-2026-11',
     [string]$Vm = 'ethan@192.168.20.171',
     [string]$Url = 'https://192.168.20.171',
+    # The workstation reaches the VM over a VPN that passes SSH but not HTTPS (found 2026-11-24), so the API is reached
+    # through the SSH tunnel by default; Direct calls -Url as given.
+    [ValidateSet('Tunnel', 'Direct')][string]$ApiPath = 'Tunnel',
     [string]$TokenVariable = 'SCHEDULER_STUDY_TOKEN',
     [string]$RequestFile = '.scratch/vm-drive-times/out/geometry-request-2024-01-02.json',
     [string]$Metro = 'metro-paso-robles',
@@ -33,6 +36,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $repo 'infra/study-token.psm1') -Force
+# Through the tunnel the API is https://127.0.0.1:18443, a name the VM's certificate holds.
+$apiTarget = '{0}:{1}' -f ([uri]$Url).Host, ([uri]$Url).Port
+$tunnelApi = $ApiPath -eq 'Tunnel' -and -not $Local
+if ($tunnelApi) { $Url = 'https://127.0.0.1:18443' }
 $kit = Join-Path $repo 'infra/host-conformance'
 $runDir = if ([IO.Path]::IsPathRooted($Run)) { $Run } else { Join-Path $repo $Run }
 $request = if ([IO.Path]::IsPathRooted($RequestFile)) { $RequestFile } else { Join-Path $repo $RequestFile }
@@ -228,15 +235,18 @@ function Copy-ToVm {
     if ($code -ne 0) { throw "Could not copy the test's scripts to the VM (scp exit $code)" }
 }
 
-# The SSH tunnel to the replicas' metrics ports, published on the VM's loopback by perf.ports.yml.
+# The SSH tunnel to the replicas' metrics ports, published on the VM's loopback by perf.ports.yml, and with -ApiPath
+# Tunnel to the public API. Checked before every cell, so a tunnel that dropped is started again.
 $script:tunnel = $null
 function Confirm-Tunnel {
     if ($Local) { return }
     if ($null -ne $script:tunnel -and -not $script:tunnel.HasExited) { return }
-    $script:tunnel = Start-Process -FilePath 'ssh' -PassThru -WindowStyle Hidden -ArgumentList @('-N', '-o', 'BatchMode=yes', '-o', 'ExitOnForwardFailure=yes',
-        '-o', 'ServerAliveInterval=30', '-L', '19010:127.0.0.1:19010', '-L', '19011:127.0.0.1:19011', $Vm)
+    $arguments = @('-N', '-o', 'BatchMode=yes', '-o', 'ExitOnForwardFailure=yes',
+        '-o', 'ServerAliveInterval=30', '-L', '19010:127.0.0.1:19010', '-L', '19011:127.0.0.1:19011')
+    if ($tunnelApi) { $arguments += @('-L', "18443:$apiTarget") }
+    $script:tunnel = Start-Process -FilePath 'ssh' -PassThru -WindowStyle Hidden -ArgumentList ($arguments + $Vm)
     Start-Sleep -Seconds 3
-    if ($script:tunnel.HasExited) { throw "The SSH tunnel to the VM's metrics ports did not stay up (ports 19010 and 19011 in use here?)" }
+    if ($script:tunnel.HasExited) { throw "The SSH tunnel to the VM did not stay up (ports 19010, 19011 or 18443 in use here?)" }
 }
 
 # Windows must not sleep while the run is out of the room.
@@ -328,6 +338,7 @@ if (-not $Local) {
     if ($LASTEXITCODE -ne 0) { throw 'Could not copy the VM certificate' }
     $env:NODE_EXTRA_CA_CERTS = $ca
 }
+Confirm-Tunnel
 # The token's tenant, checked once before hours of calls (prints the tenant ID, never the token).
 $who = & node -e "fetch(process.argv[1]+'/api/v1/whoami',{headers:{Authorization:'Bearer '+process.env[process.argv[2]]}}).then(async r=>{console.log(r.status+' '+await r.text());process.exit(r.status===200?0:1)},e=>{console.error(e.cause?.message??e.message);process.exit(1)})" $Url $TokenVariable 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0) { throw "The token does not work against ${Url}: $who" }
@@ -339,7 +350,7 @@ Invoke-Vm 'bash ~/perf-test/vm-collect.sh caps' | Set-Content -Path (Join-Path $
 Invoke-Vm 'bash ~/perf-test/vm-collect.sh host' -AllowFailure | Set-Content -Path (Join-Path $runDir 'vm/host.txt')
 if (-not $Local -and (Test-Path $CheckScript)) { Invoke-Vm 'bash ~/perf-test/check-vm-live.sh' -AllowFailure | Set-Content -Path (Join-Path $runDir 'vm/check-before.txt') }
 
-$plan = [ordered]@{ mode = $Mode; startedAt = (Get-Date).ToUniversalTime().ToString('o'); url = $Url; vm = $(if ($Local) { 'local rehearsal' } else { $Vm })
+$plan = [ordered]@{ mode = $Mode; startedAt = (Get-Date).ToUniversalTime().ToString('o'); url = $Url; apiPath = $(if ($tunnelApi) { "SSH tunnel to $apiTarget" } else { 'direct' }); vm = $(if ($Local) { 'local rehearsal' } else { $Vm })
     metro = $Metro; pointsGlob = $PointsGlob; requestFile = $RequestFile; stages = @($stages | ForEach-Object { [ordered]@{ name = $_.Name; test = $_.Test; settings = $_.Settings; cells = @($_.Cells | ForEach-Object { $_.Name }) } }) }
 [IO.File]::WriteAllText((Join-Path $runDir "plan-$Mode.json"), ($plan | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
 

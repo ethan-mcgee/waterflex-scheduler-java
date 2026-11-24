@@ -161,6 +161,14 @@ class SummaryTest(unittest.TestCase):
             summarize.read_samples(path)
         self.assertEqual(summarize.main(["--run", str(self.run), "--evidence", str(self.run / "evidence.json")]), 1)
 
+    def test_the_api_path_is_read_from_the_plan_never_assumed(self) -> None:
+        self.assertEqual(summarize.api_path(self.run), summarize.NOT_MEASURED, "no plan file: not measured")
+        write(self.run / "plan-Smoke.json", "﻿" + json.dumps({"apiPath": "SSH tunnel to 192.168.20.171:443"}))
+        self.assertEqual(summarize.api_path(self.run), "SSH tunnel to 192.168.20.171:443", "PowerShell's byte order mark is read")
+        write(self.run / "plan-Smoke.json", "{broken")
+        with self.assertRaises(summarize.InputError):
+            summarize.api_path(self.run)
+
     def test_main_writes_summary_and_evidence(self) -> None:
         evidence = self.run / "evidence.json"
         self.assertEqual(summarize.main(["--run", str(self.run), "--evidence", str(evidence)]), 0)

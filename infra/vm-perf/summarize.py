@@ -437,6 +437,19 @@ def tenant_of(run: Path) -> str | None:
     return parsed.get("tenantId") if isinstance(parsed, dict) and isinstance(parsed.get("tenantId"), str) else None
 
 
+def api_path(run: Path) -> str:
+    """How the workstation reached the API, from the runner's plan file (the latest if several); never assumed."""
+    plans = sorted(run.glob("plan-*.json"), key=lambda path: path.stat().st_mtime)
+    if not plans:
+        return NOT_MEASURED
+    try:
+        plan = json.loads(plans[-1].read_text(encoding="utf-8-sig"))
+    except ValueError as error:
+        raise InputError(f"{plans[-1]}: {error}") from error
+    value = plan.get("apiPath") if isinstance(plan, dict) else None
+    return value if isinstance(value, str) and value else NOT_MEASURED
+
+
 def summarize(run: Path) -> Summary:
     # In the order they ran, which is also the order of rising load within a series.
     cells = sorted((cell for cell in read_cells(run) if not cell.warmup), key=lambda cell: cell.started)
@@ -459,7 +472,10 @@ def summarize(run: Path) -> Summary:
     if live.exists():
         out.add("Its live settings (from deploy/vm/.env, no secrets):", "", "```text", *live.read_text(encoding="utf-8").strip().splitlines(), "```", "")
     restored = run / "vm" / "RESTORED"
-    out.add(f"- **Restored to the live layout:** {restored.read_text(encoding='utf-8').strip() if restored.exists() else 'no restore recorded; check the VM'}.", "")
+    path = api_path(run)
+    out.evidence["apiPath"] = path
+    out.add(f"- **Restored to the live layout:** {restored.read_text(encoding='utf-8').strip() if restored.exists() else 'no restore recorded; check the VM'}.",
+            f"- **How the calls reached the API:** {path}. Client-side times include that path; the server's own times (slot wait, routing, CPU) do not.", "")
 
     for cell in cells:
         res = resources(samples, cell.started, cell.finished)
