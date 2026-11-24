@@ -136,6 +136,9 @@ function Get-Stages {
     }
     if ($Tests -contains 'capacity') {
         $warm = (Load 'warmup' 120 (Booking 1 10 120) -Warmup)
+        # Stages with daily work warm the daily JVM as well: on a fresh JVM at 0.5 vCPU the smoke's first solves ran
+        # under 6,000 moves per second (2026-11-24), the JIT compiler and collector sharing half a core with the solver.
+        $warmMixed = (Load 'warmup' 240 (Mixed 1 240) -Warmup)
         $booking = New-Object System.Collections.Generic.List[object]
         $booking.Add($warm)
         foreach ($fleet in 5, 10, 15) { foreach ($desks in 1, 2, 4) { $booking.Add((Load "booking-${desks}x${fleet}t" 300 (Booking $desks $fleet 300))) } }
@@ -156,7 +159,7 @@ function Get-Stages {
             foreach ($desks in 2, 4, 8) { $list.Add((Pair "mixed-$desks" 600 (Mixed $desks 600) (Dispatchers 5 600))) }
         }
         $mixed = New-Object System.Collections.Generic.List[object]
-        $mixed.Add($warm)
+        $mixed.Add($warmMixed)
         & $mixedCells $mixed
         $stages.Add(@{ Name = 'cap-mixed'; Test = 'capacity'; Settings = @(); Cells = $mixed.ToArray() })
 
@@ -173,7 +176,7 @@ function Get-Stages {
         }
 
         # An hour of steady mixed load on the live caps, fixed before the run: drift in heap, latency and disk.
-        $stages.Add(@{ Name = 'cap-soak'; Test = 'capacity'; Settings = @(); Cells = @($warm, (Pair 'soak-60m' 3600 (Mixed 2 3600) (Dispatchers 2 3600))) })
+        $stages.Add(@{ Name = 'cap-soak'; Test = 'capacity'; Settings = @(); Cells = @($warmMixed, (Pair 'soak-60m' 3600 (Mixed 2 3600) (Dispatchers 2 3600))) })
     }
     return $stages
 }
