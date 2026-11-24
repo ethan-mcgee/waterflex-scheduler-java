@@ -365,8 +365,9 @@ try {
     foreach ($stage in $stages) {
         if (Test-StageDone $stage) { Write-Host "Stage $($stage.Name): done already"; continue }
         Write-Host "Stage $($stage.Name) ($(Get-Date -Format HH:mm))"
-        Invoke-Vm ("bash ~/perf-test/vm-stage.sh $($stage.Name) " + ($stage.Settings -join ' ')) | Write-Host
+        # Current before it starts: a start that fails still leaves its hung replicas' evidence to copy back.
         $current = $stage.Name
+        Invoke-Vm ("bash ~/perf-test/vm-stage.sh $($stage.Name) " + ($stage.Settings -join ' ')) | Write-Host
         # The previous stage's JVMs exited when this stage started them again, so its recordings are complete now.
         if ($null -ne $previous) {
             Copy-FromVm "profiles/$previous" (Join-Path $runDir "stages/$previous/vm-profiles") | Out-Null
@@ -382,15 +383,16 @@ try {
 } finally {
     Write-Host "Restoring the live layout ($(Get-Date -Format HH:mm))"
     try {
+        # Recordings still on the VM: the previous stage's when the current one failed while starting, and the current's.
+        $unsaved = @(@($previous, $current) | Where-Object { $null -ne $_ } | Select-Object -Unique)
         if ($null -ne $current) {
             Invoke-Vm "bash ~/perf-test/vm-collect.sh logs $current" -AllowFailure | Out-Null
             Copy-FromVm "out/$current" (Join-Path $runDir "stages/$current/vm-out") | Out-Null
-            $previous = $current
         }
         Invoke-Vm 'bash ~/perf-test/vm-restore.sh workstation' -AllowFailure | Write-Host
-        if ($null -ne $previous) {
-            Copy-FromVm "profiles/$previous" (Join-Path $runDir "stages/$previous/vm-profiles") | Out-Null
-            Invoke-Vm "bash ~/perf-test/vm-collect.sh clean $previous" -AllowFailure | Out-Null
+        foreach ($name in $unsaved) {
+            Copy-FromVm "profiles/$name" (Join-Path $runDir "stages/$name/vm-profiles") | Out-Null
+            Invoke-Vm "bash ~/perf-test/vm-collect.sh clean $name" -AllowFailure | Out-Null
         }
         if (Copy-FromVm 'profiles/routing' (Join-Path $runDir 'vm')) { Invoke-Vm 'bash ~/perf-test/vm-collect.sh clean-routing' -AllowFailure | Out-Null }
         foreach ($file in 'samples.jsonl', 'restore.log', 'deadman.log', 'sampler.err', 'RESTORED') { Copy-FromVm "out/$file" (Join-Path $runDir 'vm') | Out-Null }

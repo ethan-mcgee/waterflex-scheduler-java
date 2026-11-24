@@ -22,7 +22,7 @@ workstation                              scheduler VM (~/perf-test, outside the 
 
 - **`run-vm-performance.ps1`:** the workstation runner. It builds the cell matrix (`-Mode DryRun` prints it), copies the VM files to `~/perf-test`, changes stages over SSH, runs each cell, copies each stage's logs and recordings back, and always restores the live layout in its `finally` block.
 - **`perf.override.yml` and `perf.ports.yml`:** the test's additions to the live Compose stack. The first mounts `~/perf-test/profiles` in the Java containers, lets routing take JVM flags and the booking pool a background limit. The second publishes each pool's metrics port on the VM's loopback.
-- **`vm-stage.sh <stage> [KEY=VALUE ...]`:** starts a stage from the live `deploy/vm/.env` plus the test's recording flags and the stage's whitelisted settings, then starts the booking and daily JVMs again and writes `out/<stage>/stage.json`.
+- **`vm-stage.sh <stage> [KEY=VALUE ...]`:** starts a stage from the live `deploy/vm/.env` plus the test's recording flags and the stage's whitelisted settings, then starts the booking and daily JVMs again and writes `out/<stage>/stage.json`. A replica that turns unhealthy while it starts is kept as evidence in `out/<stage>/hangs/` and started again, at most 3 times in all (`startHangs` in `stage.json` counts them). On 2026-11-24 the booking JVM hung 16 s into its start with its threads waiting on Spring Boot's jar file lock. Files an earlier failed start left behind are moved to `~/perf-test/attic/`, so they never mix into the new start's logs.
 - **`vm-sampler.sh`:** every 5 s, one JSON line of cgroup CPU, throttling and memory per container, and host CPU with steal, pressure stalls, memory, swap and disk. It reads host files only, never `docker stats`.
 - **`vm-collect.sh`:** saves each service's log for a stage before the next stage recreates the containers, and removes copied files.
 - **`vm-restore.sh`:** the documented `up` with the live env file and no override, which takes every addition away. **`vm-arm.sh`** runs it after a set number of hours unless the runner restored first.
@@ -53,7 +53,7 @@ Run the same command again with the same `-Run` to resume: a cell with a `cell.j
 Each run folder under `experiments/runs/` holds the following:
 
 - **`stages/<stage>/cells/<cell>/`:** the cell's `cell.json`, tool reports (`routes-*.json`, `load-*.json` and their markdown) and tool logs.
-- **`stages/<stage>/vm-out/<stage>/`:** `stage.json` (caps and settings each container ran with) and `logs/` (each service's log and the watchdog's lines).
+- **`stages/<stage>/vm-out/<stage>/`:** `stage.json` (caps and settings each container ran with), `logs/` (each service's log and the watchdog's lines) and, when a replica hung while the stage started, `hangs/<n>-<service>/` (its state, its log with a thread dump, its recording and collector log).
 - **`stages/<stage>/vm-profiles/<stage>/`:** the stage's flight recordings (`booking.jfr`, `daily.jfr`), GC logs and per-solve recordings (`solves/`).
 - **`vm/`:** `samples.jsonl`, `live-caps.txt`, `host.txt`, routing's recordings, the restore log, and the live check before and after.
 - **`summary.md`:** the generated summary.

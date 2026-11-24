@@ -134,6 +134,20 @@ class SummaryTest(unittest.TestCase):
         text = "\n".join(out.lines)
         self.assertIn("booking 1.00, routing uncapped", text)
 
+    def test_start_hangs_are_counted_never_assumed(self) -> None:
+        stage_file = self.run / "stages" / "drive-live" / "vm-out" / "drive-live" / "stage.json"
+        self.assertIsNone(self.summary().evidence["stages"]["drive-live"]["startHangs"], "a stage.json without the count is not zero hangs")
+        data = json.loads(stage_file.read_text(encoding="utf-8"))
+        write(stage_file, {**data, "startHangs": 1})
+        out = self.summary()
+        self.assertEqual(out.evidence["stages"]["drive-live"]["startHangs"], 1)
+        row = next(line for line in out.lines if line.startswith("| drive-live ") and "Serial" in line)
+        self.assertTrue(row.rstrip(" |").endswith("1"), row)
+        for bad in (True, -1, "1"):
+            write(stage_file, {**data, "startHangs": bad})
+            with self.assertRaises(summarize.InputError, msg=repr(bad)):
+                self.summary()
+
     def test_tables_are_aligned_and_missing_values_named(self) -> None:
         lines = self.summary().lines
         for start, line in enumerate(lines):

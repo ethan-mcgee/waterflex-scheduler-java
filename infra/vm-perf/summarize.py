@@ -216,6 +216,8 @@ class StageLogs:
     watchdog: list[str]
     started: float | None
     containers: list[dict[str, Any]]
+    # Replicas that hung while the stage started and were started again (vm-stage.sh); None when stage.json has no count.
+    start_hangs: int | None
 
 
 def read_stage(run: Path, stage: str) -> StageLogs:
@@ -231,12 +233,16 @@ def read_stage(run: Path, stage: str) -> StageLogs:
     watchdog_file = base / "logs" / "watchdog.log"
     watchdog = [line for line in watchdog_file.read_text(encoding="utf-8").splitlines() if line.strip()] if watchdog_file.exists() else []
     stage_file = base / "stage.json"
-    started, containers = None, []
+    started, containers, start_hangs = None, [], None
     if stage_file.exists():
         data = read_json(stage_file)
         started = parse_time(data.get("startedAt"), str(stage_file))
         containers = [item for item in data.get("containers", []) if isinstance(item, dict)]
-    return StageLogs(lines, solves, watchdog, started, containers)
+        hangs = data.get("startHangs")
+        if hangs is not None and (isinstance(hangs, bool) or not isinstance(hangs, int) or hangs < 0):
+            raise InputError(f"{stage_file}: startHangs is not a count: {hangs!r}")
+        start_hangs = hangs
+    return StageLogs(lines, solves, watchdog, started, containers, start_hangs)
 
 
 def server_view(logs: StageLogs, cell: Cell, tenant: str | None, service: str, operation: str) -> dict[str, float | None] | None:
@@ -679,11 +685,14 @@ def stage_section(out: Summary, run: Path, stages: list[str], logs: dict[str, St
         rows.append([stage, caps or NOT_MEASURED,
                      NOT_MEASURED if booking is None else f"{booking['collector'] or 'unknown'} {fmt(booking['pauseTotalMs'])} ms",
                      NOT_MEASURED if daily is None else f"{daily['collector'] or 'unknown'} {fmt(daily['pauseTotalMs'])} ms",
-                     str(len(jfr)), str(solves), str(len(stage_logs.watchdog))])
+                     str(len(jfr)), str(solves), str(len(stage_logs.watchdog)),
+                     NOT_MEASURED if stage_logs.start_hangs is None else str(stage_logs.start_hangs)])
         out.evidence["stages"][stage] = {"containers": stage_logs.containers, "gc": {"booking": booking, "daily": daily}, "recordings": jfr,
-                                         "solveRecordings": solves, "watchdog": stage_logs.watchdog}
-    out.add("Each stage's CPU caps (vCPU), collector and total GC pause, flight recordings and watchdog lines:", "",
-            *table(["Stage", "Caps (vCPU)", "Booking GC", "Daily GC", "Recordings", "Solve recordings", "Watchdog"], rows, {4, 5, 6}), "")
+                                         "solveRecordings": solves, "watchdog": stage_logs.watchdog, "startHangs": stage_logs.start_hangs}
+    out.add("Each stage's CPU caps (vCPU), collector and total GC pause, flight recordings, watchdog lines and replicas that hung while "
+            "the stage started (each kept in `vm-out/<stage>/hangs/` and started again):", "",
+            *table(["Stage", "Caps (vCPU)", "Booking GC", "Daily GC", "Recordings", "Solve recordings", "Watchdog", "Start hangs"], rows,
+                   {4, 5, 6, 7}), "")
     out.add("Open a recording (`stages/<stage>/vm-profiles/<stage>/*.jfr`) in JDK Mission Control for the deep dive: Method Profiling for hot code, "
             "Garbage Collections for pauses, Lock Instances and Thread Dumps for waiting. Per-solve recordings (`solves/`) are summarized by "
             "infra/stack_profiles.py.", "")

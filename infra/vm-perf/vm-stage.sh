@@ -25,6 +25,16 @@ done
 free=$(free_gb)
 (( free >= MIN_FREE_GB )) || die "only ${free} GB free; a stage needs ${MIN_FREE_GB} GB"
 
+# What an earlier start of this stage left (one that failed before the workstation copied it) is moved aside to
+# attic/, never deleted and never mixed into this start's logs and recordings.
+attic=$PERF_HOME/attic/$stage-$(date -u +%Y%m%dT%H%M%SZ)
+for leftover in "$OUT/$stage" "$PROFILES/$stage"; do
+  if [[ -d $leftover ]] && [[ -n $(find "$leftover" -type f -print -quit) ]]; then
+    mkdir -p "$attic"
+    mv "$leftover" "$attic/$(basename "$(dirname "$leftover")")"
+    log "stage $stage: moved what an earlier start left in $leftover to $attic"
+  fi
+done
 mkdir -p "$OUT/$stage" "$STAGES" "$PROFILES/routing" "$PROFILES/$stage/solves"
 # The replicas run as uid 10001, so their folders are writable by anyone; ~/perf-test itself stays the operator's. On
 # Linux that must work; Windows (the local rehearsal) has no such modes, and Docker Desktop's mounts are writable anyway.
@@ -72,16 +82,69 @@ pattern="^($(IFS='|'; echo "${keys[*]}"))="
 cd "$CHECKOUT"
 compose=(docker compose "${LIVE_FILE_ARGS[@]}" "${OVERRIDE_ARGS[@]}" --env-file "$env_file")
 log "stage $stage: starting with ${overrides[*]:-the live caps}"
-"${compose[@]}" up -d --wait --wait-timeout 900 || die "stage $stage did not come up healthy"
+
+# A replica can hang while it starts: on 2026-11-24 (stage drive-live) the booking JVM, with 1 CPU available, stopped
+# 16 s in with its request threads and a /health check's virtual thread all waiting on Spring Boot's jar file lock, and
+# /health/live never answered again. Such a replica is kept as evidence under out/<stage>/hangs/<n>-<service>/ (its
+# state, its log with a thread dump, its recording and collector log), counted in stage.json and started again, at most
+# START_ATTEMPTS times in all. A hang is a finding of the run, never a reason to lose the night.
+START_ATTEMPTS=${START_ATTEMPTS:-3}
+hangs=0
+
+# The booking and daily replicas Docker marks unhealthy, one per line.
+unhealthy_replicas() {
+  local service id
+  for service in scheduler-booking scheduler-daily; do
+    id=$(container_of "$service")
+    [[ -n $id ]] || continue
+    if [[ $(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id") == unhealthy ]]; then echo "$service"; fi
+  done
+}
+
+# Saves a hung replica's evidence and stops it, which also writes its flight recording.
+keep_hang() {
+  local service=$1 name=${1#scheduler-} id dir file
+  hangs=$((hangs + 1))
+  dir=$OUT/$stage/hangs/$hangs-$service
+  mkdir -p "$dir"
+  id=$(container_of "$service")
+  if [[ -n $id ]]; then
+    docker inspect -f '{{json .State}}' "$id" > "$dir/state.json" 2>&1 || true
+    # SIGQUIT makes the JVM print every platform thread to its log; it needs nothing inside the JRE image.
+    docker kill --signal=QUIT "$id" > /dev/null 2>&1 || true
+    sleep 3
+    docker logs "$id" > "$dir/container.log" 2>&1 || true
+  fi
+  "${compose[@]}" stop -t 30 "$service" || true
+  for file in "$PROFILES/$stage/$name.jfr" "$PROFILES/$stage/$name"-gc.log*; do
+    if [[ -e $file ]]; then mv "$file" "$dir/"; fi
+  done
+}
+
+# Runs up with the given arguments until its replicas are healthy, starting a hung one again.
+up_healthy() {
+  local attempt hung
+  for (( attempt = 1; ; attempt++ )); do
+    "${compose[@]}" up -d --wait "$@" && return 0
+    mapfile -t hung < <(unhealthy_replicas)
+    if (( ${#hung[@]} == 0 )); then return 1; fi
+    for service in "${hung[@]}"; do keep_hang "$service"; done
+    if (( attempt >= START_ATTEMPTS )); then return 1; fi
+    log "stage $stage: ${hung[*]} unhealthy at start (attempt $attempt of $START_ATTEMPTS), kept in hangs/; starting again"
+    set -- --wait-timeout 600 --no-deps "${hung[@]}"
+  done
+}
+
+up_healthy --wait-timeout 900 || die "stage $stage did not come up healthy"
 # Every stage starts the booking and daily JVMs again, even when nothing of theirs changed: a fresh recording and a
 # cold JIT, which the stage's discarded warm-up cell then warms.
-"${compose[@]}" up -d --wait --wait-timeout 600 --force-recreate --no-deps scheduler-booking scheduler-daily \
+up_healthy --wait-timeout 600 --force-recreate --no-deps scheduler-booking scheduler-daily \
   || die "stage $stage: the booking and daily replicas did not come back healthy"
 
 # What each container runs with: limits, image and the admission and recording settings (no secret is listed).
 started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 {
-  printf '{"stage":"%s","startedAt":"%s","overrides":[' "$stage" "$started"
+  printf '{"stage":"%s","startedAt":"%s","startHangs":%d,"overrides":[' "$stage" "$started" "$hangs"
   first=1
   for pair in "${overrides[@]}"; do (( first )) || printf ','; first=0; printf '"%s"' "$pair"; done
   printf '],"containers":['
