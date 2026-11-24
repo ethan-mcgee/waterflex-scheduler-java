@@ -89,7 +89,7 @@ function Get-Stages {
             (Routes 'insertions-6t' 120 (@('--mode', 'insertions', '--placement', 'fresh-job', '--moves', '10', '--duration-s', '120') + (Generated 6))),
             (Routes 'session-real' 120 (@('--mode', 'session', '--moves', '5', '--duration-s', '120') + $real)),
             (Routes 'paced-2' 30 (Dispatchers 2 30)),
-            (Load 'booking-1x3t' 30 (Booking 1 3 30)),
+            (Load 'booking-1x5t' 30 (Booking 1 5 30)),
             (Load 'daily-sync-5t' 120 (DailySync 5 1)),
             (Pair 'mixed-1' 30 (Mixed 1 30) (Dispatchers 1 30))) })
         $stages.Add(@{ Name = 'smoke-gate2'; Test = 'drive'; Settings = @('SCHEDULER_BOOKING_SEARCH_CAPACITY=2', 'SCHEDULER_BOOKING_BACKGROUND_LIMIT=2', (Solves 'smoke-gate2')); Cells = @(
@@ -131,7 +131,7 @@ function Get-Stages {
         $warm = (Load 'warmup' 120 (Booking 1 10 120) -Warmup)
         $booking = New-Object System.Collections.Generic.List[object]
         $booking.Add($warm)
-        foreach ($fleet in 3, 10, 30) { foreach ($desks in 1, 2, 4, 8, 16) { $booking.Add((Load "booking-${desks}x${fleet}t" 300 (Booking $desks $fleet 300))) } }
+        foreach ($fleet in 5, 10, 15) { foreach ($desks in 1, 2, 4) { $booking.Add((Load "booking-${desks}x${fleet}t" 300 (Booking $desks $fleet 300))) } }
         $stages.Add(@{ Name = 'cap-booking'; Test = 'capacity'; Settings = @(); Cells = $booking.ToArray() })
 
         $dailyCells = {
