@@ -10,6 +10,8 @@ export interface Reply {
   /** The parsed body; null when the body was empty, undefined when it was not JSON. */
   readonly json: unknown;
   readonly ms: number;
+  /** Milliseconds until the status and headers arrived, before the body was read: the server's time to first byte plus the network. */
+  readonly headersMs: number;
 }
 
 export interface CallOptions {
@@ -54,6 +56,7 @@ export class SchedulerApi {
     const started = performance.now();
     const response = await fetch(`${this.#base}${path}`, { method, headers, body: payload ?? null,
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000) });
+    const headersMs = Math.round(performance.now() - started);
     const text = await response.text();
     let json: unknown = null;
     if (text !== "") {
@@ -63,6 +66,6 @@ export class SchedulerApi {
         json = undefined;
       }
     }
-    return { status: response.status, headers: response.headers, text, json, ms: Math.round(performance.now() - started) };
+    return { status: response.status, headers: response.headers, text, json, ms: Math.round(performance.now() - started), headersMs };
   }
 }

@@ -4,7 +4,7 @@
 //     --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60
 // Use a dedicated tenant: the run books and confirms jobs under its own IDs on dates two days ahead and later.
 import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, totalmem } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -17,13 +17,13 @@ import { loadMarkdown, type LoadReport } from "./src/load/report.ts";
 import { bookingLoop, dailyLoop, newTallies, sampleContainers, sampleMetrics, seeded, type ContainerUsage, type Run } from "./src/load/scenarios.ts";
 import { readRequestLog, serverBreakdown, studySummary, tenantOf, type ServerBreakdown } from "./src/load/serverlog.ts";
 import { summarize } from "./src/load/stats.ts";
-import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
+import { AreaPoints, FIXTURE_POINTS, parseArea, parsePointPool, PointPool, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES, type ArrivalBuffer } from "./src/snapshot.ts";
 import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
 import { readToken, TOKEN_USAGE } from "./src/token.ts";
 
 const USAGE = `Usage: npx tsx load.ts --url <base URL> ${TOKEN_USAGE} --metro <metroId> --time-zone <IANA zone>
-    (--area <south,west,north,east> | --points fixture) --scenario booking|daily|mixed --duration-s <seconds>
+    (--area <south,west,north,east> | --points fixture | --points-file <JSON>) --scenario booking|daily|mixed --duration-s <seconds>
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
     [--daily-technicians 20] [--daily-mode sync|async] [--daily-proposals <count>] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
     [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--daily-search TABU|TABU_KOPT|TABU_KOPT_SIZE_3] [--fairness-budget 0]
@@ -32,6 +32,8 @@ const USAGE = `Usage: npx tsx load.ts --url <base URL> ${TOKEN_USAGE} --metro <m
     [--horizon fixed|dynamic] [--horizon-weekdays <1-15>] [--lead-weekdays 2] [--full-percent 85]
     [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--refinement-ms <0-3000>] [--docker <container,...>] [--scheduler-log <container,...>]
     [--label <text>] [--out <directory>]
+  --points-file takes points from a list of known-routable locations ({"points": [{"lat", "lng"}]}), such as real job
+  addresses, so generated days route the way a dealer's do; random points in a wide --area can land out of a road's reach.
   --scheduler-log reads the named scheduler containers' request log for the run (docker logs) and reports the server's
   own attribution of this tenant's calls: slot wait, routing, engine, database, commit, pairs and CPU per call, and the
   daily replica's study receipts when SCHEDULER_STUDY_RECEIPTS is on (with TIMEFOLD_LOG_LEVEL=INFO, moves per second).
@@ -56,7 +58,7 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
   return found;
 }
 
-const STRING_OPTIONS = ["url", "token-file", "token-env", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
+const STRING_OPTIONS = ["url", "token-file", "token-env", "metro", "time-zone", "area", "points", "points-file", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "daily-proposals", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
   "cost-seconds", "fairness-seconds", "daily-search", "fairness-budget", "arrival-buffer", "seed", "metrics-url", "docker", "scheduler-log", "label", "out",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold", "refinement-ms"] as const;
@@ -90,7 +92,8 @@ function settings() {
   if (!(confirmRate >= 0 && confirmRate <= 1)) throw new UsageError("--confirm-rate is a share from 0 to 1");
   const metroId = required("metro");
   if (!Id.safeParse(metroId).success) throw new UsageError("--metro is not a valid ID");
-  if ((text("area") === undefined) === (text("points") === undefined)) throw new UsageError("Give exactly one of --area and --points fixture");
+  if ([text("area"), text("points"), text("points-file")].filter(value => value !== undefined).length !== 1)
+    throw new UsageError("Give exactly one of --area, --points fixture and --points-file");
   if (text("points") !== undefined && text("points") !== "fixture") throw new UsageError("--points takes only the value fixture");
   let token: string;
   // "--token-file -" reads standard input and --token-env a variable, so the token is never written to a file.
@@ -128,7 +131,7 @@ function settings() {
     windowThreshold: integer("window-threshold", KIT_POLICY.regularWindowThreshold, 0, 1000),
     refinementMs: text("refinement-ms") === undefined ? null : integer("refinement-ms", 0, 0, 3000),
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),
-    area: text("area") === undefined ? null : parseArea(required("area")), scenario,
+    area: text("area") === undefined ? null : parseArea(required("area")), pointsFile: text("points-file") ?? null, scenario,
     durationS: (() => { required("duration-s"); return integer("duration-s", 0, 5, 3600); })(),
     concurrency: integer("concurrency", 5, 1, 64), dailyConcurrency: integer("daily-concurrency", 1, 1, 16),
     technicians: integer("technicians", 10, 1, 200), appointments: integer("appointments", 2, 0, 4), horizonDays: integer("horizon-days", 5, 1, 21),
@@ -144,8 +147,13 @@ function settings() {
   };
 }
 
-/** Distinct area points, or the fixture router's points in turn. */
-function pointSource(area: ReturnType<typeof settings>["area"], seed: number): () => Point {
+/** Distinct points from a routable pool or an area, or the fixture router's points in turn. */
+function pointSource(area: ReturnType<typeof settings>["area"], pool: readonly Point[] | null, seed: number): () => Point {
+  if (pool !== null) {
+    // Each seed starts its own stretch of the pool, so runs with different seeds share no point.
+    const stream = new PointPool(pool, seed * 10_000);
+    return () => stream.next();
+  }
   if (area !== null) {
     // A million points per seed: runs with different seeds never share a location, so a cold run is cold.
     const stream = new AreaPoints(area, seed * 1_000_000);
@@ -188,7 +196,8 @@ async function main(): Promise<number> {
   }
   const bookedDates = new Set(runWeekdays.slice(0, options.bookedWeekdays));
   const dailyDate = addDays(today, 2);
-  const point = pointSource(options.area, options.seed);
+  const pool = options.pointsFile === null ? null : parsePointPool(JSON.parse(readFileSync(options.pointsFile, "utf8")) as unknown, options.pointsFile);
+  const point = pointSource(options.area, pool, options.seed);
   const policy = { ...KIT_POLICY, dailySearch: options.dailySearch, fairnessBudget: options.fairnessBudget,
     regularWindowThreshold: options.windowThreshold, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds,
     ...(options.refinementMs === null ? {} : { bookingRefinementMs: options.refinementMs }) };
@@ -238,7 +247,8 @@ async function main(): Promise<number> {
   const attributed: ServerBreakdown | null = log === null || tenant === null ? null : serverBreakdown(log.lines, { tenant });
   const report: LoadReport = {
     label: options.label, scenario: options.scenario, scheduler: options.api.base, metroId: options.metroId, timeZone: options.timeZone,
-    points: options.area === null ? "fixture" : `area ${options.area.south},${options.area.west},${options.area.north},${options.area.east}`,
+    points: pool !== null ? `file ${options.pointsFile ?? ""} (${pool.length} points)`
+      : options.area === null ? "fixture" : `area ${options.area.south},${options.area.west},${options.area.north},${options.area.east}`,
     run: prefix, startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(),
     settings: { durationS: options.durationS, concurrency: options.concurrency, dailyConcurrency: options.scenario === "mixed" ? options.dailyConcurrency : null,
       technicians: options.technicians, appointmentsPerDay: options.appointments, horizonDates: startingHorizon.length, dailyTechnicians: options.dailyTechnicians,
