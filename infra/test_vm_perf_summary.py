@@ -118,6 +118,47 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(rows["booking-16x10t"]["binding"], summarize.NOT_MEASURED, "no samples in the window: never guessed")
         self.assertEqual(rows["daily-sync-5t"]["overLimit"], ["calls refused"], "a step of refused calls never reads as within the limits")
 
+    def test_dispatchers_starved_in_a_mixed_step_cross_its_limit(self) -> None:
+        # Booking and daily within their bars, but the dispatchers' geometry calls waited for a slot until their deadline.
+        load = {"scenario": "mixed", "settings": {"policy": {"costSearchSeconds": 10, "fairnessSearchSeconds": 5}}, "daily": {"queueWaitsMs": [40]},
+                "operations": [operation("booking offers", 60, {"201": 60}, 2000, 3000), operation("daily proposal", 2, {"201": 2}, 17000, 18000)]}
+        routes = {"settings": {"callers": 2}, "records": [], "operations": [
+            operation("session", 10, {"200": 1, "503": 9}, 20000, 20100), operation("session open (geometry)", 10, {"200": 1, "503": 9}, 20000, 20100),
+            operation("session pick (insertions)", 1, {"200": 1}, 90, 300), operation("session drop (geometry)", 1, {"200": 1}, 250, 260)]}
+        cell(self.run, "cap-mixed", "mixed-2", 7000, 7600, routes=routes, load=load)
+        receipt = "Public route geometry tenant=loadtest Receipt[requestId=r1, outcome={}, elapsedMs=20000, queueMs={}, searchMs=0, lateResult=false]"
+        logs = self.run / "stages" / "cap-mixed" / "vm-out" / "cap-mixed" / "logs" / "scheduler-booking.log"
+        write(logs, "\n".join([ecs(7010 + i, "loadtest", receipt.format("CANCELLED_OR_EXPIRED", "null")) for i in range(9)]
+                              + [ecs(7100, "loadtest", receipt.format("COMPLETED", "19000")), ecs(7101, "waterflex-dev", receipt.format("CANCELLED_OR_EXPIRED", "null")),
+                                 # The request line of a refused call reads queueMs=0; it is never taken for a wait.
+                                 ecs(7030, "loadtest", 'api operation="POST /api/v1/routes/geometry" status=503 elapsedMs=20010 queueMs=0 routingMs=0 cpuMs=21')]) + "\n")
+        out = self.summary()
+        row = next(item for item in out.evidence["capacity"] if item["cell"] == "mixed-2")
+        self.assertEqual(row["overLimit"], ["dispatcher 503 or no answer"], "a step whose dispatchers are refused is never within")
+        self.assertIn("dispatchers: admission (9 route calls never got a slot)", row["binding"])
+        dispatchers = row["dispatchers"]
+        self.assertEqual((dispatchers["callers"], dispatchers["moves"], dispatchers["unavailable"], dispatchers["neverAdmitted"]), (2, 10, 9, 9.0),
+                         "the other tenant's receipt is left out")
+        self.assertEqual(dispatchers["admittedWaitP95"], 19000.0)
+        self.assertAlmostEqual(dispatchers["movesOkShare"], 0.1)
+        text = "\n".join(out.lines)
+        self.assertRegex(text, r"\| cap-mixed/mixed-2 +\| +9 \| +0\.0 \| +9 \| +19,000 \| admission")
+        with_logs = summarize.read_stage(self.run, "cap-mixed")
+        mixed = next(c for c in summarize.read_cells(self.run) if c.name == "mixed-2")
+        self.assertIsNone(summarize.server_view(with_logs, mixed, "loadtest", "scheduler-booking", "POST /api/v1/routes/geometry")["queueP50"],
+                          "no answered call: the slot wait is not measured, never 0")
+        write(logs, ecs(7010, "loadtest", "Public route geometry tenant=loadtest Receipt[outcome=") + "\n")
+        with self.assertRaises(summarize.InputError):
+            self.summary()
+
+    def test_dispatchers_without_a_server_log_are_not_measured(self) -> None:
+        routes = {"settings": {"callers": 2}, "records": [], "operations": [operation("session open (geometry)", 4, {"200": 4}, 200, 300)]}
+        cell(self.run, "cap-mixed", "mixed-2", 7000, 7600, routes=routes,
+             load={"scenario": "mixed", "settings": {}, "daily": None, "operations": [operation("booking offers", 6, {"201": 6}, 2000, 3000)]})
+        row = next(item for item in self.summary().evidence["capacity"] if item["cell"] == "mixed-2")
+        self.assertIsNone(row["dispatchers"]["neverAdmitted"], "no log: not zero calls refused")
+        self.assertEqual(row["overLimit"], [])
+
     def test_ladder_refusals_are_admission_when_cpu_is_spare(self) -> None:
         text = "\n".join(self.summary().lines)
         row = next(line for line in text.splitlines() if re.match(r"^\| drive-live +\| geometry +\| +8 \|", line))

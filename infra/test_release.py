@@ -173,6 +173,30 @@ class ReleaseTest(unittest.TestCase):
             self.assertRegex(run.stderr + run.stdout, r"waterflex-scheduler-engine:8acf5d1b51cc|GB free")
             self.assertEqual(list(Path(home).glob("stages/*")), [], "nothing was written for a stage whose image is missing")
 
+    def test_a_release_with_no_lost_migrations_passes_the_migration_check(self):
+        # 2026-11-25: the first -Release dry run stopped on "The property 'Count' cannot be found", because PowerShell
+        # returns a function's empty list as $null. This runs deploy-vm.ps1's own assignment and check, under its strict
+        # mode, for two commits with the same migrations.
+        shell = shutil.which("pwsh") or shutil.which("powershell")
+        if shell is None:
+            self.skipTest("no PowerShell")
+        probe = r"""
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+$ast = [System.Management.Automation.Language.Parser]::ParseFile($args[0], [ref]$null, [ref]$null)
+foreach ($function in $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+        $n.Name -in 'Invoke-Git', 'Get-MigrationLoss' }, $true)) { . ([scriptblock]::Create($function.Extent.Text)) }
+$assignment = $ast.Find({ param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        $n.Extent.Text -match 'Get-MigrationLoss' }, $true)
+$repo = $args[1]; $migrations = 'scheduler-service/src/main/resources/db/migration'; $live = 'HEAD'; $Release = 'HEAD'
+. ([scriptblock]::Create($assignment.Extent.Text))
+"lost=$($lost.Count)"
+"""
+        run = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command", "& { " + probe + " }",
+                              str(ROOT / "infra" / "deploy-vm.ps1"), str(ROOT)], capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0, run.stderr + run.stdout)
+        self.assertIn("lost=0", run.stdout)
+
     def test_scripts_run_in_linux_from_any_clone(self):
         attributes = read(".gitattributes")
         self.assertRegex(attributes, r"(?m)^/mvnw text eol=lf$")
