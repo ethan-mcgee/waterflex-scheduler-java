@@ -170,7 +170,8 @@ if ($PSCmdlet.ParameterSetName -eq 'Release') {
     $live = Get-LiveRelease
     Write-Step "The VM's live release: $(if ($live -eq '') { 'none' } else { $live })"
     if ($live -ne '' -and $live -ne $Release) {
-        $lost = Get-MigrationLoss $live $Release
+        # @() because PowerShell returns an empty list from a function as $null, which has no Count under strict mode.
+        $lost = @(Get-MigrationLoss $live $Release)
         if ($lost.Count -gt 0 -and -not $AllowMigration) {
             throw "$Release lacks or changes migrations $live applied ($($lost -join ', ')); a rollback past a migration needs the runbook's steps. Add -AllowMigration once they are done."
         }
