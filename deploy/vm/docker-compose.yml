@@ -22,11 +22,11 @@ x-hardened: &hardened
   cap_drop: [ALL]
   security_opt: ["no-new-privileges:true"]
 
-# Images are tagged by the commit they were built from. On the VM, infra/release-vm.sh builds a release's images and
-# sets SCHEDULER_RELEASE (the git tag), SCHEDULER_REVISION (its commit) and ROUTING_REVISION (the last commit that
-# changed what the routing image is built from, so a release that leaves routing alone does not restart it) in .env,
-# whose pull policies (missing) keep `up` from rebuilding them from the checkout. Without them (sandbox, rehearsal, CI)
-# the tag is dev, rebuilt on each up.
+# Images are tagged by the commit they were built from. GitHub Actions builds them for every commit on main
+# (.github/workflows/images.yml); on the VM, infra/release-vm.sh pulls a release's images and sets SCHEDULER_RELEASE (the
+# git tag), SCHEDULER_REVISION (its commit) and ROUTING_REVISION (the last commit that changed what the routing image is
+# built from, so a release that leaves routing alone does not restart it) in .env, whose pull policies (missing) keep
+# `up` from rebuilding them from the checkout. Without them (sandbox, rehearsal, CI) the tag is dev, rebuilt on each up.
 # A study pins a tag built from one commit with SCHEDULER_IMAGE and SCHEDULER_PULL_POLICY=never, so compose runs that
 # image rather than rebuilding the working tree (infra/run-stack-verification.ps1).
 x-scheduler-image: &scheduler-image
@@ -50,6 +50,9 @@ x-scheduler-runtime: &scheduler-runtime
   NOMINATIM_URL: http://nominatim:8080
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
   TIMEFOLD_LOG_LEVEL: ${TIMEFOLD_LOG_LEVEL:-WARN}
+  # The release this replica serves (/health, the start log). An image is built per commit before any tag names it, so
+  # the release comes from .env, which infra/release-vm.sh writes; the revision stays the image's own.
+  SCHEDULER_RELEASE: ${SCHEDULER_RELEASE:-dev}
 
 # A replica is ready when its /health answers 200 (database, schema and every metro's routing up). Its ports are not
 # published: the API is reached through scheduler-proxy, metrics through Prometheus on this network.

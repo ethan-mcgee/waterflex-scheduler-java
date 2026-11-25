@@ -162,7 +162,7 @@ Upgrade:
 2. Replace the scheduler replicas.
 3. Wait for `/health` to answer 200 with the new `revision`.
 
-Rollback is the reverse: start the previous scheduler. On the VM that is `infra/release-vm.sh` with the previous tag, which reuses its images while they are still on the VM. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
+Rollback is the reverse: start the previous scheduler. On the VM that is `infra/deploy-vm.ps1 -Release` with the previous tag, which reuses its images while they are still on the VM and pulls them from GHCR otherwise. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
 
 Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since. Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
 
@@ -176,20 +176,52 @@ git tag -a v2026.11.13.1 -m "<what changed>" origin/main
 git push origin v2026.11.13.1
 ```
 
-On the VM, from the repository's checkout:
+The images already exist by then. After CI passes on a push to `main`, [the images workflow](../.github/workflows/images.yml) builds the scheduler image, tagged by the commit, and the routing image, tagged by the last commit that changed what routing is built from, and pushes both to GHCR as `ghcr.io/ethan-mcgee/waterflex-scheduler-engine:<commit>` and `ghcr.io/ethan-mcgee/waterflex-scheduler-routing:<commit>`. A routing image already there is not built again. `infra/image-revisions.sh` names both tags, and every script that looks for an image uses it. Both packages are set public once, in each package's settings after its first push, so the VM pulls them without a token.
 
-```sh
-bash infra/release-vm.sh v2026.11.13.1
+Deploy from the workstation, which reaches the VM over SSH with a key (GitHub's runners cannot reach it):
+
+```powershell
+infra/deploy-vm.ps1 -Release v2026.11.13.1
 ```
 
-The script refuses a checkout with changes, a tag that is not annotated, differs from GitHub's or is not on `main`, and an image whose label names another commit. It checks out the tag (the checkout stays there), builds the scheduler image tagged by the release's commit and the routing image tagged by the last commit that changed what routing is built from, records all three in `.env` with both pull policies at `missing`, and starts the stack with `up -d --wait`, migrations first. An image already on the VM is reused, not rebuilt, so a release that leaves routing alone does not restart it or reload the road graph, and a rollback starts at once. A later `docker compose up` (after changing `.env`, say) stays on the recorded release.
+The command runs these steps:
+
+1. It checks the tag as the VM will: annotated, the same as GitHub's, and on `main`.
+2. It confirms both images are in GHCR. If one is missing (a commit CI skipped because only Markdown changed, say), it runs the images workflow for the commit and waits for it.
+3. It refuses a rollback to a release that lacks or changes migrations the live one applied, unless `-AllowMigration` is given after the steps in "Start, stop and upgrade".
+4. On the VM it checks out the tag, so the tag's own `infra/release-vm.sh` runs, and runs it.
+5. It runs the read-only live check (`infra/check-vm-live.sh`) and confirms `/health` serves the release's commit.
+
+Each run's commands and output are logged in `.scratch/deploy-vm/`. Rolling back is the same command with the earlier tag. `-DryRun` checks the tag and the images and prints the VM's steps without running them.
+
+`infra/release-vm.sh` is what runs on the VM, and can be run there by hand from the checkout (`bash infra/release-vm.sh v2026.11.13.1`). It refuses a checkout with changes, a tag that is not annotated, differs from GitHub's or is not on `main`, and an image whose label names another commit. It checks out the tag (the checkout stays there) and brings each image that is not on the VM yet. It pulls the image from `SCHEDULER_IMAGE_REGISTRY` (default `ghcr.io/ethan-mcgee`) and tags it with the local name Compose runs. It then records the release and both commits in `.env` with both pull policies at `missing`, and starts the stack with `up -d --wait`, migrations first. An image already on the VM is reused, so a release that leaves routing alone does not restart it or reload the road graph, and a rollback starts at once. A later `docker compose up` (after changing `.env`, say) stays on the recorded release. The VM never builds an image unless `RELEASE_BUILD_ON_VM=1` asks it to, which is meant for the sandbox; its two vCPU are not for the Maven build.
+
+A VM that cannot reach `ghcr.io` gets the same images through the workstation: `infra/deploy-vm.ps1 -Release <tag> -Ship` pulls them here and loads them into the VM over SSH (`infra/ship-images.sh`), and `release-vm.sh` then reuses them. Maps go the same way with `infra/ship-map.sh <version> <user@vm>` from Git Bash.
 
 Each release can be read back four ways:
 
-- **The VM's record:** `deploy/vm/releases.log` gets one line per release: its UTC time, tag, commits and the release it replaced.
-- **A replica:** `/health` answers its `release` and `revision`, and its start logs `Scheduler release <tag> at commit <commit>`.
-- **An image:** `docker image inspect` shows the labels `org.opencontainers.image.version` (the tag) and `org.opencontainers.image.revision` (the commit).
+- **The VM's record:** `deploy/vm/releases.log` gets one line per release: its UTC time, tag, commits, the release it replaced, and where each image came from (its registry digest, or its image ID when it was shipped or built on the VM).
+- **A replica:** `/health` answers its `release` and `revision`, and its start logs `Scheduler release <tag> at commit <commit>`. The release comes from `.env`, because an image is built before any tag names it; the revision is the image's own.
+- **An image:** `docker image inspect` shows the label `org.opencontainers.image.revision` (the commit). `org.opencontainers.image.version` reads `unreleased` on an image from GHCR, for the same reason.
 - **The VM's settings:** `SCHEDULER_RELEASE`, `SCHEDULER_REVISION` and `ROUTING_REVISION` in `.env`.
+
+### Testing a commit on the VM
+
+Studies and tests run on the VM itself, on the production stack, in a window agreed with WaterFlex, and the stack goes back to its release afterwards:
+
+```powershell
+infra/deploy-vm.ps1 -Test <commit>
+infra/deploy-vm.ps1 -Restore
+```
+
+`-Test` takes any pushed commit:
+
+1. It confirms both images are in GHCR, running the images workflow for the commit when they are not.
+2. It refuses a commit whose migrations differ from the live release's. `scheduler-admin` would apply them to the production database. With `-AllowMigration` it backs the database up first (`infra/backup-vm.sh`), and the restore puts that dump back before the release starts again, because the release's scheduler refuses a schema with migrations it does not know.
+3. It arms the dead-man timer, so the VM restores its release by itself after `-DeadmanHours` (default 4) if `-Restore` never comes.
+4. It starts the stack on the commit's images through the VM performance test's stage script (`infra/vm-perf/vm-stage.sh` with `SCHEDULER_REVISION` and `ROUTING_REVISION`), leaving `.env` untouched, and checks that `/health` serves the commit.
+
+`/health` names the release `unreleased` while a test runs. `-Restore` runs `infra/vm-perf/vm-restore.sh` and the live check. A study script pins its stages the same way ([the VM performance test](../infra/vm-perf/README.md)).
 
 A host's bug report carries the time, the `requestId` and `X-Scheduler-Version`; `releases.log` turns the time into the build that answered.
 
