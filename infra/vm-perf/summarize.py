@@ -166,6 +166,11 @@ def band(p95: float | None) -> str:
 API_LINE = re.compile(r'api operation="(?P<operation>[^"]*)" status=(?P<status>\d+) elapsedMs=(?P<elapsed>\d+)(?P<rest>.*)$')
 FIELD = re.compile(r"(\w+)=(\d+)")
 SOLVING_ENDED = re.compile(r"^Solving ended: time spent \((?P<time>\d+)\),.* move evaluation speed \((?P<speed>\d+)/sec\)")
+# The admission receipt of a route call that runs as background work (geometry, evaluation). queueMs is null when the
+# call never got a slot; the request line of such a call still reads queueMs=0, so only the receipt tells the two apart.
+RECEIPT_PREFIXES = ("Public route geometry ", "Public route evaluation ")
+ROUTE_RECEIPT = re.compile(r"^Public route (?P<kind>geometry|evaluation) tenant=\S+ Receipt\[.*?\boutcome=(?P<outcome>[A-Z_]+),"
+                           r".*?\bqueueMs=(?P<queue>null|\d+)[,\]]")
 
 
 @dataclass
@@ -178,10 +183,22 @@ class ServerLine:
     fields: dict[str, int]
 
 
-def read_server_log(path: Path) -> tuple[list[ServerLine], list[tuple[float, str, int]]]:
-    """The request summary lines and the solver end lines (time, tenant, moves per second) of one ECS service log."""
+@dataclass
+class RouteReceipt:
+    at: float
+    tenant: str
+    kind: str
+    outcome: str
+    # How long the call waited for its slot; None when it never got one.
+    queue_ms: int | None
+
+
+def read_server_log(path: Path) -> tuple[list[ServerLine], list[tuple[float, str, int]], list[RouteReceipt]]:
+    """The request summary lines, the solver end lines (time, tenant, moves per second) and the route calls' admission
+    receipts of one ECS service log."""
     lines: list[ServerLine] = []
     solves: list[tuple[float, str, int]] = []
+    receipts: list[RouteReceipt] = []
     for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         start = raw.find("{")
         if start < 0:
@@ -193,10 +210,17 @@ def read_server_log(path: Path) -> tuple[list[ServerLine], list[tuple[float, str
         if not isinstance(record, dict) or not isinstance(record.get("message"), str):
             continue
         message: str = record["message"]
-        if not (message.startswith("api operation=") or message.startswith("Solving ended: ")):
+        if not (message.startswith("api operation=") or message.startswith("Solving ended: ") or message.startswith(RECEIPT_PREFIXES)):
             continue
         at = parse_time(record.get("@timestamp"), f"{path}: a log line")
         tenant = record.get("tenant") if isinstance(record.get("tenant"), str) else ""
+        if message.startswith(RECEIPT_PREFIXES):
+            receipt = ROUTE_RECEIPT.match(message)
+            if receipt is None:
+                raise InputError(f"{path}: unreadable route receipt {message!r}")
+            queue = receipt.group("queue")
+            receipts.append(RouteReceipt(at, tenant, receipt.group("kind"), receipt.group("outcome"), None if queue == "null" else int(queue)))
+            continue
         ended = SOLVING_ENDED.match(message)
         if ended:
             solves.append((at, tenant, int(ended.group("speed"))))
@@ -206,7 +230,7 @@ def read_server_log(path: Path) -> tuple[list[ServerLine], list[tuple[float, str
             raise InputError(f"{path}: unreadable request line {message!r}")
         lines.append(ServerLine(at, tenant, match.group("operation"), int(match.group("status")), int(match.group("elapsed")),
                                 {name: int(value) for name, value in FIELD.findall(match.group("rest"))}))
-    return lines, solves
+    return lines, solves, receipts
 
 
 @dataclass
@@ -218,18 +242,22 @@ class StageLogs:
     containers: list[dict[str, Any]]
     # Replicas that hung while the stage started and were started again (vm-stage.sh); None when stage.json has no count.
     start_hangs: int | None
+    # The route calls' admission receipts of every service, or None when the stage has no service log at all.
+    receipts: list[RouteReceipt] | None = None
 
 
 def read_stage(run: Path, stage: str) -> StageLogs:
     base = run / "stages" / stage / "vm-out" / stage
     lines: dict[str, list[ServerLine]] = {}
     solves: list[tuple[float, str, int]] = []
+    receipts: list[RouteReceipt] | None = None
     for service in SERVICES:
         log = base / "logs" / f"{service}.log"
         if log.exists():
-            found, ended = read_server_log(log)
+            found, ended, kept = read_server_log(log)
             lines[service] = found
             solves.extend(ended)
+            receipts = (receipts or []) + kept
     watchdog_file = base / "logs" / "watchdog.log"
     watchdog = [line for line in watchdog_file.read_text(encoding="utf-8").splitlines() if line.strip()] if watchdog_file.exists() else []
     stage_file = base / "stage.json"
@@ -242,7 +270,7 @@ def read_stage(run: Path, stage: str) -> StageLogs:
         if hangs is not None and (isinstance(hangs, bool) or not isinstance(hangs, int) or hangs < 0):
             raise InputError(f"{stage_file}: startHangs is not a count: {hangs!r}")
         start_hangs = hangs
-    return StageLogs(lines, solves, watchdog, started, containers, start_hangs)
+    return StageLogs(lines, solves, watchdog, started, containers, start_hangs, receipts)
 
 
 def server_view(logs: StageLogs, cell: Cell, tenant: str | None, service: str, operation: str) -> dict[str, float | None] | None:
@@ -251,9 +279,23 @@ def server_view(logs: StageLogs, cell: Cell, tenant: str | None, service: str, o
     if not lines:
         return None
     pick = lambda name: [float(line.fields[name]) for line in lines if name in line.fields]
+    # A refused call's request line reads queueMs=0 even when it waited its whole deadline for a slot it never got, so
+    # slot waits come from answered calls only.
+    waits = [float(line.fields["queueMs"]) for line in lines if "queueMs" in line.fields and 200 <= line.status < 300]
     return {"calls": float(len(lines)), "elapsedP50": percentile([float(line.elapsed_ms) for line in lines], 0.5),
-            "queueP50": percentile(pick("queueMs"), 0.5), "routingP50": percentile(pick("routingMs"), 0.5),
-            "cpuP50": percentile(pick("cpuMs"), 0.5), "queueP95": percentile(pick("queueMs"), 0.95)}
+            "queueP50": percentile(waits, 0.5), "routingP50": percentile(pick("routingMs"), 0.5),
+            "cpuP50": percentile(pick("cpuMs"), 0.5), "queueP95": percentile(waits, 0.95)}
+
+
+def admission_view(logs: StageLogs, cell: Cell, tenant: str | None) -> dict[str, float | None] | None:
+    """The route calls' admission inside a cell, from their receipts: how many never got a slot, and the slot wait of
+    those that did. None when the stage has no service log."""
+    if logs.receipts is None:
+        return None
+    inside = [item for item in logs.receipts if cell.started <= item.at <= cell.finished + 1 and (tenant is None or item.tenant == tenant)]
+    waits = [float(item.queue_ms) for item in inside if item.queue_ms is not None]
+    return {"receipts": float(len(inside)), "neverAdmitted": float(sum(1 for item in inside if item.queue_ms is None)),
+            "admittedWaitP95": percentile(waits, 0.95)}
 
 
 # ----------------------------------------------------------------------------------------------------------- the samples
@@ -565,13 +607,60 @@ def drive_section(out: Summary, cells: list[Cell], logs: dict[str, StageLogs], t
                 *table(["Stage", "Call", "Callers", "OK per s", "p95 (ms)", "429 (%)", "503 (%)", "What ran out"], rows, {2, 3, 4, 5, 6}), "")
 
 
+def dispatcher_view(cell: Cell, logs: StageLogs | None, tenant: str | None) -> dict[str, Any] | None:
+    """The dispatchers who moved through a load step: their moves, each call's refusals against the step's bars (any 503
+    or call with no answer, more than BUSY_SHARE_LIMIT answering 429) and the route calls' admission. None when the
+    step ran no dispatchers."""
+    if not cell.routes:
+        return None
+    operations = [op for report in cell.routes for op in report["operations"]]
+    # A session operation is a whole move (open, pick, drop); the operations with a call in brackets are its calls.
+    moves = [op for op in operations if op["operation"] == "session" or op["operation"].startswith("session,")]
+    calls = [op for op in operations if "(" in op["operation"] or op["operation"] in ("geometry", "insertions")]
+    statuses: dict[str, int] = {}
+    for op in calls:
+        for key, value in op.get("statuses", {}).items():
+            statuses[key] = statuses.get(key, 0) + value
+    total = sum(op["calls"] for op in calls)
+    move_count = sum(op["calls"] for op in moves)
+    moves_ok = sum(op.get("statuses", {}).get("200", 0) for op in moves)
+    busy = statuses.get("429", 0) / total if total else None
+    unavailable = statuses.get("503", 0) + statuses.get("none", 0)
+    admission = None if logs is None else admission_view(logs, cell, tenant)
+    reasons = []
+    if unavailable:
+        reasons.append("dispatcher 503 or no answer")
+    if busy is not None and busy > BUSY_SHARE_LIMIT:
+        reasons.append("dispatcher 429")
+    if admission is None:
+        cause = NOT_MEASURED
+    elif admission["neverAdmitted"]:
+        cause = f"admission ({admission['neverAdmitted']:.0f} route calls never got a slot)"
+    elif busy is not None and busy > BUSY_SHARE_LIMIT:
+        cause = "admission slots (busy answers)"
+    else:
+        cause = "not identified"
+    p95 = lambda name: next((number((op.get("ms") or {}).get("p95")) for op in operations if op["operation"] == name), None)
+    callers = [number((report.get("settings") or {}).get("callers")) for report in cell.routes]
+    return {"stage": cell.stage, "cell": cell.name, "callers": sum(c for c in callers if c is not None) if all(c is not None for c in callers) else None,
+            "moves": move_count, "movesOkShare": moves_ok / move_count if move_count else None,
+            "openP95": p95("session open (geometry)"), "pickP95": p95("session pick (insertions)"), "dropP95": p95("session drop (geometry)"),
+            "calls": total, "unavailable": unavailable, "busyShare": busy,
+            "neverAdmitted": None if admission is None else admission["neverAdmitted"],
+            "admittedWaitP95": None if admission is None else admission["admittedWaitP95"],
+            "overLimit": reasons, "binding": cause}
+
+
 def capacity_section(out: Summary, cells: list[Cell], logs: dict[str, StageLogs], tenant: str | None, samples: list[Sample]) -> None:
     out.add("## Test 2: booking and daily", "",
             f"A load step is past the VM's limit when booking offers p95 passes {BOOKING_P95_LIMIT_MS} ms, any call answers 503, more than "
             f"{BUSY_SHARE_LIMIT:.0%} answer 429, a queued daily waits longer than its own search, or a container restarts or is killed for memory.", "")
-    rows, limits = [], []
+    rows, limits, dispatch_rows = [], [], []
     for cell in cells:
-        for report in cell.loads:
+        dispatchers = dispatcher_view(cell, logs.get(cell.stage), tenant)
+        if dispatchers is not None:
+            dispatch_rows.append(dispatchers)
+        for index, report in enumerate(cell.loads):
             scenario = report.get("scenario")
             offers = operation_of([report], "booking offers")
             daily = operation_of([report], "daily proposal")
@@ -609,20 +698,44 @@ def capacity_section(out: Summary, cells: list[Cell], logs: dict[str, StageLogs]
                 reasons.append("queue wait")
             if restarted or killed:
                 reasons.append("restart")
+            # The dispatchers moving through the same step (mixed and soak) are held to the same bars; they are counted
+            # once, on the step's first load report.
+            dispatcher_reasons = dispatchers["overLimit"] if dispatchers is not None and index == 0 else []
+            causes = []
+            if reasons:
+                causes.append(binding(res, busy))
+            if dispatcher_reasons:
+                causes.append(f"dispatchers: {dispatchers['binding']}" if dispatchers is not None else NOT_MEASURED)
+            reasons = reasons + dispatcher_reasons
             minutes = cell.seconds / 60
             per_minute = None if offers is None else offers["calls"] / minutes
             per_hour = None if daily is None else (daily.get("statuses", {}).get("201", 0)) / (cell.seconds / 3600)
             row = {"stage": cell.stage, "cell": cell.name, "scenario": scenario, "offersPerMinute": per_minute, "offersP95": offers_p95,
                    "proposalsPerHour": per_hour, "proposalP95": None if daily is None else number((daily.get("ms") or {}).get("p95")),
                    "queueWaitMaxMs": wait_max, "busyShare": busy, "refusedShare": refused_share, "unavailable": statuses.get("503", 0), "overLimit": reasons,
-                   "binding": binding(res, busy) if reasons else None}
+                   "binding": "; ".join(causes) if causes else None,
+                   "dispatchers": dispatchers if index == 0 else None}
             limits.append(row)
-            rows.append([cell.stage, cell.name, fmt(per_minute, 1), fmt(offers_p95), fmt(row["proposalsPerHour"], 0), fmt(row["proposalP95"]),
+            rows.append([f"{cell.stage}/{cell.name}", fmt(per_minute, 1), fmt(offers_p95), fmt(row["proposalsPerHour"], 0), fmt(row["proposalP95"]),
                          fmt(wait_max), share(busy), str(statuses.get("503", 0)), ", ".join(reasons) or "within"])
     out.evidence["capacity"] = limits
     out.add("Each load step against the limits (searches and proposals per unit of the step's wall time):", "",
-            *table(["Stage", "Cell", "Searches per min", "Offers p95 (ms)", "Daily per h", "Daily p95 (ms)", "Queue wait max (ms)", "429 (%)", "503", "Limit"],
-                   rows, {2, 3, 4, 5, 6, 7, 8}), "")
+            *table(["Step", "Searches per min", "Offers p95 (ms)", "Daily per h", "Daily p95 (ms)", "Queue wait max (ms)"],
+                   [row[:6] for row in rows], {1, 2, 3, 4, 5}), "",
+            "The same rows with the booking and daily calls' refusals and the limits each step crossed (the dispatchers' own calls are "
+            "in the tables after this one):", "",
+            *table(["Step", "429 (%)", "503", "Limit"], [[row[0], *row[6:]] for row in rows], {1, 2}), "")
+    if dispatch_rows:
+        out.add("Dispatchers moving through the same steps (open, pick, drop on the real day, every 10 s on a fixed clock). Never got a slot "
+                "counts the route calls whose admission receipt has no slot wait: refused at once (429) or waiting until their deadline (503) "
+                "and never run. Slot wait is that of the calls that did run.", "",
+                *table(["Step", "Dispatchers", "Moves", "Moves OK (%)", "Open p95 (ms)", "Pick p95 (ms)", "Drop p95 (ms)"],
+                       [[f"{row['stage']}/{row['cell']}", fmt(row["callers"]), str(row["moves"]), share(row["movesOkShare"]), fmt(row["openP95"]),
+                         fmt(row["pickP95"]), fmt(row["dropP95"])] for row in dispatch_rows], {1, 2, 3, 4, 5, 6}), "",
+                "The same rows with the route calls' refusals and admission:", "",
+                *table(["Step", "Calls 503", "Calls 429 (%)", "Never got a slot", "Slot wait p95 (ms)", "What ran out"],
+                       [[f"{row['stage']}/{row['cell']}", str(row["unavailable"]), share(row["busyShare"]), fmt(row["neverAdmitted"]),
+                         fmt(row["admittedWaitP95"]), row["binding"] if row["overLimit"] else "within"] for row in dispatch_rows], {1, 2, 3, 4}), "")
     over = [row for row in limits if row["overLimit"]]
     if over:
         out.add("What ran out first in each step past the limit (bars fixed before the run: a container throttled in "
