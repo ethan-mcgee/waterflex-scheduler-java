@@ -1,0 +1,90 @@
+name: Images
+
+# Builds the scheduler VM's two images and pushes them to GHCR, tagged as infra/image-revisions.sh names them: the
+# scheduler image by its commit, the routing image by the last commit that changed what it is built from. The VM pulls
+# them (infra/release-vm.sh, infra/deploy-vm.ps1), so it never runs the Maven build.
+#
+# Built after CI passes on a push to main, and on request for any commit (a branch under test on the VM, or a commit CI
+# skipped because only Markdown changed): gh workflow run images.yml -f ref=<commit>. Pull requests never trigger it, so
+# no pull request's code runs with the packages token.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, tag or branch to build the images of
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.event.workflow_run.head_sha || inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Build and push the VM images
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      REF: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REF }}
+          # The routing image's tag is a commit from history (infra/image-revisions.sh).
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+      # Anonymous Docker Hub pulls share a rate limit with every job on the runner's IP; logged-in pulls use the account's own limit.
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+      - name: Build, check and push each image not yet in GHCR
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          registry="ghcr.io/${OWNER,,}"
+          read -r engine routing < <(bash infra/image-revisions.sh HEAD)
+          {
+            echo "### VM images for \`$(git rev-parse HEAD)\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          # An image is pushed once: the routing image of a commit that left routing alone is already there.
+          publish() {
+            local name=$1 dockerfile=$2 revision=$3
+            local image="$registry/$name:$revision"
+            if docker manifest inspect "$image" > /dev/null 2>&1; then
+              echo "== $image is already in GHCR"
+            else
+              echo "== Building $image"
+              # The release name is not known yet (a tag comes later); the VM's .env supplies it at run time.
+              docker build -f "$dockerfile" --build-arg RELEASE=unreleased --build-arg "REVISION=$revision" -t "$image" .
+              label=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
+              [[ $label == "$revision" ]] || { echo "$image carries revision '$label'" >&2; exit 1; }
+              docker push --quiet "$image"
+            fi
+            digest=$(docker buildx imagetools inspect "$image" --format '{{.Manifest.Digest}}')
+            echo "- \`$image\` \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+          }
+          publish waterflex-scheduler-engine scheduler-service/Dockerfile "$engine"
+          publish waterflex-scheduler-routing routing-service/Dockerfile "$routing"

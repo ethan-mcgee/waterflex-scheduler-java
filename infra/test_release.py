@@ -1,10 +1,24 @@
 """Guard the VM's releases: images tagged by commit, the build stamped into them, and infra/release-vm.sh's inputs."""
+import os
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REVISION = re.compile(r"^[0-9a-f]{12}$")
+
+
+def bash():
+    """Git Bash on Windows (plain bash there is WSL, which reads C:/ paths as relative folders), bash elsewhere."""
+    if sys.platform == "win32":
+        path = Path(r"C:\Program Files\Git\bin\bash.exe")
+        return str(path) if path.exists() else None
+    return shutil.which("bash")
 
 
 def read(relative):
@@ -20,6 +34,8 @@ class ReleaseTest(unittest.TestCase):
     def setUpClass(cls):
         cls.compose = read("deploy/vm/docker-compose.yml")
         cls.script = read("infra/release-vm.sh")
+        cls.revisions = read("infra/image-revisions.sh")
+        cls.workflow = read(".github/workflows/images.yml")
         cls.example = dict(re.findall(r"^(\w+)=(\S*)$", read("deploy/vm/.env.example"), re.M))
 
     def test_images_are_tagged_by_commit(self):
@@ -57,7 +73,7 @@ class ReleaseTest(unittest.TestCase):
         dockerfile = read("routing-service/Dockerfile")
         build = dockerfile[:dockerfile.rindex("\nFROM ")]
         sources = [line.split()[1:-1] for line in build.splitlines() if line.startswith("COPY ") and "--from" not in line]
-        paths = re.search(r"routing=\$\(git log -1 --format=%h --abbrev=12 -- (.*)\)", self.script)
+        paths = re.search(r'routing=\$\(git log -1 --format=%h --abbrev=12 "\$commit" -- (.*)\)', self.revisions)
         self.assertIsNotNone(paths)
         listed = paths.group(1).split()
         for source in [path for group in sources for path in group]:
@@ -69,8 +85,93 @@ class ReleaseTest(unittest.TestCase):
         self.assertIn('[[ -z $(git status --porcelain -- . ":(exclude)$env_file") ]]', self.script)
         self.assertIn('git cat-file -t "refs/tags/$tag"', self.script)
         self.assertIn('git ls-remote "$remote" "refs/tags/$tag"', self.script)
-        self.assertIn('git merge-base --is-ancestor "$tag^{commit}" "$main"', self.script)
+        self.assertIn('git merge-base --is-ancestor "$tag^{commit}" "$main_commit"', self.script)
         self.assertIn("deploy/vm/releases.log", read(".gitignore"))
+
+    def test_every_image_name_comes_from_one_script(self):
+        # Four places name the images; one that computed them differently would look for an image CI never pushed.
+        for caller in ["infra/release-vm.sh", "infra/ship-images.sh", "infra/deploy-vm.ps1", ".github/workflows/images.yml"]:
+            with self.subTest(caller=caller):
+                text = read(caller)
+                self.assertIn("infra/image-revisions.sh", text)
+                self.assertNotIn("--abbrev=12", text, "only infra/image-revisions.sh lists routing's inputs")
+
+    def test_the_release_script_is_read_whole_before_it_checks_out_the_tag(self):
+        # The checkout replaces the running file; bash reads a script as it goes unless the body is one function.
+        self.assertIn("\nmain() {\n", self.script)
+        self.assertTrue(self.script.rstrip().endswith('main "$@"'))
+        self.assertLess(self.script.index("bash infra/image-revisions.sh"), self.script.index("checkout --quiet --detach"),
+                        "the revisions come from the running checkout, so a rollback to an older tag gets them too")
+        for line in self.script.splitlines():
+            if line and not line.startswith(("#", " ", "}", "set -euo pipefail", "main() {", 'main "$@"')):
+                self.fail(f"a command outside main: {line}")
+
+    def test_the_vm_pulls_images_and_never_builds_them_by_default(self):
+        self.assertIn('docker pull --quiet "$registry/$image"', self.script)
+        self.assertIn('docker tag "$registry/$image" "$image"', self.script)
+        self.assertIn("${RELEASE_BUILD_ON_VM:-0} == 1", self.script)
+        # Whatever brought the image, its label must name the commit before anything runs it.
+        self.assertLess(self.script.index("docker pull --quiet"), self.script.index('[[ $built == "$commit" ]]'))
+        self.assertIn('"${sources[*]}" >> "$log"', self.script, "the release log records where each image came from")
+
+    def test_the_images_workflow_never_runs_pull_request_code_with_a_write_token(self):
+        on = self.workflow[self.workflow.index("\non:"):self.workflow.index("\npermissions:")]
+        self.assertNotIn("pull_request", on)
+        self.assertIn("workflows: [CI]", on)
+        self.assertIn("branches: [main]", on)
+        self.assertIn("workflow_dispatch:", on)
+        self.assertIn("\npermissions:\n  contents: read\n", self.workflow)
+        self.assertEqual(self.workflow.count("packages: write"), 1)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", self.workflow)
+        self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", self.workflow)
+        self.assertIn("persist-credentials: false", self.workflow)
+        self.assertIn("fetch-depth: 0", self.workflow, "the routing tag is a commit from history")
+
+    def test_a_replica_serves_the_release_from_the_env_file(self):
+        # An image is built per commit before any tag exists, so the release name cannot come from the image.
+        runtime = self.compose[self.compose.index("x-scheduler-runtime:"):self.compose.index("x-scheduler-replica:")]
+        self.assertIn("SCHEDULER_RELEASE: ${SCHEDULER_RELEASE:-dev}", runtime)
+        self.assertIn("--build-arg RELEASE=unreleased", self.workflow)
+
+    def test_image_revisions_names_a_commit_or_nothing(self):
+        shell = bash()
+        if shell is None:
+            self.skipTest("no bash")
+        shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=ROOT, capture_output=True, text=True)
+        if shallow.stdout.strip() != "false":
+            self.skipTest("a shallow clone has no history for the routing tag")
+        head = subprocess.run([shell, "infra/image-revisions.sh", "HEAD"], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(head.returncode, 0, head.stderr)
+        engine, routing = head.stdout.split()
+        self.assertRegex(engine, REVISION)
+        self.assertRegex(routing, REVISION)
+        missing = subprocess.run([shell, "infra/image-revisions.sh", "no-such-ref"], cwd=ROOT, capture_output=True, text=True)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertEqual(missing.stdout, "", "a failure prints no image names")
+
+    def test_a_test_stage_refuses_a_malformed_commit(self):
+        shell = bash()
+        if shell is None:
+            self.skipTest("no bash")
+        with tempfile.TemporaryDirectory() as home:
+            (Path(home) / "live.env").write_text("# a stand-in for deploy/vm/.env\n", encoding="utf-8")
+            env = dict(os.environ, PERF_HOME=home, CHECKOUT=str(ROOT), LIVE_ENV=str(Path(home) / "live.env"),
+                       LIVE_COMPOSE_FILES=str(ROOT / "deploy" / "vm" / "docker-compose.yml").replace("\\", "/"))
+            for setting in ["SCHEDULER_REVISION=main", "ROUTING_REVISION=ABCDEF123456", "SCHEDULER_REVISION=8acf5d1b51c", "SCHEDULER_IMAGE=x"]:
+                with self.subTest(setting=setting):
+                    run = subprocess.run([shell, "infra/vm-perf/vm-stage.sh", "probe", setting], cwd=ROOT, env=env,
+                                         capture_output=True, text=True)
+                    self.assertNotEqual(run.returncode, 0)
+                    self.assertRegex(run.stderr + run.stdout, r"12-character commit|may not set")
+                    self.assertEqual(list(Path(home).glob("stages/*")), [], "nothing was written for a refused stage")
+            # A well-formed commit passes and goes on to fetch its image, which a registry that cannot exist refuses.
+            env["SCHEDULER_IMAGE_REGISTRY"] = "registry.invalid/none"
+            run = subprocess.run([shell, "infra/vm-perf/vm-stage.sh", "probe", "SCHEDULER_REVISION=8acf5d1b51cc"], cwd=ROOT, env=env,
+                                 capture_output=True, text=True)
+            self.assertNotEqual(run.returncode, 0)
+            self.assertNotIn("12-character", run.stderr + run.stdout)
+            self.assertRegex(run.stderr + run.stdout, r"waterflex-scheduler-engine:8acf5d1b51cc|GB free")
+            self.assertEqual(list(Path(home).glob("stages/*")), [], "nothing was written for a stage whose image is missing")
 
     def test_scripts_run_in_linux_from_any_clone(self):
         attributes = read(".gitattributes")

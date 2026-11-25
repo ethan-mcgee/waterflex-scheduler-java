@@ -8,9 +8,15 @@
 # start again for every stage (their flight recording is the stage's own file), routing only when its settings change
 # (it reloads the road graph for minutes). Writes out/<stage>/stage.json: when the stage began and what each container
 # runs with. Refuses to start under MIN_FREE_GB of free disk. On failure the caller runs vm-restore.sh.
+#
+# SCHEDULER_REVISION and ROUTING_REVISION pin the stage to the images of the commits under test (infra/image-revisions.sh
+# names them); an image not on the VM yet is pulled from SCHEDULER_IMAGE_REGISTRY (default ghcr.io/ethan-mcgee) or
+# shipped beforehand with infra/ship-images.sh. A pinned scheduler serves the release name "unreleased". The workstation
+# (infra/deploy-vm.ps1) refuses a commit whose migrations differ from the live release's before it calls this, because
+# scheduler-admin runs the pinned image's migrations on the production database.
 source "$(dirname "$0")/common.sh"
 
-ALLOWED='^(SCHEDULER_(BOOKING|DAILY)_(CPUS|MEMORY|SEARCH_CAPACITY|DB_POOL_SIZE)|SCHEDULER_DAILY_BACKGROUND_LIMIT|SCHEDULER_BOOKING_BACKGROUND_LIMIT|ROUTING_(CPUS|MEMORY)|SCHEDULER_DB_(CPUS|MEMORY)|SCHEDULER_PROXY_CPUS|SCHEDULER_STUDY_PROFILES)$'
+ALLOWED='^(SCHEDULER_REVISION|ROUTING_REVISION|SCHEDULER_(BOOKING|DAILY)_(CPUS|MEMORY|SEARCH_CAPACITY|DB_POOL_SIZE)|SCHEDULER_DAILY_BACKGROUND_LIMIT|SCHEDULER_BOOKING_BACKGROUND_LIMIT|ROUTING_(CPUS|MEMORY)|SCHEDULER_DB_(CPUS|MEMORY)|SCHEDULER_PROXY_CPUS|SCHEDULER_STUDY_PROFILES)$'
 
 stage=${1:-}
 valid_stage "$stage" || die "usage: vm-stage.sh <stage: lowercase letters, digits, dashes> [KEY=VALUE ...]"
@@ -18,12 +24,35 @@ shift
 overrides=()
 for pair in "$@"; do
   [[ $pair =~ ^([A-Z_]+)=([A-Za-z0-9./_-]*)$ ]] || die "not KEY=VALUE with a plain value: $pair"
-  [[ ${BASH_REMATCH[1]} =~ $ALLOWED ]] || die "a stage may not set ${BASH_REMATCH[1]}"
+  # Kept before the next match, which replaces BASH_REMATCH.
+  key=${BASH_REMATCH[1]} value=${BASH_REMATCH[2]}
+  [[ $key =~ $ALLOWED ]] || die "a stage may not set $key"
+  if [[ $key == *_REVISION ]] && ! [[ $value =~ ^[0-9a-f]{12}$ ]]; then
+    die "$key must be a 12-character commit as infra/image-revisions.sh prints it, not '$value'"
+  fi
   overrides+=("$pair")
 done
 
 free=$(free_gb)
 (( free >= MIN_FREE_GB )) || die "only ${free} GB free; a stage needs ${MIN_FREE_GB} GB"
+
+# Each pinned image must be on the VM with the label of the commit it is named after.
+registry=${SCHEDULER_IMAGE_REGISTRY:-ghcr.io/ethan-mcgee}
+pinned_engine=""
+for pair in "${overrides[@]}"; do
+  case $pair in
+    SCHEDULER_REVISION=*) image=waterflex-scheduler-engine:${pair#*=}; pinned_engine=1 ;;
+    ROUTING_REVISION=*) image=waterflex-scheduler-routing:${pair#*=} ;;
+    *) continue ;;
+  esac
+  if ! docker image inspect "$image" > /dev/null 2>&1; then
+    log "stage $stage: pulling $registry/$image"
+    docker pull --quiet "$registry/$image" > /dev/null || die "$image is not on the VM and could not be pulled; ship it with infra/ship-images.sh"
+    docker tag "$registry/$image" "$image"
+  fi
+  label=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
+  [[ $label == "${image##*:}" ]] || die "$image was built from '$label'; remove it (docker image rm $image)"
+done
 
 # What an earlier start of this stage left (one that failed before the workstation copied it) is moved aside to
 # attic/, never deleted and never mixed into this start's logs and recordings.
@@ -55,6 +84,7 @@ routing_jvm="-XX:MaxRAMPercentage=75 -XX:StartFlightRecording=name=perf,settings
 # live secrets, so only the operator can read it, and it never leaves the VM.
 env_file=$STAGES/$stage.env
 keys=(PERF_PROFILES SCHEDULER_BOOKING_JAVA_OPTIONS SCHEDULER_DAILY_JAVA_OPTIONS ROUTING_JAVA_OPTIONS SCHEDULER_STUDY_RECEIPTS TIMEFOLD_LOG_LEVEL SCHEDULER_STUDY_PROFILES)
+if [[ -n $pinned_engine ]]; then keys+=(SCHEDULER_RELEASE); fi
 for pair in "${overrides[@]}"; do keys+=("${pair%%=*}"); done
 pattern="^($(IFS='|'; echo "${keys[*]}"))="
 (
@@ -75,11 +105,13 @@ pattern="^($(IFS='|'; echo "${keys[*]}"))="
       echo "$pair"
     done
     if [[ -z $solves ]]; then echo "SCHEDULER_STUDY_PROFILES="; fi
+    # /health names no release for a commit under test; its revision is the image's own.
+    if [[ -n $pinned_engine ]]; then echo "SCHEDULER_RELEASE=unreleased"; fi
   } >> "$env_file.partial"
   mv "$env_file.partial" "$env_file"
 )
 
-cd "$CHECKOUT"
+cd "$CHECKOUT" || die "no checkout at $CHECKOUT"
 compose=(docker compose "${LIVE_FILE_ARGS[@]}" "${OVERRIDE_ARGS[@]}" --env-file "$env_file")
 log "stage $stage: starting with ${overrides[*]:-the live caps}"
 

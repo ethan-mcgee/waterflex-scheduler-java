@@ -29,13 +29,14 @@ param(
     [string]$PointsGlob = 'experiments/runs/backtest-paso-robles-2026-11*/variants/*/days/*/api-request.json',
     [ValidateSet('drive', 'capacity')][string[]]$Tests = @('drive', 'capacity'),
     [ValidateRange(1, 24)][int]$DeadmanHours = 11,
-    [string]$CheckScript = '.scratch/vm-drive-times/check-vm-live.sh',
+    [string]$CheckScript = 'infra/check-vm-live.sh',
     [switch]$Local
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $repo 'infra/study-token.psm1') -Force
+Import-Module (Join-Path $repo 'infra/vm-ssh.psm1') -Force
 # Through the tunnel the API is https://127.0.0.1:18443, a name the VM's certificate holds.
 $apiTarget = '{0}:{1}' -f ([uri]$Url).Host, ([uri]$Url).Port
 $tunnelApi = $ApiPath -eq 'Tunnel' -and -not $Local
@@ -184,6 +185,11 @@ function Get-Stages {
 # ----------------------------------------------------------------------------------------------------------- the VM side
 function Invoke-Vm([string]$Command, [switch]$AllowFailure) {
     $log = Join-Path $runDir 'logs/vm.log'
+    if (-not $Local) {
+        $result = Invoke-VmCommand -Vm $Vm -Command $Command -Log $log
+        if ($result.ExitCode -ne 0 -and -not $AllowFailure) { throw "On the VM: '$Command' failed with exit $($result.ExitCode)`n$($result.Output)" }
+        return $result.Output
+    }
     Add-Content -Path $log -Value "`n# $(Get-Date -Format o) $Command"
     $ErrorActionPreference = 'Continue'
     if ($Local) {

@@ -48,6 +48,12 @@ The runner needs:
 
 Run the same command again with the same `-Run` to resume: a cell with a `cell.json` is done and skipped.
 
+## Pinning a stage to a commit
+
+A stage can run commits that are not released, which is how a paired study compares two builds on the VM: give `vm-stage.sh` `SCHEDULER_REVISION=<commit>` and `ROUTING_REVISION=<commit>` as `infra/image-revisions.sh` prints them (12 characters each), and alternate the two builds' stages. An image not on the VM yet is pulled from GHCR (`SCHEDULER_IMAGE_REGISTRY`, default `ghcr.io/ethan-mcgee`) or shipped first with `infra/ship-images.sh`, and its revision label is checked before the stage starts. The live `.env` is never edited, and `vm-restore.sh` puts the release back. `/health` names the release `unreleased` while a pinned stage runs.
+
+The runner checks nothing about migrations. Check before pinning a commit whose migrations differ from the live release's: `scheduler-admin` would apply them to the production database. `infra/deploy-vm.ps1 -Test <commit>` makes that check, backs the database up with `-AllowMigration`, and leaves the dump's path in `~/perf-test/restore-database.dump`, which `vm-restore.sh` (and so the dead-man timer) restores before it starts the release again.
+
 ## What a run leaves
 
 Each run folder under `experiments/runs/` holds the following:
