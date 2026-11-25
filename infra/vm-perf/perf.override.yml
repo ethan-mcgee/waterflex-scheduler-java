@@ -1,0 +1,29 @@
+# The VM performance test's additions to the live stack (infra/vm-perf/README.md). Started only by vm-stage.sh, with a
+# stage's env file; vm-restore.sh starts the stack again without this file, which takes every addition away.
+#
+# - Each Java container gets /profiles, a folder of ~/perf-test that its flight recording and GC log are written to.
+# - On the VM, perf.ports.yml (added by vm-stage.sh when PERF_PORTS=1) publishes each pool's management port on the
+#   loopback; the local rehearsal publishes them itself (rehearsal.override.yml).
+# - routing-omaha takes JVM options from ROUTING_JAVA_OPTIONS (fixed in the base file), so it can be recorded too.
+# - The booking pool takes SCHEDULER_SEARCH_BACKGROUND_LIMIT from SCHEDULER_BOOKING_BACKGROUND_LIMIT, so a stage can let
+#   two route geometry calls run at once. Its default is the scheduler's own (1), as the base file leaves it.
+services:
+  scheduler-booking:
+    environment:
+      SCHEDULER_SEARCH_BACKGROUND_LIMIT: ${SCHEDULER_BOOKING_BACKGROUND_LIMIT:-1}
+    volumes:
+      - type: bind
+        source: ${PERF_PROFILES:?Set PERF_PROFILES}
+        target: /profiles
+  scheduler-daily:
+    volumes:
+      - type: bind
+        source: ${PERF_PROFILES:?Set PERF_PROFILES}
+        target: /profiles
+  routing-omaha:
+    environment:
+      JAVA_TOOL_OPTIONS: ${ROUTING_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
+    volumes:
+      - type: bind
+        source: ${PERF_PROFILES:?Set PERF_PROFILES}
+        target: /profiles

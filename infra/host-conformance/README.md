@@ -79,6 +79,24 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-env SCHEDULER_STUDY_TOKEN --
 
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum, its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search, holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port) it adds the scheduler's own view: server time per route and status, admission rejections, routing pairs fetched, and the scheduler process's CPU and heap through the run. `--docker` adds CPU and memory of the named containers. The tool exits 1 when a response breaks the contract or a receipt drops an appointment, so a load run also checks correctness. `research/api-load.md` (kept locally, not committed) is the measurement protocol and its results.
 
+`--points-file <JSON>` (both load tools) takes points from a list of known-routable locations (`{"points": [{"lat": ..., "lng": ...}]}`), such as real job addresses, instead of spreading them over `--area`. Over a wide area random points can land out of a road's reach, which the scheduler answers with 422 `CURRENT_ROUTES_INFEASIBLE`. The list is walked in a seeded order, and after each full pass every point moves by under about 90 metres, so a cold run never repeats a point. `infra/vm-perf/build_points.py` builds one from imported backtest days.
+
+## Drive-time load tool
+
+`routes-load.ts` drives the calls a dispatch screen makes around a drag and drop: `POST /api/v1/routes/geometry` and `POST /api/v1/routes/insertions`. Nothing is stored by these calls.
+
+```sh
+npx tsx routes-load.ts --url http://127.0.0.1:8000 --token-env SCHEDULER_STUDY_TOKEN --metro metro-paso-robles --time-zone America/Los_Angeles --request-file day.json --mode session --callers 5 --pace-ms 10000 --duration-s 300
+```
+
+- **Modes:** `geometry` and `insertions` send one call per move. `session` is the integration guide's sequence: open the day (geometry), pick a job (insertions with timed stops), drop it at the first start offered (geometry of the day holding the job). A pick that offers no start is counted as "session, nowhere to drop", so "session" is always a whole drag.
+- **Days:** `--request-file` sends a recorded geometry request; `--technicians` with `--points-file` or `--area` generates days of `--appointments` visits each.
+- **Jobs:** `--placement fresh-job` (default) keeps the day and moves the job, `fresh-day` sends a new day and job every call (nothing cached), `repeat` sends the same day and job (every leg cached).
+- **Pacing:** without `--pace-ms` each dispatcher moves again as soon as answered. With it, each moves on a fixed clock whatever the answers, so a slow scheduler shows as queueing and lateness rather than as fewer calls; a dispatcher with `--max-outstanding` moves open skips a tick and counts it.
+- **Outcomes:** calls are never retried, so 429 and 503 are counted with their `Retry-After`. Every answer is checked against the contract.
+
+The report (`routes-report/`) keeps every call with its send time, total time, time to headers and answer size, and per operation the percentiles, calls answered 200 per second and pacing lateness. `infra/vm-perf/` runs it, with `load.ts`, against the scheduler VM.
+
 ## Development
 
 ```sh

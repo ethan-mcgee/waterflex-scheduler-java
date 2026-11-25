@@ -1,0 +1,8 @@
+# The VM performance test publishes each pool's management port on the VM's loopback only (as rehearsal.override.yml
+# does locally), so the workstation reads the replicas' metrics through an SSH tunnel. Nothing is published on the VM's
+# network address, and vm-restore.sh starts the stack without this file.
+services:
+  scheduler-booking:
+    ports: ["127.0.0.1:19010:9000"]
+  scheduler-daily:
+    ports: ["127.0.0.1:19011:9000"]

@@ -8,6 +8,7 @@
   "scripts": {
     "conformance": "tsx conformance.ts",
     "load": "tsx load.ts",
+    "routes-load": "tsx routes-load.ts",
     "quality": "tsx quality.ts",
     "move-check-report": "tsx move-check-report.ts",
     "typecheck": "tsc --noEmit",
